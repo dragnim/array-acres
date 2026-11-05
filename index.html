@@ -259,6 +259,19 @@ const APL = (() => {
   const STEP_LIMIT = 200000, DEPTH_LIMIT = 400;
   const tick = () => { if (++steps > STEP_LIMIT) err('INTERRUPT', 'your function ran for too long'); };
 
+  // Size limit, checked before any array is built, so one expression can't exhaust memory.
+  const MAX_ELEMENTS = 1000000;
+  const wsFull = () => err('WS FULL', 'array exceeds 1,000,000 elements');
+  const checkCount = n => { if (!(n <= MAX_ELEMENTS)) wsFull(); return n; };
+  // Element count of a shape. Stops multiplying as soon as the cap is passed, so huge
+  // dimensions never overflow or lose precision, and any zero-length axis gives 0.
+  function sizeOf(sh) {
+    if (sh.some(d => d === 0)) return 0;
+    let n = 1;
+    for (const d of sh) { n *= d; checkCount(n); }
+    return n;
+  }
+
   const intOf = (x, what) => { if (!Number.isInteger(x)) err('DOMAIN ERROR', `${what} must be whole numbers`); return x; };
 
   const mkfn = (name, m, d, extra) => Object.assign({
@@ -336,12 +349,13 @@ const APL = (() => {
     const A = lift(a, w), W = lift(w, a);
     for (let j = 0; j < r; j++) if (j !== k && A.shape[j] !== W.shape[j]) err('LENGTH ERROR', `can't join ${describe(a)} and ${describe(w)}`);
     const [pre, na, post] = axisParts(A.shape, k), nw = W.shape[k];
+    const sh = A.shape.slice(); sh[k] = na + nw;
+    sizeOf(sh);
     const out = [];
     for (let p = 0; p < pre; p++) {
       for (let i = 0; i < na * post; i++) out.push(A.data[p * na * post + i]);
       for (let i = 0; i < nw * post; i++) out.push(W.data[p * nw * post + i]);
     }
-    const sh = A.shape.slice(); sh[k] = na + nw;
     return arr(sh, out);
   }
 
@@ -371,7 +385,7 @@ const APL = (() => {
       if (isTake) { newSh.push(Math.abs(t)); start.push(t >= 0 ? 0 : n + t); }
       else { newSh.push(Math.max(0, n - Math.abs(t))); start.push(t >= 0 ? t : 0); }
     }
-    const out = new Array(prod(newSh)), st = stridesOf(w.shape), idx = new Array(r).fill(0);
+    const out = new Array(sizeOf(newSh)), st = stridesOf(w.shape), idx = new Array(r).fill(0);
     for (let i = 0; i < out.length; i++) {
       let s = 0, inside = true;
       for (let j = 0; j < r; j++) {
@@ -420,7 +434,7 @@ const APL = (() => {
     else if (cs.length !== n && n !== 1) err('LENGTH ERROR', `${cs.length} counts for ${n} items`);
     const m = cs.reduce((s, c) => s + Math.abs(c), 0);
     const sh = w.shape.slice(); sh[k] = m;
-    const out = new Array(pre * m * post);
+    const out = new Array(sizeOf(sh));
     for (let p = 0; p < pre; p++) {
       let o = 0;
       cs.forEach((c, j) => {
@@ -439,6 +453,7 @@ const APL = (() => {
       ix.data.forEach(v => { if (!Number.isInteger(v) || v < 1 || v > w.shape[j]) err('INDEX ERROR', `${v} is outside 1 to ${w.shape[j]}`); });
       return ix;
     });
+    sizeOf(sel.flatMap(s => s.shape));
     const st = stridesOf(w.shape);
     let offs = [0];
     sel.forEach((s, j) => { const next = []; for (const o of offs) for (const v of s.data) next.push(o + (v - 1) * st[j]); offs = next; });
@@ -478,13 +493,13 @@ const APL = (() => {
       if (a.shape.length > 1) err('RANK ERROR', 'left argument of ⍴ must be a vector');
       const sh = a.data.map(n => { intOf(n, '⍴ lengths'); if (n < 0) err('DOMAIN ERROR', '⍴ lengths can\'t be negative'); return n; });
       const src = w.data.length ? w.data : [0];
-      return arr(sh, Array.from({ length: prod(sh) }, (_, i) => src[i % src.length]));
+      return arr(sh, Array.from({ length: sizeOf(sh) }, (_, i) => src[i % src.length]));
     }),
     '⍳': mkfn('⍳', w => {
       if (w.data.length !== 1 || w.shape.length > 1) err('NONCE ERROR', '⍳ only takes a single number here');
       const n = intOf(w.data[0], '⍳ arguments');
       if (n < 0) err('DOMAIN ERROR', '⍳ needs a non-negative number');
-      return V(range(n));
+      return V(range(checkCount(n)));
     }, (a, w) => {
       if (a.shape.length > 1) err('RANK ERROR', 'left argument of ⍳ must be a vector');
       return arr(w.shape, w.data.map(x => { const i = a.data.indexOf(x); return i < 0 ? a.data.length + 1 : i + 1; }));
@@ -504,8 +519,11 @@ const APL = (() => {
     '∊': mkfn('∊', w => V(w.data.slice()), (a, w) => arr(a.shape, a.data.map(x => +w.data.includes(x)))),
     '⍸': mkfn('⍸', w => {
       if (w.shape.length > 1) err('NONCE ERROR', '⍸ on a matrix needs nested arrays, which aren\'t supported yet');
+      const counts = w.shape.length ? w.data : [w.data[0]];
+      counts.forEach(c => { intOf(c, '⍸ arguments'); if (c < 0) err('DOMAIN ERROR', '⍸ needs non-negative numbers'); });
+      checkCount(counts.reduce((s, c) => s + c, 0));
       const out = [];
-      (w.shape.length ? w.data : [w.data[0]]).forEach((c, i) => { intOf(c, '⍸ arguments'); if (c < 0) err('DOMAIN ERROR', '⍸ needs non-negative numbers'); for (let r = 0; r < c; r++) out.push(i + 1); });
+      counts.forEach((c, i) => { for (let r = 0; r < c; r++) out.push(i + 1); });
       return V(out);
     }),
     '⍋': grade(false),
@@ -535,6 +553,7 @@ const APL = (() => {
 
   function outer(f) {
     return mkfn('∘.' + f.name, null, (a, w) => {
+      sizeOf(a.shape.concat(w.shape));
       const g = scalarCall(f), out = [];
       for (const x of a.data) for (const y of w.data) out.push(g(x, y));
       return arr(a.shape.concat(w.shape), out);
@@ -549,6 +568,7 @@ const APL = (() => {
       let k = ka;
       if (ka !== kw) { if (ka === 1) k = kw; else if (kw === 1) k = ka; else err('LENGTH ERROR', `can't pair ${describe(a)} with ${describe(w)}`); }
       const rows = a.shape.slice(0, -1), cols = w.shape.slice(1);
+      sizeOf(rows.concat(cols));
       const R = prod(rows), C = prod(cols), ff = scalarCall(f), gg = scalarCall(g), out = new Array(R * C);
       for (let i = 0; i < R; i++) for (let j = 0; j < C; j++) {
         const vals = [];
