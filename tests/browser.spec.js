@@ -164,3 +164,18 @@ test('giant crops appear exactly where ripe 2×2 squares are', async ({ page }) 
     await page.click('#step');
   }
 });
+
+test('days cross-fade, except when reduced motion is preferred', async ({ browser }) => {
+  for (const [reducedMotion, fades] of [['no-preference', 'true'], ['reduce', 'false']]) {
+    const context = await browser.newContext({ reducedMotion });
+    const page = await context.newPage();
+    await page.goto(PAGE);
+    await page.locator('#code').fill('Harvest←{⍵=3}');
+    await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
+    await page.click('#step');
+    expect(await page.locator('#field').getAttribute('data-fading')).toBe(fades);
+    await expect(page.locator('#field')).toHaveAttribute('data-fading', 'false');
+    await expect(page.locator('#sTick')).toHaveText('1/100');
+    await context.close();
+  }
+});
