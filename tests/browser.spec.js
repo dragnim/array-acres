@@ -209,3 +209,25 @@ test('the rules on the page state the numbers the game actually uses', async ({ 
   for (const claim of [`${R.size}×${R.size}`, `${R.days} days`, `${pct(R.grow)} chance to grow`, `${pct(R.rotChance)} chance to rot`, `scores ${R.bonus} instead`])
     expect(rules).toContain(claim);
 });
+
+test('Reset code restores the starter code, and undo brings the player’s code back', async ({ page }) => {
+  await page.goto(PAGE);
+  const code = page.locator('#code');
+  const starter = await code.inputValue();
+  expect(starter).toMatch(/Harvest←\{0\}\n$/);
+
+  await code.fill('Harvest←{⍵≥3}');
+  await page.click('#resetCode');
+  await expect(code).toHaveValue(starter);
+  await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
+
+  // The reset is kept, like any other edit.
+  await page.reload();
+  await expect(code).toHaveValue(starter);
+
+  // And it can be undone.
+  await code.fill('Harvest←{⍵≥3}');
+  await page.click('#resetCode');
+  await code.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
+  await expect(code).toHaveValue('Harvest←{⍵≥3}');
+});
