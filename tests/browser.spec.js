@@ -7,6 +7,14 @@ const { pathToFileURL } = require('url');
 
 const PAGE = pathToFileURL(path.join(__dirname, '..', 'index.html')).href;
 
+// How to play opens by itself on a first visit. Most tests start as a returning player.
+// (Set by visiting once, not with an init script: init scripts that touch storage can lose it on reload.)
+const returning = async page => {
+  await page.goto(PAGE);
+  await page.evaluate(() => localStorage.setItem('acres:help-seen', '1'));
+};
+test.beforeEach(async ({ page }) => { await returning(page); });
+
 test('preview and diagnostics follow the code and the field', async ({ page }) => {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
@@ -120,6 +128,11 @@ test('medals unlock farms, symbols and helpers, and bests survive a reload', asy
   await expect(page.locator('#cmpStatus')).toHaveText('Your first result on this farm.');
   await expect(page.locator('#cmpTier')).toHaveText('You reached Bronze. Silver is 1350.');
   await expect(unlock).toHaveText('Unlocked: ∧ ∨ ~, the BumperCrops helper and Bramley Farm. See the field guide.');
+  // The field guide button shows New until the guide is opened, here from the report's link.
+  await expect(page.locator('#guideNew')).toBeVisible();
+  await unlock.getByRole('button', { name: 'See the field guide' }).click();
+  await expect(page.locator('#panelTitle')).toHaveText('Field guide');
+  await expect(page.locator('#guideNew')).toBeHidden();
   await expect(page.locator('.tier[data-tier="bronze"]')).toHaveAttribute('data-earned', 'true');
   await expect(page.locator('#farm option[value="bramley-farm"]')).toBeEnabled();
 
@@ -196,6 +209,7 @@ test('days cross-fade, except when reduced motion is preferred', async ({ browse
   for (const [reducedMotion, fades] of [['no-preference', 'true'], ['reduce', 'false']]) {
     const context = await browser.newContext({ reducedMotion });
     const page = await context.newPage();
+    await returning(page);
     await page.goto(PAGE);
     await page.locator('#code').fill('Harvest←{⍵=3}');
     await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
@@ -288,4 +302,40 @@ test('code saved before Giants was renamed BumperCrops still works', async ({ pa
   await page.goto(PAGE);
   await expect(page.locator('#code')).toHaveValue('Harvest←{(⍵=4)∨BumperCrops ⍵}');
   await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
+});
+
+test('How to play opens on a first visit, and the side panel switches and closes', async ({ browser }) => {
+  const page = await browser.newPage();
+  await page.goto(PAGE);
+  const panel = page.locator('#panel'), title = page.locator('#panelTitle');
+
+  await expect(panel).toBeVisible();
+  await expect(title).toHaveText('How to play');
+  await expect(page.locator('#rules li')).toHaveCount(6);
+  await page.keyboard.press('Escape');
+  await expect(panel).toBeHidden();
+
+  // Only on the first visit.
+  await page.reload();
+  await expect(panel).toBeHidden();
+
+  await page.click('#openGuide');
+  await expect(title).toHaveText('Field guide');
+  await expect(page.locator('#openGuide')).toHaveAttribute('aria-expanded', 'true');
+  await page.click('#openHelp');
+  await expect(title).toHaveText('How to play');
+  await expect(page.locator('#pGuide')).toBeHidden();
+  await expect(page.locator('#openGuide')).toHaveAttribute('aria-expanded', 'false');
+  await page.click('#openHelp');
+  await expect(panel).toBeHidden();
+  await page.click('#openGuide');
+  await page.click('#closePanel');
+  await expect(panel).toBeHidden();
+
+  // Esc in the editor leaves it for Tab, and doesn't close the panel.
+  await page.click('#openGuide');
+  await page.locator('#code').focus();
+  await page.keyboard.press('Escape');
+  await expect(panel).toBeVisible();
+  await page.close();
 });
