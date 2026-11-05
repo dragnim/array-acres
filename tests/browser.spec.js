@@ -279,3 +279,13 @@ test('the field can show its numbers, exactly as Harvest sees them', async ({ pa
   await page.locator('#showNumbers').click();
   await expect(field).toHaveAttribute('data-numbers', 'off');
 });
+
+test('code saved before Giants was renamed BumperCrops still works', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('acres:bests', JSON.stringify({ 'v2:manor-farm': { score: 9999 } }));
+    localStorage.setItem('allotment:apl', 'Harvest←{(⍵=4)∨Giants ⍵}');
+  });
+  await page.goto(PAGE);
+  await expect(page.locator('#code')).toHaveValue('Harvest←{(⍵=4)∨BumperCrops ⍵}');
+  await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
+});
