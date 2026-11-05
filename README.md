@@ -58,4 +58,4 @@ Human playtesting of the three challenges, before adding another crop.
 
 ## Credits
 
-The editor uses [APL386](https://github.com/abrudz/APL386), released into the public domain, subset and embedded in the page.
+The editor uses [APL386](https://github.com/abrudz/APL386), released into the public domain, subset and embedded in the page. The plant illustrations in `assets/plants` were made for this project with ChatGPT.
