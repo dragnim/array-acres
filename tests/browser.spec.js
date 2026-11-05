@@ -11,6 +11,7 @@ test('preview and diagnostics follow the code and the field', async ({ page }) =
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.goto(PAGE);
+  await page.selectOption('#farm', 'practice'); // every symbol is unlocked on Practice Farm
 
   const code = page.locator('#code');
   const status = page.locator('#status');
@@ -91,13 +92,13 @@ test('preview and diagnostics follow the code and the field', async ({ page }) =
   expect(errors).toEqual([]);
 });
 
-test('farms keep separate personal bests that survive a reload', async ({ page }) => {
+test('medals unlock farms, symbols and helpers, and bests survive a reload', async ({ page }) => {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.goto(PAGE);
 
   const code = page.locator('#code'), status = page.locator('#status');
-  const best = page.locator('#sBest'), msg = page.locator('#msg');
+  const best = page.locator('#sBest'), msg = page.locator('#msg'), unlock = page.locator('#cmpUnlock');
   const playSeason = async src => {
     await code.fill(src);
     await expect(status).toHaveAttribute('data-state', 'ready');
@@ -105,48 +106,73 @@ test('farms keep separate personal bests that survive a reload', async ({ page }
     await page.click('#run');
     await expect(msg).toHaveText(/^Season over\./, { timeout: 30000 });
   };
-
-  await page.selectOption('#farm', 'nuthanger-farm');
-  await expect(page.locator('#weather')).toHaveText('Sunshine 50%Rainfall 25%');
-  await expect(page.locator('#newField')).toBeDisabled();
-  await expect(best).toHaveText('–');
   await page.selectOption('#speed', '30');
 
-  // First result: recorded, with no previous best to compare against.
+  // A new player starts on Manor Farm.
+  await expect(page.locator('#farm')).toHaveValue('manor-farm');
+  await expect(page.locator('#weather')).toHaveText('Sunshine 55%Rainfall 20%');
+  await expect(page.locator('#farm option[value="bramley-farm"]')).toBeDisabled();
+  await expect(page.locator('#newField')).toBeDisabled();
+
+  // Bronze on Manor Farm.
   await playSeason('Harvest←{⍵≥3}');
-  await expect(page.locator('#cmpThis')).toHaveText('1093');
+  await expect(page.locator('#cmpThis')).toHaveText('1213');
   await expect(page.locator('#cmpStatus')).toHaveText('Your first result on this farm.');
-  await expect(best).toHaveText('1093');
-  await expect(page.locator('#cmpTier')).toHaveText('You reached Bronze. Silver is 1150.');
+  await expect(page.locator('#cmpTier')).toHaveText('You reached Bronze. Silver is 1350.');
+  await expect(unlock).toHaveText('Unlocked: ∧ ∨ ~, the Giants helper and Bramley Farm. See the field guide.');
   await expect(page.locator('.tier[data-tier="bronze"]')).toHaveAttribute('data-earned', 'true');
-  await expect(page.locator('.tier[data-tier="silver"]')).toHaveAttribute('data-earned', 'false');
+  await expect(page.locator('#farm option[value="bramley-farm"]')).toBeEnabled();
 
-  // A worse run doesn't replace it.
+  // A run that doesn't improve keeps the best and unlocks nothing new.
   await playSeason('Harvest←{⍵=3}');
-  await expect(page.locator('#cmpPrev')).toHaveText('1093');
-  await expect(page.locator('#cmpStatus')).toHaveText('Your personal best stays at 1093.');
-  await expect(best).toHaveText('1093');
+  await expect(page.locator('#cmpStatus')).toHaveText('Your personal best stays at 1213.');
+  await expect(unlock).toBeHidden();
 
-  // Bests and the chosen farm survive a reload.
+  // Bests, unlocks and the chosen farm survive a reload.
   await page.reload();
-  await expect(page.locator('#farm')).toHaveValue('nuthanger-farm');
-  await expect(best).toHaveText('1093');
+  await expect(page.locator('#farm')).toHaveValue('manor-farm');
+  await expect(best).toHaveText('1213');
+  await expect(page.locator('#farm option[value="bramley-farm"]')).toBeEnabled();
 
-  // Other farms have their own bests, and Practice Farm has none to keep.
-  await page.selectOption('#farm', 'manor-farm');
+  // Silver on Bramley Farm, harvesting only giant crops.
+  await page.selectOption('#farm', 'bramley-farm');
   await expect(best).toHaveText('–');
-  await expect(page.locator('.tier[data-earned="true"]')).toHaveCount(0);
+  await page.selectOption('#speed', '30');
+  await playSeason('Harvest←{(⍵=4)∨Giants ⍵}');
+  await expect(page.locator('#cmpTier')).toHaveText('You reached Silver. Gold is 2100.');
+  await expect(unlock).toHaveText('Unlocked: the Promising helper and Nuthanger Farm. See the field guide.');
 
-  // Reaching Gold celebrates without claiming the puzzle is solved.
-  await playSeason(fs.readFileSync(path.join(__dirname, '..', 'reference', 'hybrid.apl'), 'utf8'));
+  // Gold with the helpers, which unlocks everything else.
+  await playSeason('Harvest←{(⍵=4)∨(Giants ⍵)∨(⍵=3)∧~Promising ⍵}');
   await expect(page.locator('#cmpTier')).toHaveText('Gold reached! You’ve found a powerful strategy. Can you do even better?');
+  await expect(unlock).toHaveText('Unlocked: every symbol, the Squares helper and the helpers’ source code. See the field guide.');
   await expect(page.locator('.tier[data-earned="true"]')).toHaveCount(3);
+
+  // Practice Farm keeps no bests.
   await page.selectOption('#farm', 'practice');
   await expect(page.locator('#newField')).toBeEnabled();
   await expect(page.locator('#bestLabel')).toHaveText('Best on this field');
   await expect(page.locator('#targets')).toBeHidden();
 
   expect(errors).toEqual([]);
+});
+
+test('locked symbols and helpers say what unlocks them, except on Practice Farm', async ({ page }) => {
+  await page.goto(PAGE);
+  const code = page.locator('#code'), status = page.locator('#status'), diag = page.locator('#diag');
+  const glyph = ch => page.locator('#glyphs button', { hasText: ch });
+
+  await expect(glyph('∨')).toBeDisabled();
+  await expect(glyph('≠')).toBeEnabled();
+  await code.fill('Harvest←{(⍵=3)∨⍵=4}');
+  await expect(status).toHaveAttribute('data-state', 'locked');
+  await expect(diag).toHaveText('∨ unlocks with Bronze on Manor Farm. Practice Farm has every symbol and helper.');
+  await expect(page.locator('.guide-item[data-locked="true"]')).toHaveCount(4);
+
+  await page.selectOption('#farm', 'practice');
+  await expect(glyph('∨')).toBeEnabled();
+  await expect(status).toHaveAttribute('data-state', 'ready');
+  await expect(page.locator('.guide-item[data-locked="true"]')).toHaveCount(0);
 });
 
 test('giant crops appear exactly where ripe 2×2 squares are', async ({ page }) => {
@@ -205,7 +231,9 @@ test('the rules on the page state the numbers the game actually uses', async ({ 
   const { AcresCore } = new Function(script('apl-interpreter') + '\n' + script('acres-core') + '\nreturn { AcresCore };')();
   const R = AcresCore.RULES, pct = p => `${Math.round(p * 100)}%`;
 
-  // The rules follow the chosen farm's weather.
+  // The rules follow the chosen farm's weather. Every farm is unlocked for this test.
+  await page.addInitScript(() => localStorage.setItem('acres:bests', JSON.stringify({
+    'v2:manor-farm': { score: 9999 }, 'v2:bramley-farm': { score: 9999 }, 'v2:nuthanger-farm': { score: 9999 } })));
   await page.goto(PAGE);
   for (const f of AcresCore.FARMS) {
     await page.selectOption('#farm', f.id);
