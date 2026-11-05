@@ -1,0 +1,1251 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Array Acres</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+@font-face {
+  font-family: "APL386";
+  src: url(data:font/woff2;base64,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) format("woff2");
+  font-display: block;
+}
+:root {
+  color-scheme: light;
+  --mono: "APL386", "APL385 Unicode", "DejaVu Sans Mono", ui-monospace, monospace;
+  --bg: #E6EADB;
+  --surface: #F6F7F0;
+  --ink: #1F2A1B;
+  --muted: #5B6652;
+  --line: #C9CFBA;
+  --accent: #3F7A35;
+  --on-accent: #F6F7F0;
+  --code-bg: #FBFBF6;
+  --error: #A3361F;
+  --soil: #8C6A4A;
+  --soil-2: #6E5238;
+  --seed: #EADCC0;
+  --leaf: #3F7A35;
+  --ripe: #E0A92A;
+  --rot: #4A3A28;
+  --mark: #FFF2B8;
+  --preview: #2F6FA8;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #141A12;
+    --surface: #1C2419;
+    --ink: #E4E9D6;
+    --muted: #9AA48C;
+    --line: #33402C;
+    --accent: #86C26A;
+    --on-accent: #10150E;
+    --code-bg: #10150E;
+    --error: #F08A6E;
+    --soil: #4E3B2A;
+    --soil-2: #33271B;
+    --seed: #CDBB98;
+    --leaf: #7DB561;
+    --ripe: #EDBD47;
+    --rot: #9A8060;
+    --mark: #F7EBA8;
+    --preview: #8EC3F0;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #141A12;
+  --surface: #1C2419;
+  --ink: #E4E9D6;
+  --muted: #9AA48C;
+  --line: #33402C;
+  --accent: #86C26A;
+  --on-accent: #10150E;
+  --code-bg: #10150E;
+  --error: #F08A6E;
+  --soil: #4E3B2A;
+  --soil-2: #33271B;
+  --seed: #CDBB98;
+  --leaf: #7DB561;
+  --ripe: #EDBD47;
+  --rot: #9A8060;
+  --mark: #F7EBA8;
+  --preview: #8EC3F0;
+}
+:root {
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); background: var(--bg); }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.45;
+}
+.wrap { max-width: 1120px; margin: 0 auto; padding: clamp(16px, 4vw, 40px); }
+header h1 {
+  font-size: clamp(2.4rem, 7vw, 4rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  margin: 0;
+}
+header p { margin: 0.6rem 0 0; max-width: 62ch; color: var(--muted); font-size: 1.05rem; }
+.game {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(16px, 3vw, 32px);
+  margin-top: clamp(20px, 3vw, 32px);
+  align-items: start;
+}
+@media (max-width: 820px) { .game { grid-template-columns: 1fr; } }
+.plot { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+#field { display: block; width: 100%; aspect-ratio: 1; border-radius: 8px; background: var(--soil-2); }
+.stats { display: flex; flex-wrap: wrap; gap: 6px 24px; margin-top: 12px; font-variant-numeric: tabular-nums; }
+.stat { display: flex; flex-direction: column; }
+.stat span { font-size: 0.85rem; color: var(--muted); }
+.stat strong { font-size: 1.45rem; font-weight: 600; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: 14px; font-size: 0.9rem; color: var(--muted); }
+.legend div { display: flex; align-items: center; gap: 6px; }
+.legend canvas { width: 28px; height: 28px; border-radius: 5px; background: var(--soil-2); }
+.legend code { font-family: var(--mono); color: var(--ink); font-weight: 600; }
+.rules { margin: 12px 0 2px; font-size: 0.92rem; color: var(--muted); max-width: 62ch; }
+.editor .label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.editor label.title { font-weight: 600; }
+.status { font-size: 0.85rem; color: var(--muted); }
+.status[data-state="code"], .status[data-state="result"], .status[data-state="internal"] { color: var(--error); }
+#diag { margin-top: 8px; min-height: 1.4em; font: 0.88rem/1.4 var(--mono); color: var(--error); white-space: pre-wrap; }
+textarea {
+  width: 100%;
+  min-height: 300px;
+  resize: vertical;
+  font: 16px/1.5 var(--mono);
+  background: var(--code-bg);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 10px 10px 0 0;
+  padding: 12px 14px;
+  tab-size: 2;
+  white-space: pre;
+  overflow: auto;
+  display: block;
+}
+.glyphs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: 0;
+  border-radius: 0 0 10px 10px;
+}
+.glyphs button {
+  font: 18px/1 var(--mono);
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+}
+.glyphs button:hover { background: var(--code-bg); border-color: var(--line); }
+.glyphs .gap { width: 8px; }
+.hint { color: var(--muted); font-size: 0.85rem; margin: 8px 0 0; }
+.hint kbd { font-family: var(--mono); font-size: 0.95em; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; align-items: center; }
+.controls button, .controls select {
+  font: inherit;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.controls button:hover, .controls select:hover { border-color: var(--muted); }
+.controls button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; min-width: 5.5em; }
+:focus-visible { outline: 3px solid var(--ripe); outline-offset: 2px; }
+.speed { margin-left: auto; display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.9rem; }
+#msg { margin-top: 12px; min-height: 1.5em; font-size: 0.95rem; }
+#msg.error { color: var(--error); font-family: var(--mono); white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Array Acres</h1>
+    <p>Write one APL function. Every day it gets the whole field as a matrix and returns a boolean matrix of plots to harvest. Score as much as you can in 100 days.</p>
+  </header>
+
+  <main class="game">
+    <section class="plot" aria-label="Field">
+      <canvas id="field" role="img" aria-label="The field"></canvas>
+      <div class="stats">
+        <div class="stat"><span>Day</span><strong id="sTick">0/100</strong></div>
+        <div class="stat"><span>Score</span><strong id="sScore">0</strong></div>
+        <div class="stat"><span>Wasted</span><strong id="sWasted">0</strong></div>
+        <div class="stat"><span>Best on this field</span><strong id="sBest">–</strong></div>
+      </div>
+      <div class="legend" id="legend"></div>
+      <p class="rules">Each day, unripe plots may grow a stage, ripe plots may rot, and rotten plots stay until you harvest them. A ripe harvest scores 1, or 3 if the plot is part of a 2×2 block of ripe plots harvested together (outlined in gold). Harvesting a sprout or growing plot wastes it. The same field and the same code always give the same result.</p>
+    </section>
+
+    <section class="editor">
+      <div class="label-row">
+        <label class="title" for="code">Your code</label>
+        <span class="status" id="status" aria-live="polite"></span>
+      </div>
+      <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
+      <div class="glyphs" id="glyphs" aria-label="APL symbols"></div>
+      <div id="diag" aria-live="polite"></div>
+      <p class="hint">Type symbols with the bar or a backtick prefix, so <kbd>`w</kbd> gives <kbd>⍵</kbd>. Hover a symbol to see its name and key. Dashed outlines preview what Harvest would pick today, without using up a day. Ctrl+Enter or ⌘+Enter steps once. Tab indents; press Esc then Tab to leave the editor.</p>
+      <div class="controls">
+        <button class="primary" id="run">Run</button>
+        <button id="step">Step</button>
+        <button id="restart">Restart</button>
+        <button id="newField">New field</button>
+        <label class="speed">Speed
+          <select id="speed">
+            <option value="400">Slow</option>
+            <option value="150" selected>Normal</option>
+            <option value="30">Fast</option>
+          </select>
+        </label>
+      </div>
+      <div id="msg" role="status"></div>
+    </section>
+  </main>
+</div>
+
+<script id="apl-interpreter">
+const APL = (() => {
+  class AplError extends Error {}
+  const err = (kind, detail) => { throw new AplError(detail ? `${kind}: ${detail}` : kind); };
+
+  // Arrays are { shape, data } with data in row-major order. Numbers only.
+  const arr = (shape, data) => ({ shape, data });
+  const S = x => arr([], [x]);
+  const V = xs => arr([xs.length], xs);
+  const prod = sh => sh.reduce((a, b) => a * b, 1);
+  const isFn = x => !!x && typeof x.monad === 'function';
+  const isBool = x => x === 0 || x === 1;
+  const range = n => Array.from({ length: n }, (_, i) => i + 1);
+  const stridesOf = sh => { const st = new Array(sh.length); let s = 1; for (let j = sh.length - 1; j >= 0; j--) { st[j] = s; s *= sh[j]; } return st; };
+  const axisParts = (sh, k) => [prod(sh.slice(0, k)), sh[k], prod(sh.slice(k + 1))];
+  const mod = (a, n) => ((a % n) + n) % n;
+
+  function describe(v) {
+    if (isFn(v)) return 'a function';
+    const r = v.shape.length;
+    if (r === 0) return 'a single number';
+    if (r === 1) return `a vector of length ${v.shape[0]}`;
+    if (r === 2) return `a ${v.shape[0]}×${v.shape[1]} matrix`;
+    return `a rank-${r} array`;
+  }
+
+  // Limits so a runaway function can't freeze the page.
+  let steps = 0, depth = 0;
+  const STEP_LIMIT = 200000, DEPTH_LIMIT = 400;
+  const tick = () => { if (++steps > STEP_LIMIT) err('INTERRUPT', 'your function ran for too long'); };
+
+  const intOf = (x, what) => { if (!Number.isInteger(x)) err('DOMAIN ERROR', `${what} must be whole numbers`); return x; };
+
+  const mkfn = (name, m, d, extra) => Object.assign({
+    name,
+    monad: m || (() => err('VALENCE ERROR', `${name} needs a left argument`)),
+    dyad: d || (() => err('VALENCE ERROR', `${name} can't take a left argument`)),
+  }, extra || {});
+
+  function pervade(f, a, w) {
+    if (a.data.length === 1 && w.data.length === 1) {
+      return arr(a.shape.length >= w.shape.length ? a.shape : w.shape, [f(a.data[0], w.data[0])]);
+    }
+    if (a.data.length === 1) { const x = a.data[0]; return arr(w.shape, w.data.map(y => f(x, y))); }
+    if (w.data.length === 1) { const y = w.data[0]; return arr(a.shape, a.data.map(x => f(x, y))); }
+    if (a.shape.length !== w.shape.length) err('RANK ERROR', `can't pair ${describe(a)} with ${describe(w)}`);
+    if (!a.shape.every((n, i) => n === w.shape[i])) err('LENGTH ERROR', `can't pair ${describe(a)} with ${describe(w)}`);
+    return arr(a.shape, a.data.map((x, i) => f(x, w.data[i])));
+  }
+
+  const scalar = (name, m, d) => mkfn(name,
+    m && (w => arr(w.shape, w.data.map(m))),
+    d && ((a, w) => pervade(d, a, w)),
+    { sd: d });
+
+  const div = (a, w) => w === 0 ? (a === 0 ? 1 : err('DOMAIN ERROR', 'divide by zero')) : a / w;
+  const residue = (a, w) => a === 0 ? w : w - a * Math.floor(w / a);
+  const gcd = (a, b) => { intOf(a, '∨ arguments'); intOf(b, '∨ arguments'); a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a; };
+  const lcm = (a, b) => (a === 0 || b === 0) ? 0 : Math.abs(a * b) / gcd(a, b);
+
+  // Call any function on two numbers and insist on a single-number result.
+  const scalarCall = f => f.sd || ((x, y) => single(f.dyad(S(x), S(y)), f));
+  function single(r, f) {
+    if (isFn(r) || r.data.length !== 1) err('NONCE ERROR', `${f.name} must return a single number here (nested arrays aren't supported yet)`);
+    return r.data[0];
+  }
+  const IDENTITY = { '+': 0, '-': 0, '|': 0, '∨': 0, '≠': 0, '<': 0, '>': 0, '×': 1, '÷': 1, '∧': 1, '=': 1, '≤': 1, '≥': 1, '⌈': -Number.MAX_VALUE, '⌊': Number.MAX_VALUE };
+  const identity = f => f.name in IDENTITY ? IDENTITY[f.name] : err('DOMAIN ERROR', `${f.name} has no identity element for an empty reduction`);
+
+  // Structural helpers
+  function reverseAxis(w, k) {
+    if (!w.shape.length) return w;
+    const [pre, n, post] = axisParts(w.shape, k), out = new Array(w.data.length);
+    for (let p = 0; p < pre; p++) for (let i = 0; i < n; i++) for (let q = 0; q < post; q++)
+      out[(p * n + i) * post + q] = w.data[(p * n + (n - 1 - i)) * post + q];
+    return arr(w.shape, out);
+  }
+
+  function rotateAxis(a, w, k) {
+    if (!w.shape.length) return w;
+    const [pre, n, post] = axisParts(w.shape, k);
+    if (n === 0) return w;
+    a.data.forEach(x => intOf(x, 'rotation amounts'));
+    let amt;
+    if (a.data.length === 1) amt = () => a.data[0];
+    else if (a.data.length === pre * post) amt = (p, q) => a.data[p * post + q];
+    else err('LENGTH ERROR', `rotation amounts don't match ${describe(w)}`);
+    const out = new Array(w.data.length);
+    for (let p = 0; p < pre; p++) for (let q = 0; q < post; q++) {
+      const r = amt(p, q);
+      for (let i = 0; i < n; i++) out[(p * n + i) * post + q] = w.data[(p * n + mod(i + r, n)) * post + q];
+    }
+    return arr(w.shape, out);
+  }
+
+  function catenate(a, w, first) {
+    if (!a.shape.length && !w.shape.length) return V([a.data[0], w.data[0]]);
+    const r = Math.max(a.shape.length, w.shape.length);
+    const k = first ? 0 : r - 1;
+    const lift = (x, other) => {
+      if (x.shape.length === r) return x;
+      if (x.shape.length === 0) { const sh = other.shape.slice(); sh[k] = 1; return arr(sh, new Array(prod(sh)).fill(x.data[0])); }
+      if (x.shape.length === r - 1) { const sh = x.shape.slice(); sh.splice(k, 0, 1); return arr(sh, x.data); }
+      return err('RANK ERROR', `can't join ${describe(a)} and ${describe(w)}`);
+    };
+    const A = lift(a, w), W = lift(w, a);
+    for (let j = 0; j < r; j++) if (j !== k && A.shape[j] !== W.shape[j]) err('LENGTH ERROR', `can't join ${describe(a)} and ${describe(w)}`);
+    const [pre, na, post] = axisParts(A.shape, k), nw = W.shape[k];
+    const out = [];
+    for (let p = 0; p < pre; p++) {
+      for (let i = 0; i < na * post; i++) out.push(A.data[p * na * post + i]);
+      for (let i = 0; i < nw * post; i++) out.push(W.data[p * nw * post + i]);
+    }
+    const sh = A.shape.slice(); sh[k] = na + nw;
+    return arr(sh, out);
+  }
+
+  function transpose(w) {
+    const r = w.shape.length;
+    if (r < 2) return w;
+    const sh = w.shape.slice().reverse(), st = stridesOf(w.shape), out = new Array(w.data.length), idx = new Array(r).fill(0);
+    for (let i = 0; i < out.length; i++) {
+      let s = 0; for (let j = 0; j < r; j++) s += idx[j] * st[r - 1 - j];
+      out[i] = w.data[s];
+      for (let j = r - 1; j >= 0; j--) { if (++idx[j] < sh[j]) break; idx[j] = 0; }
+    }
+    return arr(sh, out);
+  }
+
+  function takeDrop(a, w, isTake) {
+    const g = isTake ? '↑' : '↓';
+    if (a.shape.length > 1) err('RANK ERROR', `left argument of ${g} must be a vector`);
+    const amts = a.data.map(x => intOf(x, `${g} amounts`));
+    if (!w.shape.length) w = arr(amts.map(() => 1), w.data);
+    if (amts.length > w.shape.length) err('RANK ERROR', `too many ${g} amounts for ${describe(w)}`);
+    const r = w.shape.length, newSh = [], start = [];
+    for (let j = 0; j < r; j++) {
+      const n = w.shape[j];
+      if (j >= amts.length) { newSh.push(n); start.push(0); continue; }
+      const t = amts[j];
+      if (isTake) { newSh.push(Math.abs(t)); start.push(t >= 0 ? 0 : n + t); }
+      else { newSh.push(Math.max(0, n - Math.abs(t))); start.push(t >= 0 ? t : 0); }
+    }
+    const out = new Array(prod(newSh)), st = stridesOf(w.shape), idx = new Array(r).fill(0);
+    for (let i = 0; i < out.length; i++) {
+      let s = 0, inside = true;
+      for (let j = 0; j < r; j++) {
+        const src = idx[j] + start[j];
+        if (src < 0 || src >= w.shape[j]) { inside = false; break; }
+        s += src * st[j];
+      }
+      out[i] = inside ? w.data[s] : 0;
+      for (let j = r - 1; j >= 0; j--) { if (++idx[j] < newSh[j]) break; idx[j] = 0; }
+    }
+    return arr(newSh, out);
+  }
+
+  function reduceAxis(f, w, k) {
+    if (!w.shape.length) return w;
+    const [pre, n, post] = axisParts(w.shape, k), g = scalarCall(f);
+    const out = new Array(pre * post);
+    for (let p = 0; p < pre; p++) for (let q = 0; q < post; q++) {
+      if (n === 0) { out[p * post + q] = identity(f); continue; }
+      let acc = w.data[(p * n + n - 1) * post + q];
+      for (let i = n - 2; i >= 0; i--) acc = g(w.data[(p * n + i) * post + q], acc);
+      out[p * post + q] = acc;
+    }
+    return arr(w.shape.slice(0, k).concat(w.shape.slice(k + 1)), out);
+  }
+
+  function scanAxis(f, w, k) {
+    if (!w.shape.length) return w;
+    const [pre, n, post] = axisParts(w.shape, k), g = scalarCall(f);
+    const out = new Array(w.data.length);
+    for (let p = 0; p < pre; p++) for (let q = 0; q < post; q++) for (let i = 0; i < n; i++) {
+      let acc = w.data[(p * n + i) * post + q];
+      for (let j = i - 1; j >= 0; j--) acc = g(w.data[(p * n + j) * post + q], acc);
+      out[(p * n + i) * post + q] = acc;
+    }
+    return arr(w.shape, out);
+  }
+
+  function replicate(a, w, first) {
+    if (a.shape.length > 1) err('RANK ERROR', 'left argument of / must be a vector');
+    if (!w.shape.length) w = V([w.data[0]]);
+    const k = first ? 0 : w.shape.length - 1;
+    const [pre, n, post] = axisParts(w.shape, k);
+    let cs = a.data.map(x => intOf(x, 'replicate counts'));
+    if (cs.length === 1 && n !== 1) cs = new Array(n).fill(cs[0]);
+    else if (cs.length !== n && n !== 1) err('LENGTH ERROR', `${cs.length} counts for ${n} items`);
+    const m = cs.reduce((s, c) => s + Math.abs(c), 0);
+    const sh = w.shape.slice(); sh[k] = m;
+    const out = new Array(pre * m * post);
+    for (let p = 0; p < pre; p++) {
+      let o = 0;
+      cs.forEach((c, j) => {
+        const src = n === 1 ? 0 : j;
+        for (let r = 0; r < Math.abs(c); r++, o++) for (let q = 0; q < post; q++)
+          out[(p * m + o) * post + q] = c > 0 ? w.data[(p * n + src) * post + q] : 0;
+      });
+    }
+    return arr(sh, out);
+  }
+
+  function indexArr(w, idxs) {
+    if (idxs.length !== w.shape.length) err('RANK ERROR', `${describe(w)} needs ${w.shape.length} index${w.shape.length === 1 ? '' : 'es'} separated by ;`);
+    const sel = idxs.map((ix, j) => {
+      if (ix === null) return V(range(w.shape[j]));
+      ix.data.forEach(v => { if (!Number.isInteger(v) || v < 1 || v > w.shape[j]) err('INDEX ERROR', `${v} is outside 1 to ${w.shape[j]}`); });
+      return ix;
+    });
+    const st = stridesOf(w.shape);
+    let offs = [0];
+    sel.forEach((s, j) => { const next = []; for (const o of offs) for (const v of s.data) next.push(o + (v - 1) * st[j]); offs = next; });
+    return arr(sel.flatMap(s => s.shape), offs.map(o => w.data[o]));
+  }
+
+  const cmp = (a, w) => a.shape.length === w.shape.length && a.shape.every((n, i) => n === w.shape[i]) && a.data.every((x, i) => x === w.data[i]);
+
+  const grade = down => mkfn(down ? '⍒' : '⍋', w => {
+    if (w.shape.length !== 1) err('NONCE ERROR', `${down ? '⍒' : '⍋'} only works on vectors here`);
+    const ix = w.data.map((_, i) => i);
+    ix.sort((i, j) => (down ? w.data[j] - w.data[i] : w.data[i] - w.data[j]) || i - j);
+    return V(ix.map(i => i + 1));
+  });
+
+  const P = {
+    '+': scalar('+', x => x, (a, w) => a + w),
+    '-': scalar('-', x => -x, (a, w) => a - w),
+    '×': scalar('×', x => Math.sign(x), (a, w) => a * w),
+    '÷': scalar('÷', x => div(1, x), div),
+    '⌈': scalar('⌈', Math.ceil, Math.max),
+    '⌊': scalar('⌊', Math.floor, Math.min),
+    '|': scalar('|', Math.abs, residue),
+    '*': scalar('*', Math.exp, Math.pow),
+    '=': scalar('=', null, (a, w) => +(a === w)),
+    '≠': scalar('≠', null, (a, w) => +(a !== w)),
+    '<': scalar('<', null, (a, w) => +(a < w)),
+    '>': scalar('>', null, (a, w) => +(a > w)),
+    '≤': scalar('≤', null, (a, w) => +(a <= w)),
+    '≥': scalar('≥', null, (a, w) => +(a >= w)),
+    '∧': scalar('∧', null, (a, w) => isBool(a) && isBool(w) ? a & w : lcm(a, w)),
+    '∨': scalar('∨', null, (a, w) => isBool(a) && isBool(w) ? a | w : gcd(a, w)),
+    '~': mkfn('~',
+      w => arr(w.shape, w.data.map(x => isBool(x) ? 1 - x : err('DOMAIN ERROR', '~ needs 0s and 1s'))),
+      (a, w) => V((a.shape.length ? a.data : [a.data[0]]).filter(x => !w.data.includes(x)))),
+    '⍴': mkfn('⍴', w => V(w.shape.slice()), (a, w) => {
+      if (a.shape.length > 1) err('RANK ERROR', 'left argument of ⍴ must be a vector');
+      const sh = a.data.map(n => { intOf(n, '⍴ lengths'); if (n < 0) err('DOMAIN ERROR', '⍴ lengths can\'t be negative'); return n; });
+      const src = w.data.length ? w.data : [0];
+      return arr(sh, Array.from({ length: prod(sh) }, (_, i) => src[i % src.length]));
+    }),
+    '⍳': mkfn('⍳', w => {
+      if (w.data.length !== 1 || w.shape.length > 1) err('NONCE ERROR', '⍳ only takes a single number here');
+      const n = intOf(w.data[0], '⍳ arguments');
+      if (n < 0) err('DOMAIN ERROR', '⍳ needs a non-negative number');
+      return V(range(n));
+    }, (a, w) => {
+      if (a.shape.length > 1) err('RANK ERROR', 'left argument of ⍳ must be a vector');
+      return arr(w.shape, w.data.map(x => { const i = a.data.indexOf(x); return i < 0 ? a.data.length + 1 : i + 1; }));
+    }),
+    ',': mkfn(',', w => V(w.data.slice()), (a, w) => catenate(a, w, false)),
+    '⍪': mkfn('⍪', w => arr([w.shape.length ? w.shape[0] : 1, prod(w.shape.slice(1))], w.data.slice()), (a, w) => catenate(a, w, true)),
+    '⌽': mkfn('⌽', w => reverseAxis(w, w.shape.length - 1), (a, w) => rotateAxis(a, w, w.shape.length - 1)),
+    '⊖': mkfn('⊖', w => reverseAxis(w, 0), (a, w) => rotateAxis(a, w, 0)),
+    '⍉': mkfn('⍉', transpose, () => err('NONCE ERROR', 'dyadic ⍉ isn\'t available yet')),
+    '↑': mkfn('↑', w => w, (a, w) => takeDrop(a, w, true)),
+    '↓': mkfn('↓', () => err('NONCE ERROR', 'monadic ↓ needs nested arrays, which aren\'t supported yet'), (a, w) => takeDrop(a, w, false)),
+    '⊢': mkfn('⊢', w => w, (a, w) => w),
+    '⊣': mkfn('⊣', w => w, (a, w) => a),
+    '≢': mkfn('≢', w => S(w.shape.length ? w.shape[0] : 1), (a, w) => S(+!cmp(a, w))),
+    '≡': mkfn('≡', w => S(w.shape.length ? 1 : 0), (a, w) => S(+cmp(a, w))),
+    '⊃': mkfn('⊃', w => S(w.data.length ? w.data[0] : 0), () => err('NONCE ERROR', 'dyadic ⊃ isn\'t available yet')),
+    '∊': mkfn('∊', w => V(w.data.slice()), (a, w) => arr(a.shape, a.data.map(x => +w.data.includes(x)))),
+    '⍸': mkfn('⍸', w => {
+      if (w.shape.length > 1) err('NONCE ERROR', '⍸ on a matrix needs nested arrays, which aren\'t supported yet');
+      const out = [];
+      (w.shape.length ? w.data : [w.data[0]]).forEach((c, i) => { intOf(c, '⍸ arguments'); if (c < 0) err('DOMAIN ERROR', '⍸ needs non-negative numbers'); for (let r = 0; r < c; r++) out.push(i + 1); });
+      return V(out);
+    }),
+    '⍋': grade(false),
+    '⍒': grade(true),
+  };
+
+  const REPL = {
+    '/': mkfn('/', null, (a, w) => replicate(a, w, false)),
+    '⌿': mkfn('⌿', null, (a, w) => replicate(a, w, true)),
+    '\\': mkfn('\\', null, () => err('NONCE ERROR', 'expand isn\'t available yet')),
+    '⍀': mkfn('⍀', null, () => err('NONCE ERROR', 'expand isn\'t available yet')),
+  };
+
+  function applyMop(op, f) {
+    switch (op) {
+      case '/': return mkfn(f.name + '/', w => reduceAxis(f, w, w.shape.length - 1), (a, w) => err('NONCE ERROR', 'n-wise reduction isn\'t available yet'));
+      case '⌿': return mkfn(f.name + '⌿', w => reduceAxis(f, w, 0));
+      case '\\': return mkfn(f.name + '\\', w => scanAxis(f, w, w.shape.length - 1));
+      case '⍀': return mkfn(f.name + '⍀', w => scanAxis(f, w, 0));
+      case '¨': return mkfn(f.name + '¨',
+        w => arr(w.shape, w.data.map(x => single(f.monad(S(x)), f))),
+        (a, w) => pervade((x, y) => single(f.dyad(S(x), S(y)), f), a, w));
+      case '⍨': return mkfn(f.name + '⍨', w => f.dyad(w, w), (a, w) => f.dyad(w, a));
+    }
+    return err('SYNTAX ERROR', `unknown operator ${op}`);
+  }
+
+  function outer(f) {
+    return mkfn('∘.' + f.name, null, (a, w) => {
+      const g = scalarCall(f), out = [];
+      for (const x of a.data) for (const y of w.data) out.push(g(x, y));
+      return arr(a.shape.concat(w.shape), out);
+    });
+  }
+
+  function inner(f, g) {
+    return mkfn(f.name + '.' + g.name, null, (a, w) => {
+      if (a.shape.length > 2 || w.shape.length > 2) err('NONCE ERROR', 'inner product only works up to matrices here');
+      const ka = a.shape.length ? a.shape[a.shape.length - 1] : 1;
+      const kw = w.shape.length ? w.shape[0] : 1;
+      let k = ka;
+      if (ka !== kw) { if (ka === 1) k = kw; else if (kw === 1) k = ka; else err('LENGTH ERROR', `can't pair ${describe(a)} with ${describe(w)}`); }
+      const rows = a.shape.slice(0, -1), cols = w.shape.slice(1);
+      const R = prod(rows), C = prod(cols), ff = scalarCall(f), gg = scalarCall(g), out = new Array(R * C);
+      for (let i = 0; i < R; i++) for (let j = 0; j < C; j++) {
+        const vals = [];
+        for (let t = 0; t < k; t++) vals.push(gg(a.data[i * ka + (ka === 1 ? 0 : t)], w.data[(kw === 1 ? 0 : t) * C + j]));
+        if (!vals.length) { out[i * C + j] = identity(f); continue; }
+        let acc = vals[vals.length - 1];
+        for (let t = vals.length - 2; t >= 0; t--) acc = ff(vals[t], acc);
+        out[i * C + j] = acc;
+      }
+      return arr(rows.concat(cols), out);
+    });
+  }
+
+  function compose(l, r) {
+    if (isFn(l) && isFn(r)) return mkfn(l.name + '∘' + r.name, w => l.monad(r.monad(w)), (a, w) => l.dyad(a, r.monad(w)));
+    if (isFn(r)) return mkfn('∘' + r.name, w => r.dyad(l, w));
+    if (isFn(l)) return mkfn(l.name + '∘', w => l.dyad(w, r));
+    return err('SYNTAX ERROR', '∘ needs at least one function');
+  }
+
+  function applyDop(op, l, r) {
+    if (op === '∘') return compose(l, r);
+    if (op === '.') {
+      if (!isFn(l) || !isFn(r)) err('SYNTAX ERROR', '. needs a function on each side');
+      return inner(l, r);
+    }
+    return err('SYNTAX ERROR', `unknown operator ${op}`);
+  }
+
+  const fork = (x, f, g) => mkfn('fork',
+    w => f.dyad(x.k === 'A' ? x.v : x.v.monad(w), g.monad(w)),
+    (a, w) => f.dyad(x.k === 'A' ? x.v : x.v.dyad(a, w), g.dyad(a, w)));
+  const atop = (f, g) => mkfn('atop', w => f.monad(g.monad(w)), (a, w) => f.monad(g.dyad(a, w)));
+
+  // Tokenizer
+  const FN_GLYPHS = '+-×÷⌈⌊|*=≠<>≤≥∧∨~⍴⍳,⍪⌽⊖⍉↑↓⊢⊣≢≡⊃∊⍸⍋⍒';
+  const MOP_GLYPHS = '/⌿\\⍀¨⍨';
+  const DOP_GLYPHS = '∘.';
+  const LATER = '⍤⍣⍥@⌺⌸⊂⊆⍕⍎⎕?○⍟!∩∪⊥⊤⌹⍷⌷⍬⍞⍠⌶⍱⍲→';
+
+  function tokenize(src) {
+    const toks = [];
+    let i = 0;
+    while (i < src.length) {
+      const ch = src[i];
+      if (ch === '⍝') { while (i < src.length && src[i] !== '\n') i++; continue; }
+      if (ch === '\n') { toks.push({ t: 'NL' }); i++; continue; }
+      if (/\s/.test(ch)) { i++; continue; }
+      const rest = src.slice(i);
+      const num = /^¯?(?:\d+\.?\d*|\.\d+)(?:[eE]¯?\d+)?/.exec(rest);
+      if (num) {
+        const v = Number(num[0].replace(/¯/g, '-'));
+        const prev = toks[toks.length - 1];
+        if (prev && prev.t === 'NUM') prev.vals.push(v); else toks.push({ t: 'NUM', vals: [v] });
+        i += num[0].length; continue;
+      }
+      const name = /^[A-Za-z_∆⍙][A-Za-z_0-9∆⍙]*/.exec(rest);
+      if (name) { toks.push({ t: 'NAME', v: name[0] }); i += name[0].length; continue; }
+      if (ch === '⍵' || ch === '⍺') {
+        if (src[i + 1] === ch) err('NONCE ERROR', `${ch}${ch} (operands of your own operators) isn't available yet`);
+        toks.push({ t: 'NAME', v: ch }); i++; continue;
+      }
+      if (ch === '∘' && src[i + 1] === '.') { toks.push({ t: 'OUTER' }); i += 2; continue; }
+      if (ch === '¯') err('SYNTAX ERROR', '¯ must be followed by a number');
+      i++;
+      if (FN_GLYPHS.includes(ch)) toks.push({ t: 'FN', v: ch });
+      else if (MOP_GLYPHS.includes(ch)) toks.push({ t: 'MOP', v: ch });
+      else if (DOP_GLYPHS.includes(ch)) toks.push({ t: 'DOP', v: ch });
+      else if ('()[]{}'.includes(ch)) toks.push({ t: ch });
+      else if (ch === '←') toks.push({ t: 'ASSIGN' });
+      else if (ch === ';') toks.push({ t: 'SEMI' });
+      else if (ch === ':') toks.push({ t: 'COLON' });
+      else if (ch === '⋄') toks.push({ t: 'NL' });
+      else if (ch === '∇') toks.push({ t: 'DEL' });
+      else if (ch === "'" || ch === '"') err('NONCE ERROR', 'text in quotes isn\'t supported yet');
+      else if (LATER.includes(ch)) err('NONCE ERROR', `${ch} isn't available yet`);
+      else err('SYNTAX ERROR', `unexpected character ${ch}`);
+    }
+    return toks;
+  }
+
+  const splitOn = (list, type) => { const parts = [[]]; for (const t of list) { if (t.t === type) parts.push([]); else parts[parts.length - 1].push(t); } return parts; };
+  const statements = list => splitOn(list, 'NL').filter(s => s.length);
+
+  function group(toks) {
+    let i = 0;
+    const NAMES = { ')': '(', ']': '[', '}': '{' };
+    function seq(closer) {
+      const out = [];
+      while (i < toks.length) {
+        const tk = toks[i++];
+        if (tk.t in NAMES) {
+          if (tk.t !== closer) err('SYNTAX ERROR', `unexpected ${tk.t}`);
+          return out;
+        }
+        if (tk.t === '(') out.push({ t: 'PAREN', toks: seq(')').filter(x => x.t !== 'NL') });
+        else if (tk.t === '[') out.push({ t: 'BRACK', parts: splitOn(seq(']').filter(x => x.t !== 'NL'), 'SEMI') });
+        else if (tk.t === '{') out.push({ t: 'DFN', stmts: statements(seq('}')) });
+        else out.push(tk);
+      }
+      if (closer) err('SYNTAX ERROR', `missing ${closer}`);
+      return out;
+    }
+    return statements(seq(null));
+  }
+
+  // Evaluator
+  function lookup(env, name) {
+    for (let e = env; e; e = e.parent) if (e.vars.has(name)) return e.vars.get(name);
+    if (name === '⍺') err('VALUE ERROR', '⍺ is undefined because there was no left argument');
+    return err('VALUE ERROR', `undefined name ${name}`);
+  }
+
+  function evalArr(toks, env) {
+    const v = evalExpr(toks, env);
+    if (isFn(v)) err('SYNTAX ERROR', 'expected an array but got a function');
+    return v;
+  }
+
+  function evalExpr(toks, env) {
+    if (!toks.length) err('SYNTAX ERROR', 'missing expression');
+    const units = [];
+    for (const tk of toks) {
+      let u;
+      switch (tk.t) {
+        case 'NUM': u = { k: 'A', v: tk.vals.length === 1 ? S(tk.vals[0]) : V(tk.vals.slice()) }; break;
+        case 'NAME': { const v = lookup(env, tk.v); u = { k: isFn(v) ? 'F' : 'A', v }; break; }
+        case 'PAREN': { const v = evalExpr(tk.toks, env); u = { k: isFn(v) ? 'F' : 'A', v }; break; }
+        case 'DFN': u = { k: 'F', v: makeDfn(tk.stmts, env) }; break;
+        case 'DEL': u = { k: 'F', v: lookup(env, '∇') }; break;
+        case 'FN': u = { k: 'F', v: P[tk.v] }; break;
+        case 'MOP': u = { k: 'MOP', v: tk.v }; break;
+        case 'DOP': u = { k: 'DOP', v: tk.v }; break;
+        case 'OUTER': u = { k: 'OUTER' }; break;
+        case 'BRACK': {
+          const prev = units[units.length - 1];
+          if (!prev || prev.k !== 'A') err('NONCE ERROR', 'brackets only work for indexing an array here');
+          prev.v = indexArr(prev.v, tk.parts.map(p => p.length ? evalArr(p, env) : null));
+          continue;
+        }
+        case 'ASSIGN': return err('SYNTAX ERROR', '← only works at the start of a statement here');
+        case 'COLON': return err('SYNTAX ERROR', 'guards (:) only work inside {}');
+        case 'SEMI': return err('SYNTAX ERROR', 'unexpected ;');
+        default: return err('SYNTAX ERROR');
+      }
+      units.push(u);
+    }
+
+    // Bind operators to their operands, left to right.
+    const items = [];
+    for (let i = 0; i < units.length; i++) {
+      const u = units[i];
+      if (u.k === 'MOP') {
+        const prev = items.pop();
+        if (!prev) err('SYNTAX ERROR', `${u.v} needs something on its left`);
+        if (prev.k === 'F') items.push({ k: 'F', v: applyMop(u.v, prev.v) });
+        else if (u.v in REPL) { items.push(prev, { k: 'F', v: REPL[u.v] }); }
+        else err('SYNTAX ERROR', `${u.v} needs a function on its left`);
+      } else if (u.k === 'DOP') {
+        const prev = items.pop(), next = units[++i];
+        if (!prev || !next || (next.k !== 'A' && next.k !== 'F')) err('SYNTAX ERROR', `${u.v} needs an operand on each side`);
+        items.push({ k: 'F', v: applyDop(u.v, prev.v, next.v) });
+      } else if (u.k === 'OUTER') {
+        const next = units[++i];
+        if (!next || next.k !== 'F') err('SYNTAX ERROR', '∘. needs a function on its right');
+        items.push({ k: 'F', v: outer(next.v) });
+      } else items.push(u);
+    }
+
+    // A phrase ending in a function is a function (possibly a train).
+    if (items[items.length - 1].k === 'F') return makeTrain(items);
+
+    // Otherwise evaluate right to left.
+    let val = items[items.length - 1].v;
+    for (let i = items.length - 2; i >= 0;) {
+      const it = items[i];
+      if (it.k !== 'F') err('SYNTAX ERROR', 'two arrays side by side (strands of names aren\'t supported yet)');
+      const left = items[i - 1];
+      tick();
+      if (left && left.k === 'A') { val = it.v.dyad(left.v, val); i -= 2; }
+      else { val = it.v.monad(val); i -= 1; }
+      if (isFn(val)) err('SYNTAX ERROR', 'a function returned a function');
+    }
+    return val;
+  }
+
+  function makeTrain(items) {
+    const xs = items.slice();
+    while (xs.length >= 3) {
+      const [x, f, g] = xs.splice(xs.length - 3, 3);
+      if (f.k !== 'F' || g.k !== 'F') err('SYNTAX ERROR', 'this train has an array in the wrong place');
+      xs.push({ k: 'F', v: fork(x, f.v, g.v) });
+    }
+    if (xs.length === 2) {
+      if (xs[0].k !== 'F') err('SYNTAX ERROR', 'an array next to a function needs something on its right');
+      return atop(xs[0].v, xs[1].v);
+    }
+    return xs[0].v;
+  }
+
+  function evalStmt(st, env) {
+    if (st.length >= 2 && st[0].t === 'NAME' && st[1].t === 'ASSIGN') {
+      const name = st[0].v;
+      if (name === '⍵') err('SYNTAX ERROR', 'you can\'t assign to ⍵');
+      if (name === '⍺' && env.vars.has('⍺')) return { v: env.vars.get('⍺'), assigned: true };
+      const v = evalExpr(st.slice(2), env);
+      env.vars.set(name, v);
+      return { v, assigned: true };
+    }
+    return { v: evalExpr(st, env), assigned: false };
+  }
+
+  function arrResult(v) {
+    if (isFn(v)) err('SYNTAX ERROR', 'a function must return an array');
+    return v;
+  }
+
+  function makeDfn(stmts, defEnv) {
+    const self = mkfn('{…}', w => callDfn(stmts, defEnv, self, undefined, w), (a, w) => callDfn(stmts, defEnv, self, a, w));
+    return self;
+  }
+
+  function callDfn(stmts, defEnv, self, a, w) {
+    if (++depth > DEPTH_LIMIT) err('INTERRUPT', 'too much recursion');
+    tick();
+    const env = { vars: new Map([['⍵', w], ['∇', self]]), parent: defEnv };
+    if (a !== undefined) env.vars.set('⍺', a);
+    try {
+      let last;
+      for (const st of stmts) {
+        const ci = st.findIndex(t => t.t === 'COLON');
+        if (ci >= 0) {
+          if (ci === 0 || ci === st.length - 1) err('SYNTAX ERROR', 'a guard needs a condition and a result');
+          const c = evalArr(st.slice(0, ci), env);
+          if (c.data.length !== 1 || !isBool(c.data[0])) err('DOMAIN ERROR', 'a guard condition must be a single 0 or 1');
+          if (c.data[0] === 1) return arrResult(evalExpr(st.slice(ci + 1), env));
+          continue;
+        }
+        const r = evalStmt(st, env);
+        if (!r.assigned) return arrResult(r.v);
+        last = r.v;
+      }
+      if (last !== undefined) return arrResult(last);
+      return err('VALUE ERROR', 'this function finished without a result');
+    } finally { depth--; }
+  }
+
+  // Run a whole program and return its top-level names.
+  function run(src) {
+    steps = 0; depth = 0;
+    const env = { vars: new Map(), parent: null };
+    let last;
+    for (const st of group(tokenize(src))) last = evalStmt(st, env);
+    return { env, last: last && last.v };
+  }
+
+  function call(f, w) {
+    steps = 0; depth = 0;
+    return arrResult(f.monad(w));
+  }
+
+  function format(v) {
+    if (isFn(v)) return '(function)';
+    const n = x => (Number.isInteger(x) ? String(x) : String(+x.toFixed(10))).replace('-', '¯');
+    if (v.shape.length < 2) return v.data.map(n).join(' ');
+    const cols = v.shape[v.shape.length - 1], rows = v.data.length / cols;
+    const cells = v.data.map(n), wd = Math.max(...cells.map(c => c.length));
+    const lines = [];
+    for (let r = 0; r < rows; r++) lines.push(cells.slice(r * cols, r * cols + cols).map(c => c.padStart(wd)).join(' '));
+    return lines.join('\n');
+  }
+
+  return { run, call, arr, isFn, describe, format, AplError };
+})();
+
+</script>
+<script id="acres-core">
+// Game rules and simulation, with no DOM access, so the page and the tests share one implementation.
+const AcresCore = (() => {
+  const RULES = Object.freeze({ size: 8, days: 100, ripe: 3, rot: 4, grow: 0.55, rotChance: 0.2, bonus: 3 });
+
+  // Harvest ran, but what it returned can't be used as a harvest mask.
+  class ResultError extends Error {}
+
+  const mulberry32 = a => () => {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+
+  function newSeason(seed) {
+    const rng = mulberry32(seed), N = RULES.size;
+    const field = Array.from({ length: N }, () => Array.from({ length: N }, () => Math.floor(rng() * 4)));
+    return { seed, rng, field, day: 0, score: 0, wasted: 0, marks: null };
+  }
+
+  function compileHarvest(src) {
+    const { env } = APL.run(src);
+    const f = env.vars.get('Harvest');
+    if (!f) throw new APL.AplError('VALUE ERROR: define a function called Harvest, for example Harvest←{⍵=3}');
+    if (!APL.isFn(f)) throw new APL.AplError('DOMAIN ERROR: Harvest must be a function, but it\'s an array');
+    return f;
+  }
+
+  function toMask(res) {
+    const N = RULES.size;
+    let d = res.data;
+    if (d.length === 1) d = new Array(N * N).fill(d[0]);
+    else if (res.shape.length !== 2 || res.shape[0] !== N || res.shape[1] !== N)
+      throw new ResultError(`Harvest returned ${APL.describe(res)}, but it must return an ${N}×${N} matrix`);
+    if (!d.every(x => x === 0 || x === 1)) throw new ResultError('Harvest must return only 0s and 1s');
+    return Array.from({ length: N }, (_, r) => d.slice(r * N, r * N + N));
+  }
+
+  // Calls Harvest on a copy of the field; never touches the season.
+  const runHarvest = (fn, field) => toMask(APL.call(fn, APL.arr([RULES.size, RULES.size], field.flat())));
+
+  // Compile and run src against a field without changing anything. Used for the preview.
+  function evaluate(src, field) {
+    try {
+      return { ok: true, mask: runHarvest(compileHarvest(src), field) };
+    } catch (e) {
+      const kind = e instanceof ResultError ? 'result' : e instanceof APL.AplError ? 'code' : 'internal';
+      return { ok: false, kind, message: String(e && e.message) };
+    }
+  }
+
+  // Apply a harvest mask, then grow the field by one day.
+  function advance(st, mask) {
+    const { size: N, ripe: RIPE, rot: ROT, grow, rotChance, bonus } = RULES, f = st.field;
+
+    // A ripe plot scores the bonus when it's in a 2×2 block of ripe plots all harvested together.
+    const picked = f.map((row, r) => row.map((v, c) => v === RIPE && mask[r][c] === 1));
+    const marks = mask.map(row => row.slice());
+    for (let r = 0; r < N - 1; r++) for (let c = 0; c < N - 1; c++) {
+      if (picked[r][c] && picked[r + 1][c] && picked[r][c + 1] && picked[r + 1][c + 1])
+        marks[r][c] = marks[r + 1][c] = marks[r][c + 1] = marks[r + 1][c + 1] = 2;
+    }
+
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      if (!mask[r][c]) continue;
+      const v = f[r][c];
+      if (v === RIPE) st.score += marks[r][c] === 2 ? bonus : 1;
+      else if (v === 1 || v === 2) st.wasted++;
+      f[r][c] = 0;
+    }
+
+    // One roll per plot per day, whatever the player did, so randomness is fixed by the seed.
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      const roll = st.rng(), v = f[r][c];
+      if (v < RIPE) { if (roll < grow) f[r][c] = v + 1; }
+      else if (v === RIPE && roll < rotChance) f[r][c] = ROT;
+    }
+
+    st.marks = marks;
+    st.day++;
+  }
+
+  return { RULES, ResultError, newSeason, compileHarvest, runHarvest, evaluate, advance };
+})();
+</script>
+<script>
+(() => {
+  const { RULES } = AcresCore;
+  const SIZE = RULES.size, TICKS = RULES.days, RIPE = RULES.ripe, ROT = RULES.rot;
+  const PREVIEW_DELAY = 400;
+  const STAGE_NAMES = ['seed', 'sprout', 'growing', 'ripe', 'rotten'];
+  const STORE_KEY = 'allotment:apl';
+
+  const DEFAULT_CODE = `⍝ Harvest is called once per day with the field
+⍝ as an 8×8 matrix of stages:
+⍝   0 seed  1 sprout  2 growing  3 ripe  4 rotten
+⍝ It returns an 8×8 boolean matrix: 1 means harvest.
+⍝ Harvesting resets a plot to 0. Only ripe plots score:
+⍝ 1 each, or 3 each when harvested as a 2×2 ripe block.
+
+Harvest←{⍵=3}
+`;
+
+  // Symbols in this prototype, with names and backtick keys as in Dyalog.
+  const GLYPHS = [
+    ['⍵', 'Right argument', 'w'], ['⍺', 'Left argument', 'a'], ['←', 'Assign', '['], ['⋄', 'Statement separator', '`'],
+    ['⍝', 'Comment', ','], ['∇', 'Self (recursion)', 'g'], ['¯', 'High minus', '2'], null,
+    ['×', 'Direction / Times', '-'], ['÷', 'Reciprocal / Divide', '='], ['|', 'Magnitude / Residue', 'm'],
+    ['⌈', 'Ceiling / Maximum', 's'], ['⌊', 'Floor / Minimum', 'd'], ['*', 'Exponential / Power', 'p'], null,
+    ['≠', 'Not equal', '8'], ['≤', 'Less than or equal', '4'], ['≥', 'Greater than or equal', '6'],
+    ['∧', 'And', '0'], ['∨', 'Or', '9'], ['~', 'Not / Without', 't'], null,
+    ['⍴', 'Shape / Reshape', 'r'], ['⍳', 'Indices / Index of', 'i'], ['⍪', 'Table / Catenate first', '<'],
+    ['⌽', 'Reverse / Rotate', '%'], ['⊖', 'Reverse first / Rotate first', '&'], ['⍉', 'Transpose', '^'],
+    ['↑', 'Take', 'y'], ['↓', 'Drop', 'u'], ['⊢', 'Right', '\\'], ['⊣', 'Left', '|'],
+    ['≢', 'Tally / Not match', '"'], ['≡', 'Depth / Match', ':'], ['⊃', 'First', 'x'], ['∊', 'Enlist / Member of', 'e'],
+    ['⍸', 'Where', 'I'], ['⍋', 'Grade up', '$'], ['⍒', 'Grade down', '#'], null,
+    ['⌿', 'Reduce first / Replicate first', '/'], ['⍀', 'Scan first', '.'], ['¨', 'Each', '1'],
+    ['⍨', 'Commute', 'T'], ['∘', 'Compose / Outer product with .', 'j'],
+  ];
+  const PREFIX = {};
+  GLYPHS.forEach(g => { if (g) PREFIX[g[2]] = g[0]; });
+
+  const $ = id => document.getElementById(id);
+  const cv = $('field'), ctx = cv.getContext('2d');
+  const codeEl = $('code'), msgEl = $('msg'), runBtn = $('run'), speedEl = $('speed');
+  const statusEl = $('status'), diagEl = $('diag');
+
+  const newSeed = () => (Math.random() * 4294967296) >>> 0;
+
+  let seed = newSeed(), state;
+  let running = false, timer = null, fn = null, dirty = true;
+  const best = {};
+
+  // Preview: the mask Harvest would return for today's field. stale means it no longer
+  // matches the current code or field, so it's drawn faded until recalculated.
+  let preview = { mask: null, stale: false }, previewTimer = null;
+
+  function reset() {
+    state = AcresCore.newSeason(seed);
+    updateStats();
+    fieldChanged();
+  }
+
+  function setMsg(text, isError) {
+    msgEl.textContent = text || '';
+    msgEl.classList.toggle('error', !!isError);
+  }
+  const errorText = (kind, message) =>
+    kind === 'result' ? `Invalid result: ${message}` : kind === 'code' ? message : `Internal error: ${message}`;
+  const kindOf = e => e instanceof AcresCore.ResultError ? 'result' : e instanceof APL.AplError ? 'code' : 'internal';
+  const showError = e => setMsg(errorText(kindOf(e), e && e.message), true);
+
+  function compile() {
+    try { fn = AcresCore.compileHarvest(codeEl.value); dirty = false; return true; }
+    catch (e) { showError(e); return false; }
+  }
+
+  // Preview and quiet diagnostics
+  const STATUS = { ready: 'Preview ready', editing: 'Editing…', code: 'Invalid expression', result: 'Invalid result', internal: 'Preview failed' };
+  function setStatus(k) { statusEl.textContent = STATUS[k]; statusEl.dataset.state = k; }
+
+  function runPreview() {
+    clearTimeout(previewTimer); previewTimer = null;
+    const r = AcresCore.evaluate(codeEl.value, state.field);
+    if (r.ok) {
+      preview = { mask: r.mask, stale: false };
+      diagEl.textContent = '';
+      setStatus('ready');
+    } else {
+      preview.stale = true;
+      diagEl.textContent = errorText(r.kind, r.message);
+      setStatus(r.kind);
+    }
+    render();
+  }
+
+  function codeChanged() {
+    preview.stale = true;
+    setStatus('editing');
+    render();
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(runPreview, PREVIEW_DELAY);
+  }
+
+  // The field moved on, so the old preview is out of date. If the player is mid-edit,
+  // leave it faded and let the pending timer recalculate with the latest code.
+  function fieldChanged() {
+    if (previewTimer) { preview.stale = true; render(); }
+    else runPreview();
+  }
+
+  function step() {
+    if (state.day >= TICKS) { stop(); setMsg('Season over. Restart to play this field again.'); return false; }
+    if (dirty && !compile()) { stop(); return false; }
+
+    let mask;
+    try { mask = AcresCore.runHarvest(fn, state.field); }
+    catch (e) { showError(e); stop(); return false; }
+
+    AcresCore.advance(state, mask);
+    setMsg('');
+    updateStats();
+    fieldChanged();
+
+    if (state.day >= TICKS) {
+      best[seed] = Math.max(best[seed] ?? 0, state.score);
+      updateStats();
+      stop();
+      setMsg(`Season over. You scored ${state.score}.`);
+      return false;
+    }
+    return true;
+  }
+
+  function loop() {
+    if (!running) return;
+    if (step()) timer = setTimeout(loop, +speedEl.value);
+  }
+  function start() {
+    if (state.day >= TICKS) reset();
+    setMsg('');
+    running = true; runBtn.textContent = 'Pause';
+    loop();
+  }
+  function stop() {
+    running = false; clearTimeout(timer); runBtn.textContent = 'Run';
+  }
+
+  function updateStats() {
+    $('sTick').textContent = `${state.day}/${TICKS}`;
+    $('sScore').textContent = state.score;
+    $('sWasted').textContent = state.wasted;
+    $('sBest').textContent = best[seed] ?? '–';
+  }
+
+  // Drawing
+  let COL;
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    const g = n => cs.getPropertyValue(n).trim();
+    COL = { soil: g('--soil'), seed: g('--seed'), leaf: g('--leaf'), ripe: g('--ripe'), rot: g('--rot'), mark: g('--mark'), preview: g('--preview') };
+  }
+
+  function rrect(c, x, y, w, h, r) {
+    c.beginPath();
+    if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h);
+  }
+
+  function drawPlot(c, x, y, s, v, marked, previewed) {
+    c.fillStyle = COL.soil;
+    rrect(c, x, y, s, s, s * 0.12); c.fill();
+
+    const cx = x + s / 2, base = y + s * 0.84;
+    c.lineCap = 'round';
+
+    if (v === 0) {
+      c.fillStyle = COL.seed;
+      c.beginPath(); c.ellipse(cx, base - s * 0.04, s * 0.075, s * 0.05, 0, 0, Math.PI * 2); c.fill();
+    } else {
+      const h = v === 1 ? s * 0.24 : v === 2 ? s * 0.44 : s * 0.5;
+      const col = v === ROT ? COL.rot : COL.leaf;
+      c.strokeStyle = col; c.fillStyle = col;
+      c.lineWidth = Math.max(1.2, s * 0.045);
+      c.beginPath(); c.moveTo(cx, base);
+      if (v === ROT) c.quadraticCurveTo(cx + s * 0.04, base - s * 0.42, cx + s * 0.24, base - s * 0.32);
+      else c.lineTo(cx, base - h);
+      c.stroke();
+
+      const leaf = (ly, dir, len) => {
+        c.beginPath();
+        c.ellipse(cx + dir * len / 2, ly, len / 2, len / 5, -dir * 0.45, 0, Math.PI * 2);
+        c.fill();
+      };
+      if (v === ROT) { leaf(base - s * 0.12, -1, s * 0.14); }
+      else {
+        leaf(base - h * 0.35, -1, s * 0.17); leaf(base - h * 0.35, 1, s * 0.17);
+        if (v >= 2) { leaf(base - h * 0.72, -1, s * 0.13); leaf(base - h * 0.72, 1, s * 0.13); }
+      }
+
+      if (v === RIPE) {
+        c.fillStyle = COL.ripe;
+        c.beginPath(); c.ellipse(cx, base - h - s * 0.1, s * 0.08, s * 0.15, 0, 0, Math.PI * 2); c.fill();
+      }
+      if (v === ROT) {
+        c.fillStyle = COL.rot;
+        c.beginPath(); c.ellipse(cx + s * 0.26, base - s * 0.26, s * 0.06, s * 0.11, 0.9, 0, Math.PI * 2); c.fill();
+      }
+    }
+
+    if (marked) {
+      const bonus = marked === 2;
+      c.strokeStyle = bonus ? COL.ripe : COL.mark;
+      c.lineWidth = Math.max(bonus ? 2.5 : 1.5, s * (bonus ? 0.08 : 0.05));
+      rrect(c, x + c.lineWidth / 2, y + c.lineWidth / 2, s - c.lineWidth, s - c.lineWidth, s * 0.1);
+      c.stroke();
+    }
+
+    // Preview: a dashed outline just inside the harvest outline, faded when stale.
+    if (previewed) {
+      c.save();
+      c.globalAlpha = previewed === 'stale' ? 0.3 : 1;
+      c.strokeStyle = COL.preview;
+      c.lineWidth = Math.max(1.5, s * 0.045);
+      c.setLineDash([s * 0.11, s * 0.07]);
+      const inset = s * 0.09;
+      rrect(c, x + inset, y + inset, s - 2 * inset, s - 2 * inset, s * 0.07);
+      c.stroke();
+      c.restore();
+    }
+  }
+
+  function render() {
+    // Expose the preview state for tests and assistive tech: none, live or stale.
+    cv.dataset.preview = !preview.mask ? 'none' : preview.stale ? 'stale' : 'live';
+    if (!state || !COL) return;
+    const w = cv.clientWidth;
+    if (!w) return;
+    ctx.clearRect(0, 0, w, w);
+    const gap = Math.max(2, w * 0.008);
+    const s = (w - gap * (SIZE + 1)) / SIZE;
+    for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
+      const p = preview.mask && preview.mask[r][c] ? (preview.stale ? 'stale' : 'live') : null;
+      drawPlot(ctx, gap + c * (s + gap), gap + r * (s + gap), s, state.field[r][c], state.marks && state.marks[r][c], p);
+    }
+  }
+
+  function sizeCanvas() {
+    const dpr = window.devicePixelRatio || 1, w = cv.clientWidth;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(w * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    render();
+  }
+
+  function drawLegend() {
+    const el = $('legend');
+    el.innerHTML = '';
+    const add = (html, v, marked, previewed) => {
+      const item = document.createElement('div');
+      const c = document.createElement('canvas');
+      const dpr = window.devicePixelRatio || 1;
+      c.width = 28 * dpr; c.height = 28 * dpr;
+      c.setAttribute('aria-hidden', 'true');
+      const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawPlot(x, 0, 0, 28, v, marked, previewed);
+      const label = document.createElement('span');
+      label.innerHTML = html;
+      item.append(c, label);
+      el.append(item);
+    };
+    STAGE_NAMES.forEach((name, v) => add(`<code>${v}</code> ${name}`, v, 0, null));
+    add('harvested yesterday', 0, 1, null);
+    add('Harvest would pick', RIPE, 0, 'live');
+  }
+
+  function refreshTheme() { readColors(); render(); drawLegend(); }
+
+  // Editor
+  function insertText(text) {
+    const { selectionStart: a, selectionEnd: b, value } = codeEl;
+    codeEl.value = value.slice(0, a) + text + value.slice(b);
+    codeEl.selectionStart = codeEl.selectionEnd = a + text.length;
+    codeEl.dispatchEvent(new Event('input'));
+  }
+
+  const bar = $('glyphs');
+  GLYPHS.forEach(g => {
+    if (!g) { const sp = document.createElement('span'); sp.className = 'gap'; bar.append(sp); return; }
+    const [ch, name, key] = g;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = ch;
+    b.title = `${name}  (\`${key})`;
+    b.setAttribute('aria-label', name);
+    b.addEventListener('mousedown', e => e.preventDefault());
+    b.addEventListener('click', () => { codeEl.focus(); insertText(ch); });
+    bar.append(b);
+  });
+
+  let saved = null;
+  try { saved = localStorage.getItem(STORE_KEY); } catch (e) {}
+  codeEl.value = saved || DEFAULT_CODE;
+
+  // Backtick prefix: replace "`x" with its symbol as soon as x is typed.
+  codeEl.addEventListener('input', e => {
+    if (e.inputType === 'insertText') {
+      const pos = codeEl.selectionStart, v = codeEl.value;
+      if (pos >= 2 && v[pos - 2] === '`' && PREFIX[v[pos - 1]]) {
+        const g = PREFIX[v[pos - 1]];
+        codeEl.value = v.slice(0, pos - 2) + g + v.slice(pos);
+        codeEl.selectionStart = codeEl.selectionEnd = pos - 2 + g.length;
+      }
+    }
+    dirty = true;
+    try { localStorage.setItem(STORE_KEY, codeEl.value); } catch (err) {}
+    codeChanged();
+  });
+
+  let escaped = false;
+  codeEl.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { escaped = true; return; }
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); stop(); step(); return; }
+    if (e.key === 'Tab' && !escaped && !e.shiftKey) { e.preventDefault(); insertText('  '); }
+    escaped = false;
+  });
+
+  // Controls
+  runBtn.addEventListener('click', () => running ? stop() : start());
+  $('step').addEventListener('click', () => { stop(); step(); });
+  $('restart').addEventListener('click', () => { stop(); reset(); setMsg(''); });
+  $('newField').addEventListener('click', () => { stop(); seed = newSeed(); reset(); setMsg('New field planted.'); });
+
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', refreshTheme);
+  new MutationObserver(refreshTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  new ResizeObserver(sizeCanvas).observe(cv);
+
+  readColors();
+  drawLegend();
+  reset();
+  sizeCanvas();
+})();
+</script>
+</body>
+</html>
