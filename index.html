@@ -1523,7 +1523,7 @@ Harvest←{0}
       `A harvested ripe plant scores 1. If it’s part of a 2×2 square of ripe plants that are all harvested that day, a giant crop, it scores ${B} instead and is outlined in gold the next day. A plant in more than one such square still scores ${B}. Squares don’t wrap around the edges of the field.`,
       'Harvesting a sprout or a growing plant wastes it. Harvesting a seed or a rotten plant scores nothing, so clearing rot is free.',
       `Then the field grows overnight, depending on the farm’s weather. Sunshine: every seed, sprout and growing plant, including newly replanted seeds, has a ${pct(w.sunshine)} chance to grow one stage. Rainfall: every ripe plant left unharvested has a ${pct(w.rainfall)} chance to rot. Rotten plants stay until harvested. No plot changes by more than one stage a night.`,
-      'Each farm has its own weather, starting field and fixed luck, so the same farm and the same code always give the same result. Practice Farm has Manor Farm’s weather; there, Restart replays the same field and New field starts a different one.',
+      'Each farm’s starting field and luck are decided in advance: every plot gets a fixed roll for every night, the same each time you play. The weather sets the odds; the rolls decide what actually happens. So the same farm and the same code always score the same, and only a change to your code can change the result. Practice Farm has Manor Farm’s weather: Restart replays the same field and rolls, and New field brings a new field with new rolls.',
     ];
     $('rules').replaceChildren(...items.map(t => Object.assign(document.createElement('li'), { textContent: t })));
   }
