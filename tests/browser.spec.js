@@ -179,3 +179,21 @@ test('days cross-fade, except when reduced motion is preferred', async ({ browse
     await context.close();
   }
 });
+
+test('painted plant art is used, and the game still works without it', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await page.goto(PAGE);
+  await expect(page.locator('#field')).toHaveAttribute('data-art', 'images');
+
+  // A copy of the page with no assets folder falls back to plants drawn in code.
+  const dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'acres-'));
+  fs.copyFileSync(path.join(__dirname, '..', 'index.html'), path.join(dir, 'index.html'));
+  await page.goto(pathToFileURL(path.join(dir, 'index.html')).href);
+  await page.locator('#code').fill('Harvest←{⍵=3}');
+  await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
+  await page.click('#step');
+  await expect(page.locator('#sTick')).toHaveText('1/100');
+  await expect(page.locator('#field')).toHaveAttribute('data-art', 'drawn');
+  expect(errors).toEqual([]);
+});
