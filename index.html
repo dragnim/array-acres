@@ -1368,8 +1368,8 @@ Harvest←{0}
         : result.improved ? 'New personal best.' : `Your personal best stays at ${prev.score}.`;
       const tier = AcresCore.tierFor(season, state.score), T = AcresCore.TIERS;
       const next = tier ? T[T.indexOf(tier) + 1] : 'bronze';
-      $('cmpTier').textContent = (tier ? `You reached ${tierName(tier)}.` : '')
-        + (next ? `${tier ? ' ' : ''}${tierName(next)} is ${season.targets[next]}.` : '');
+      $('cmpTier').textContent = tier === 'gold' ? 'Gold reached! You’ve found a powerful strategy. Can you do even better?'
+        : (tier ? `You reached ${tierName(tier)}. ` : '') + `${tierName(next)} is ${season.targets[next]}.`;
     }
     $('rScore').textContent = state.score;
     $('rRot').textContent = total('rotted');
