@@ -188,8 +188,17 @@ textarea {
 .season-bar span { color: var(--muted); font-size: 0.9rem; }
 .targets { display: inline-flex; flex-wrap: wrap; gap: 6px; }
 .targets[hidden] { display: none; }
-.season-bar .tier { color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; }
-.season-bar .tier[data-earned="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+/* Medal colours: each target is outlined in its metal until earned, then filled with it. */
+:root { --bronze: #C98543; --silver: #B8BEC6; --gold: #E2B53A; --bronze-edge: #9A5A22; --silver-edge: #6F7680; --gold-edge: #94700F; --medal-ink: #2A2114; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bronze-edge: #C98543; --silver-edge: #B8BEC6; --gold-edge: #E2B53A; } }
+:root[data-theme="dark"] { --bronze-edge: #C98543; --silver-edge: #B8BEC6; --gold-edge: #E2B53A; }
+.season-bar .tier[data-tier="bronze"] { --tier: var(--bronze); --tier-edge: var(--bronze-edge); }
+.season-bar .tier[data-tier="silver"] { --tier: var(--silver); --tier-edge: var(--silver-edge); }
+.season-bar .tier[data-tier="gold"] { --tier: var(--gold); --tier-edge: var(--gold-edge); }
+.season-bar .tier { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; border: 1px solid var(--tier-edge); border-radius: 999px; padding: 3px 10px; }
+.season-bar .tier::before { content: ""; width: 0.6em; height: 0.6em; border-radius: 50%; background: var(--tier-edge); }
+.season-bar .tier[data-earned="true"] { background: var(--tier); color: var(--medal-ink); font-weight: 600; }
+.season-bar .tier[data-earned="true"]::before { background: var(--medal-ink); }
 .controls button:disabled { opacity: 0.45; cursor: not-allowed; }
 .compare { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
 .compare h3 { margin: 0; font-size: 1rem; font-weight: 600; }
