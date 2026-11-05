@@ -172,7 +172,7 @@ for (const [label, field, want] of fixed) check(`hybrid mask: ${label}`, AcresCo
   ripe←⍵=3
   (⍵=4)∨(Blocks ripe)∨ripe∧~Blocks ⍵∊2 3
 }`;
-  // Waiting only for giant crops pays off in Bramley Farm's sunshine, but not on the other farms.
+  // Waiting only for bumper crops pays off in Bramley Farm's sunshine, but not on the other farms.
   const blocksOnly = { 'manor-farm': null, 'bramley-farm': 'silver', 'nuthanger-farm': null };
   for (const f of FARMS) {
     const t = f.targets, tier = src => AcresCore.tierFor(f, onFarm(src, f));
@@ -196,12 +196,12 @@ for (const [label, field, want] of fixed) check(`hybrid mask: ${label}`, AcresCo
     [other.improved, other.bests['v2:manor-farm'].score, v3.improved, v3.bests['v2:manor-farm'].score], [true, 1300, true, 1300]);
 }
 
-// 7. Giant crops: ripe 2×2 squares for drawing, overlapping squares included
-check('giants: overlapping squares are all found',
+// 7. Bumper crops: ripe 2×2 squares for drawing, overlapping squares included
+check('bumper crops: overlapping squares are all found',
   AcresCore.ripeSquares(grid(['00000000', '03330000', '03330000', '00000000', '31000000', '11000322', '00000220', '00000000'])), [[1, 1], [1, 2]]);
-check('giants: squares in corners are found, and corners never join across edges',
+check('bumper crops: squares in corners are found, and corners never join across edges',
   AcresCore.ripeSquares(grid(['33000003', '33000000', '00000000', '00000000', '00000000', '00000000', '30000033', '00000033'])), [[0, 0], [6, 6]]);
-check('giants: a square with a rotten or growing plant is not a giant crop',
+check('bumper crops: a square with a rotten or growing plant is not a bumper crop',
   AcresCore.ripeSquares(grid(['34000000', '33000000', '00000000', '00032000', '00033000', '00000000', '00000000', '00000000'])), []);
 
 // 8. The rules as written on the page: every claim checked against the simulation
@@ -262,30 +262,30 @@ check('giants: a square with a rotten or growing plant is not a giant crop',
   check('progress: a new player has Manor Farm and the comparisons only',
     [p0.earned, [...p0.glyphs].join(''), [...p0.helpers], [...p0.farms], p0.source], [['start'], '=≠<>≤≥', [], ['manor-farm'], false]);
   check('locks: a locked symbol says what unlocks it', msg('Harvest←{(⍵=3)∨⍵=4}', p0), 'LOCKED: ∨ unlocks with Bronze on Manor Farm');
-  check('locks: a locked helper says what unlocks it', msg('Harvest←{Giants ⍵}', p0), 'LOCKED: Giants unlocks with Bronze on Manor Farm');
+  check('locks: a locked helper says what unlocks it', msg('Harvest←{BumperCrops ⍵}', p0), 'LOCKED: BumperCrops unlocks with Bronze on Manor Farm');
   check('locks: symbols in comments don’t count', msg('⍝ try ∨ later\nHarvest←{⍵=3}', p0), 'ok');
-  check('locks: players can still define their own names', msg('Giants←{⍵=3}\nHarvest←{Giants ⍵}', p0), 'ok');
+  check('locks: players can still define their own names', msg('BumperCrops←{⍵=3}\nHarvest←{BumperCrops ⍵}', p0), 'ok');
 
   // The intended journey, step by step.
   const s1 = play('Harvest←{⍵=3}', F['manor-farm'], p0);
   check('journey: harvesting ripe plants on Manor Farm reaches Bronze', [s1, AcresCore.tierFor(F['manor-farm'], s1)], [1213, 'bronze']);
   const p1 = AcresCore.progress({ 'v2:manor-farm': { score: s1 } });
-  check('journey: Bronze on Manor Farm unlocks ∧ ∨ ~, Giants and Bramley Farm',
-    [p1.earned, [...p1.glyphs].includes('∨'), [...p1.helpers], [...p1.farms]], [['start', 'manor-bronze'], true, ['Giants'], ['manor-farm', 'bramley-farm']]);
-  const s2 = play('Harvest←{(⍵=4)∨Giants ⍵}', F['bramley-farm'], p1);
-  check('journey: harvesting only giant crops on Bramley Farm reaches Silver', [s2, AcresCore.tierFor(F['bramley-farm'], s2)], [1995, 'silver']);
+  check('journey: Bronze on Manor Farm unlocks ∧ ∨ ~, BumperCrops and Bramley Farm',
+    [p1.earned, [...p1.glyphs].includes('∨'), [...p1.helpers], [...p1.farms]], [['start', 'manor-bronze'], true, ['BumperCrops'], ['manor-farm', 'bramley-farm']]);
+  const s2 = play('Harvest←{(⍵=4)∨BumperCrops ⍵}', F['bramley-farm'], p1);
+  check('journey: harvesting only bumper crops on Bramley Farm reaches Silver', [s2, AcresCore.tierFor(F['bramley-farm'], s2)], [1995, 'silver']);
   const p2 = AcresCore.progress({ 'v2:manor-farm': { score: s1 }, 'v2:bramley-farm': { score: s2 } });
   check('journey: Silver on Bramley Farm unlocks Promising and Nuthanger Farm',
-    [p2.earned.includes('bramley-silver'), [...p2.helpers], p2.farms.has('nuthanger-farm')], [true, ['Giants', 'Promising'], true]);
-  const smart = 'Harvest←{(⍵=4)∨(Giants ⍵)∨(⍵=3)∧~Promising ⍵}';
+    [p2.earned.includes('bramley-silver'), [...p2.helpers], p2.farms.has('nuthanger-farm')], [true, ['BumperCrops', 'Promising'], true]);
+  const smart = 'Harvest←{(⍵=4)∨(BumperCrops ⍵)∨(⍵=3)∧~Promising ⍵}';
   check('journey: the helpers reproduce the reference strategy and reach Gold on every farm',
     AcresCore.FARMS.map(f => { const sc = play(smart, f, p2); return [sc, AcresCore.tierFor(f, sc)]; }), [[1533, 'gold'], [2132, 'gold'], [1238, 'gold']]);
   const p3 = AcresCore.progress({ 'v2:nuthanger-farm': { score: 1200 } });
   check('journey: Gold on any farm unlocks every symbol and the helpers’ source',
     [p3.earned.includes('any-gold'), p3.glyphs.has('↑'), p3.helpers.has('Squares'), p3.source], [true, true, true, true]);
 
-  check('helpers: Giants marks exactly the plants in ripe 2×2 squares',
-    AcresCore.evaluate('Harvest←Giants', grid(['33000003', '33000000', '00000000', '00000000', '00000000', '00000000', '30000033', '00000033'])).mask,
+  check('helpers: BumperCrops marks exactly the plants in ripe 2×2 squares',
+    AcresCore.evaluate('Harvest←BumperCrops', grid(['33000003', '33000000', '00000000', '00000000', '00000000', '00000000', '30000033', '00000033'])).mask,
     grid(['11000000', '11000000', '00000000', '00000000', '00000000', '00000000', '00000011', '00000011']));
   check('helpers: Promising marks every 2×2 square of growing or ripe plants',
     AcresCore.evaluate('Harvest←Promising', grid(['23000000', '32000000', '00000000', '00012000', '00031000', '00000000', '00000000', '00000000'])).mask,
