@@ -1244,6 +1244,21 @@ Harvest←{0}
 
   // Drawing
   let COL;
+
+  // Painted plant art from assets/plants. Until all of it has loaded, or if it can't load,
+  // the plants are drawn in code instead, so the game never depends on the images.
+  const ART_FILES = { 0: '0-seed', 1: '1-sprout', 2: '2-growing', 3: '3-ripe', 4: '4-rotten', giant: 'giant' };
+  const ART = {};
+  let artReady = false;
+  {
+    const entries = Object.entries(ART_FILES);
+    let loaded = 0;
+    for (const [key, name] of entries) {
+      const img = new Image();
+      img.onload = () => { ART[key] = img; if (++loaded === entries.length) { artReady = true; refreshTheme(); } };
+      img.src = `assets/plants/${name}.webp`;
+    }
+  }
   function readColors() {
     const cs = getComputedStyle(document.documentElement);
     const g = n => cs.getPropertyValue(n).trim();
@@ -1264,6 +1279,9 @@ Harvest←{0}
 
     if (bare) {
       // The plant is drawn as part of a giant crop instead.
+    } else if (artReady) {
+      c.imageSmoothingQuality = 'high';
+      c.drawImage(ART[v], x, y, s, s);
     } else if (v === 0) {
       c.fillStyle = COL.seed;
       c.beginPath(); c.ellipse(cx, base - s * 0.04, s * 0.075, s * 0.05, 0, 0, Math.PI * 2); c.fill();
@@ -1332,6 +1350,7 @@ Harvest←{0}
     // data-giants counts every ripe 2×2 square, overlapping ones included, as scoring does.
     const squares = AcresCore.ripeSquares(state.field), tiling = giantTiling(squares);
     cv.dataset.giants = squares.length;
+    cv.dataset.art = artReady ? 'images' : 'drawn';
     cv.setAttribute('aria-label', tiling.length ? `The field, with ${tiling.length} giant crop${tiling.length === 1 ? '' : 's'}` : 'The field');
     const w = cv.clientWidth;
     if (!w) return;
@@ -1417,7 +1436,11 @@ Harvest←{0}
       rrect(c, at(k) + c.lineWidth / 2, at(r) + c.lineWidth / 2, size - c.lineWidth, size - c.lineWidth, s * 0.13); c.stroke();
     }
     c.globalAlpha = 1;
-    for (const [r, k] of tiling) drawSheaf(c, at(k), at(r), size);
+    c.imageSmoothingQuality = 'high';
+    for (const [r, k] of tiling) {
+      if (artReady) c.drawImage(ART.giant, at(k), at(r), size, size);
+      else drawSheaf(c, at(k), at(r), size);
+    }
     c.restore();
   }
 
