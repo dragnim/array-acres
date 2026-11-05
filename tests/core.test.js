@@ -113,5 +113,23 @@ const fixed = [
 ];
 for (const [label, field, want] of fixed) check(`hybrid mask: ${label}`, AcresCore.evaluate(HYBRID, grid(field)), { ok: true, mask: grid(want) });
 
+// 5. Allocation limit: 1,000,000 elements is allowed, anything bigger is WS FULL, checked before allocating.
+const WS = 'ERR WS FULL: array exceeds 1,000,000 elements';
+const limits = [
+  ['≢⍳1000000', '1000000'], ['⍳1000001', WS], ['⍳1e300', WS],
+  ['≢,1000 1000⍴0', '1000000'], ['1000 1001⍴0', WS], ['1e20 1e20⍴0', WS],
+  ['≢,1e20 0⍴0', '0'], ['≢,0 1e300⍴7', '0'],
+  ['≢1000000/1', '1000000'], ['1000001/1', WS], ['≢2/⍳500000', '1000000'], ['2/⍳500001', WS],
+  ['≢(⍳500000),⍳500000', '1000000'], ['(⍳500000),⍳500001', WS],
+  ['≢1000000↑0', '1000000'], ['1000001↑0', WS],
+  ['≢⍸,1000000', '1000000'], ['⍸,1000001', WS],
+  ['≢,(⍳1000)∘.+⍳1000', '1000000'], ['(⍳1000)∘.+⍳1001', WS],
+  ['m←1000 1000⍴0 ⋄ v←⍳1000 ⋄ ≢,m[v;v]', '1000000'], ['m←1000 1000⍴0 ⋄ v←⍳1000 ⋄ m[v;v,1]', WS],
+  ['(1000 1⍴1)+.×1 1001⍴1', WS],
+  // Oversized intermediates fail even when the final result is small.
+  ['+/,1000 1001⍴1', WS], ['≢{⍵,⍵}⍳600000', WS], ['f←{+/,⍵∘.×⍵} ⋄ f ⍳1001', WS],
+];
+for (const [src, want] of limits) check(`limit: ${src}`, ev(src), want);
+
 console.log(failures ? `${failures} of ${checks} checks failed` : `All ${checks} checks passed`);
 process.exit(failures ? 1 : 0);
