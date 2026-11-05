@@ -91,7 +91,7 @@ test('preview and diagnostics follow the code and the field', async ({ page }) =
   expect(errors).toEqual([]);
 });
 
-test('challenges keep separate personal bests that survive a reload', async ({ page }) => {
+test('farms keep separate personal bests that survive a reload', async ({ page }) => {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.goto(PAGE);
@@ -106,33 +106,34 @@ test('challenges keep separate personal bests that survive a reload', async ({ p
     await expect(msg).toHaveText(/^Season over\./, { timeout: 30000 });
   };
 
-  await page.selectOption('#season', 'the-long-harvest');
+  await page.selectOption('#farm', 'nuthanger-farm');
+  await expect(page.locator('#weather')).toHaveText('Sunshine 50%Rainfall 25%');
   await expect(page.locator('#newField')).toBeDisabled();
   await expect(best).toHaveText('–');
   await page.selectOption('#speed', '30');
 
   // First result: recorded, with no previous best to compare against.
   await playSeason('Harvest←{⍵≥3}');
-  await expect(page.locator('#cmpThis')).toHaveText('1216');
-  await expect(page.locator('#cmpStatus')).toHaveText('Your first result for this challenge.');
-  await expect(best).toHaveText('1216');
-  await expect(page.locator('#cmpTier')).toHaveText('You reached Bronze. Silver is 1400.');
+  await expect(page.locator('#cmpThis')).toHaveText('1093');
+  await expect(page.locator('#cmpStatus')).toHaveText('Your first result on this farm.');
+  await expect(best).toHaveText('1093');
+  await expect(page.locator('#cmpTier')).toHaveText('You reached Bronze. Silver is 1150.');
   await expect(page.locator('.tier[data-tier="bronze"]')).toHaveAttribute('data-earned', 'true');
   await expect(page.locator('.tier[data-tier="silver"]')).toHaveAttribute('data-earned', 'false');
 
   // A worse run doesn't replace it.
   await playSeason('Harvest←{⍵=3}');
-  await expect(page.locator('#cmpPrev')).toHaveText('1216');
-  await expect(page.locator('#cmpStatus')).toHaveText('Your personal best stays at 1216.');
-  await expect(best).toHaveText('1216');
+  await expect(page.locator('#cmpPrev')).toHaveText('1093');
+  await expect(page.locator('#cmpStatus')).toHaveText('Your personal best stays at 1093.');
+  await expect(best).toHaveText('1093');
 
-  // Bests and the chosen season survive a reload.
+  // Bests and the chosen farm survive a reload.
   await page.reload();
-  await expect(page.locator('#season')).toHaveValue('the-long-harvest');
-  await expect(best).toHaveText('1216');
+  await expect(page.locator('#farm')).toHaveValue('nuthanger-farm');
+  await expect(best).toHaveText('1093');
 
-  // Other challenges have their own bests, and practice has none to keep.
-  await page.selectOption('#season', 'first-furrows');
+  // Other farms have their own bests, and Practice Farm has none to keep.
+  await page.selectOption('#farm', 'manor-farm');
   await expect(best).toHaveText('–');
   await expect(page.locator('.tier[data-earned="true"]')).toHaveCount(0);
 
@@ -140,7 +141,7 @@ test('challenges keep separate personal bests that survive a reload', async ({ p
   await playSeason(fs.readFileSync(path.join(__dirname, '..', 'reference', 'hybrid.apl'), 'utf8'));
   await expect(page.locator('#cmpTier')).toHaveText('Gold reached! You’ve found a powerful strategy. Can you do even better?');
   await expect(page.locator('.tier[data-earned="true"]')).toHaveCount(3);
-  await page.selectOption('#season', 'practice');
+  await page.selectOption('#farm', 'practice');
   await expect(page.locator('#newField')).toBeEnabled();
   await expect(page.locator('#bestLabel')).toHaveText('Best on this field');
   await expect(page.locator('#targets')).toBeHidden();
@@ -153,7 +154,7 @@ test('giant crops appear exactly where ripe 2×2 squares are', async ({ page }) 
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   const script = id => html.match(new RegExp(`<script id="${id}">([\\s\\S]*?)<\\/script>`))[1];
   const { AcresCore } = new Function(script('apl-interpreter') + '\n' + script('acres-core') + '\nreturn { AcresCore };')();
-  const st = AcresCore.newSeason(AcresCore.SEASONS[0].seed), nothing = AcresCore.compileHarvest('Harvest←{0}');
+  const st = AcresCore.newSeason(AcresCore.FARMS[0].seed, AcresCore.FARMS[0]), nothing = AcresCore.compileHarvest('Harvest←{0}');
 
   await page.goto(PAGE);
   await page.locator('#code').fill('Harvest←{0}');
@@ -204,10 +205,14 @@ test('the rules on the page state the numbers the game actually uses', async ({ 
   const { AcresCore } = new Function(script('apl-interpreter') + '\n' + script('acres-core') + '\nreturn { AcresCore };')();
   const R = AcresCore.RULES, pct = p => `${Math.round(p * 100)}%`;
 
+  // The rules follow the chosen farm's weather.
   await page.goto(PAGE);
-  const rules = await page.locator('#rules').innerText();
-  for (const claim of [`${R.size}×${R.size}`, `${R.days} days`, `${pct(R.grow)} chance to grow`, `${pct(R.rotChance)} chance to rot`, `scores ${R.bonus} instead`])
-    expect(rules).toContain(claim);
+  for (const f of AcresCore.FARMS) {
+    await page.selectOption('#farm', f.id);
+    const rules = await page.locator('#rules').innerText();
+    for (const claim of [`${R.size}×${R.size}`, `${R.days} days`, `${pct(f.sunshine)} chance to grow`, `${pct(f.rainfall)} chance to rot`, `scores ${R.bonus} instead`])
+      expect(rules).toContain(claim);
+  }
 });
 
 test('Reset code restores the starter code, and undo brings the player’s code back', async ({ page }) => {
