@@ -123,11 +123,14 @@ header p { margin: 0.6rem 0 0; max-width: 62ch; color: var(--muted); font-size: 
 .editor .label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
 .editor label.title { font-weight: 600; }
 .status { font-size: 0.85rem; color: var(--muted); }
+.label-tools { display: flex; align-items: baseline; gap: 12px; }
+.small-button { font: inherit; font-size: 0.85rem; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 2px 9px; cursor: pointer; }
+.small-button:hover { border-color: var(--muted); }
 .status[data-state="code"], .status[data-state="result"], .status[data-state="internal"] { color: var(--error); }
 #diag { margin-top: 8px; min-height: 1.4em; font: 0.88rem/1.4 var(--mono); color: var(--error); white-space: pre-wrap; }
 textarea {
   width: 100%;
-  min-height: 300px;
+  min-height: 480px;
   resize: vertical;
   font: 16px/1.5 var(--mono);
   background: var(--code-bg);
@@ -247,7 +250,10 @@ textarea {
     <section class="editor">
       <div class="label-row">
         <label class="title" for="code">Your code</label>
-        <span class="status" id="status" aria-live="polite"></span>
+        <span class="label-tools">
+          <span class="status" id="status" aria-live="polite"></span>
+          <button type="button" class="small-button" id="resetCode">Reset code</button>
+        </span>
       </div>
       <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
       <div class="glyphs" id="glyphs" aria-label="APL symbols"></div>
@@ -1054,14 +1060,23 @@ const AcresCore = (() => {
   const STAGE_NAMES = ['seed', 'sprout', 'growing', 'ripe', 'rotten'];
   const STORE_KEY = 'allotment:apl';
 
-  const DEFAULT_CODE = `⍝ Harvest←{...} defines your function. Each day it's called with
-⍝ ⍵, today's field: an 8×8 matrix of crop stages.
-⍝   0 seed  1 sprout  2 growing  3 ripe  4 rotten
-⍝ It returns 1 for plots to harvest and 0 for plots to leave,
-⍝ as an 8×8 matrix, or a single 0 or 1 for every plot.
-⍝ Only ripe plots score: 1 each, or 3 each when four are
-⍝ harvested together as a 2×2 block.
-⍝ Right now it returns 0, so nothing is ever harvested.
+  const DEFAULT_CODE = `⍝ Your function, Harvest, runs once a day.
+⍝ ⍵ is the field: an 8×8 matrix of stages.
+⍝   0 seed  1 sprout  2 growing
+⍝   3 ripe  4 rotten
+⍝ Return 1 for each plot to harvest and 0
+⍝ for each plot to leave: an 8×8 matrix, or
+⍝ a single 0 or 1 for every plot at once.
+⍝
+⍝ Example: if one corner of ⍵ is    0 3
+⍝                                   4 2
+⍝ then ⍵=4 gives 1 where it's 4:    0 0
+⍝                                   1 0
+⍝ so only that rotten plant is harvested.
+⍝
+⍝ Ripe plants score 1, or 3 each when four
+⍝ in a 2×2 square are harvested together.
+⍝ For now it returns 0, harvesting nothing.
 
 Harvest←{0}
 `;
@@ -1688,6 +1703,20 @@ Harvest←{0}
   let saved = null;
   try { saved = localStorage.getItem(STORE_KEY); } catch (e) {}
   codeEl.value = saved || DEFAULT_CODE;
+
+  // Back to the starter code. Done as an edit, so Ctrl+Z or ⌘+Z brings the player's code back.
+  $('resetCode').addEventListener('click', () => {
+    if (codeEl.value === DEFAULT_CODE) return;
+    codeEl.focus();
+    codeEl.select();
+    if (!document.execCommand('insertText', false, DEFAULT_CODE)) {
+      codeEl.value = DEFAULT_CODE;
+      codeEl.dispatchEvent(new Event('input'));
+    }
+    codeEl.setSelectionRange(0, 0);
+    codeEl.scrollTop = 0;
+    setMsg('Starter code restored. Ctrl+Z or ⌘+Z in the editor brings your code back.');
+  });
 
   // Backtick prefix: replace "`x" with its symbol as soon as x is typed.
   codeEl.addEventListener('input', e => {
