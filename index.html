@@ -202,6 +202,12 @@ textarea {
 .guide-item p { margin: 3px 0 0; color: var(--muted); font-size: 0.9rem; }
 .guide-item pre { margin: 6px 0 0; padding: 8px 10px; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; font: 0.85rem/1.45 var(--mono); overflow-x: auto; }
 .guide-item[data-locked="true"] { opacity: 0.55; }
+.snippet { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 6px 10px; margin-top: 8px; padding: 6px 8px; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; }
+.snippet code { font-family: var(--mono); font-size: 1rem; }
+.snippet-note { color: var(--muted); font-size: 0.85rem; }
+#pGuide .lede { margin-bottom: 14px; }
+.example-note { margin: -2px 2px 10px; font-size: 0.9rem; color: var(--preview); }
+.example-note code { color: var(--preview); font-weight: 600; }
 .unlock { color: var(--ink); font-weight: 600; }
 .glyphs .gap { width: 8px; }
 .hint { color: var(--muted); font-size: 0.85rem; margin: 8px 0 0; }
@@ -281,6 +287,7 @@ textarea {
         <span class="field-title">Today’s field, <code>⍵</code></span>
         <button type="button" class="small-button" id="showNumbers" aria-pressed="false">Show numbers</button>
       </div>
+      <p class="example-note" id="exampleNote" hidden>Showing <code id="exampleCode"></code> on today’s field: <span id="exampleCount"></span>. <button type="button" class="link" id="exampleBack">Back to your code</button></p>
       <canvas id="field" role="img" aria-label="The field"></canvas>
       <div class="stats">
         <div class="stat"><span>Day</span><strong id="sTick">0/100</strong></div>
@@ -332,6 +339,7 @@ textarea {
       <ol class="rules" id="rules"></ol>
     </section>
     <section id="pGuide" hidden>
+      <p class="lede">Show me marks what a snippet picks on today’s field. Use puts it in your code where your cursor is.</p>
       <div id="guide"></div>
     </section>
   <section class="report" id="report" hidden>
@@ -1320,7 +1328,27 @@ Harvest←{0}
     render();
   }
 
+  // A field guide snippet shown on the field instead of the preview, until the code or field changes.
+  let example = null;
+  function showExample(code) {
+    if (example && example.code === code) { clearExample(); return; }
+    const r = AcresCore.evaluate(`Harvest←{${code}}`, state.field, access());
+    if (!r.ok) { setMsg(errorText(r.kind, r.message), true); return; }
+    example = { code, mask: r.mask };
+    render();
+  }
+  function clearExample() { if (example) { example = null; render(); } }
+  $('exampleBack').addEventListener('click', clearExample);
+  function useSnippet(code) {
+    // Where the panel covers the editor, close it so the code is in view.
+    if (!matchMedia('(min-width: 1100px)').matches) closePanel(false);
+    codeEl.focus();
+    insertText(code);
+    codeEl.selectionStart = codeEl.selectionEnd - code.length; // selected, so it's easy to see and move
+  }
+
   function codeChanged() {
+    example = null;
     preview.stale = true;
     setStatus('editing');
     render();
@@ -1331,6 +1359,7 @@ Harvest←{0}
   // The field moved on, so the old preview is out of date. If the player is mid-edit,
   // leave it faded and let the pending timer recalculate with the latest code.
   function fieldChanged() {
+    example = null;
     if (previewTimer) { preview.stale = true; render(); }
     else runPreview();
   }
@@ -1479,11 +1508,11 @@ Harvest←{0}
   // Each entry explains one tool with a small example. Locked entries show only what unlocks them.
   const GUIDE = [
     { title: '⍵', text: '⍵ is today’s field: 8×8 numbers, one for each plot (0 seed, 1 sprout, 2 growing, 3 ripe, 4 rotten). Turn on “Show numbers” to see them on the field.' },
-    { title: '= ≠ < > ≤ ≥', glyph: '=', text: 'Compare. These ask a question of every plot at once, and answer 1 for yes and 0 for no.', example: '⍵≤1   ⍝ 1 on every seed and sprout, 0 everywhere else' },
-    { title: '∧ ∨ ~', glyph: '∧', text: 'Combine answers. ∧ means “and”: 1 only where both answers are 1. ∨ means “or”: 1 where either is. ~ means “not”: it turns 1s into 0s and 0s into 1s.', example: '(⍵=1)∨⍵=2   ⍝ 1 on every sprout or growing plant' },
-    { title: 'BumperCrops ⍵', helper: 'BumperCrops', text: 'A ready-made helper. It gives 1 on every ripe plant that’s part of a bumper crop today (four ripe plants in a 2×2 square), and 0 everywhere else.' },
-    { title: 'Promising ⍵', helper: 'Promising', text: 'A ready-made helper. It gives 1 on every plant that’s part of a 2×2 square of growing or ripe plants: places where a bumper crop could form if you wait.' },
-    { title: 'Every symbol, and how the helpers work', source: true, text: 'You can now use every symbol. `BumperCrops` and `Promising` are ordinary APL functions, both built on a third helper, `Squares`, which finds 2×2 squares of 1s. Here’s their code, and you can now use `Squares` yourself. Can you write better helpers?', code: AcresCore.HELPER_SOURCE },
+    { title: '= ≠ < > ≤ ≥', glyph: '=', text: 'Compare. These ask a question of every plot at once, and answer 1 for yes and 0 for no.', snippets: [['⍵=4', 'the rotten plants'], ['⍵≤1', 'seeds and sprouts'], ['⍵≠0', 'everything except seeds']] },
+    { title: '∧ ∨ ~', glyph: '∧', text: 'Combine answers. ∧ means “and”: 1 only where both answers are 1. ∨ means “or”: 1 where either is. ~ means “not”: it turns 1s into 0s and 0s into 1s.', snippets: [['(⍵=1)∨⍵=2', 'everything still growing'], ['(⍵≥2)∧⍵≤3', 'growing or ripe plants'], ['~⍵=4', 'everything except rotten plants']] },
+    { title: 'BumperCrops ⍵', helper: 'BumperCrops', text: 'A ready-made helper. It gives 1 on every ripe plant that’s part of a bumper crop today (four ripe plants in a 2×2 square), and 0 everywhere else.', snippets: [['BumperCrops ⍵', 'today’s bumper crops']] },
+    { title: 'Promising ⍵', helper: 'Promising', text: 'A ready-made helper. It gives 1 on every plant that’s part of a 2×2 square of growing or ripe plants: places where a bumper crop could form if you wait.', snippets: [['Promising ⍵', 'where a bumper crop could form']] },
+    { title: 'Every symbol, and how the helpers work', source: true, text: 'You can now use every symbol. `BumperCrops` and `Promising` are ordinary APL functions, both built on a third helper, `Squares`, which finds 2×2 squares of 1s. Here’s their code, and you can now use `Squares` yourself. Can you write better helpers?', snippets: [['Squares ⍵=2', '2×2 squares of growing plants']], code: AcresCore.HELPER_SOURCE },
   ];
   function renderGuide() {
     const acc = access();
@@ -1495,9 +1524,25 @@ Harvest←{0}
       const h = document.createElement('h4'); h.textContent = g.title; if (g.source) h.className = 'prose';
       const p = document.createElement('p'); p.append(rich(open ? g.text : `Unlocks with ${AcresCore.needText(u)}.`));
       item.append(h, p);
-      if (open && (g.example || g.code)) { const pre = document.createElement('pre'); pre.textContent = g.example || g.code; item.append(pre); }
+      if (open && g.snippets) item.append(...g.snippets.map(([code, note]) => snippetRow(code, note)));
+      if (open && g.code) { const pre = document.createElement('pre'); pre.textContent = g.code; item.append(pre); }
       return item;
     }));
+  }
+
+  // One snippet: its code, what it picks, and buttons to show it on the field or put it in your code.
+  function snippetRow(code, note) {
+    const row = document.createElement('div'); row.className = 'snippet';
+    const c = document.createElement('code'); c.textContent = code;
+    const n = document.createElement('span'); n.className = 'snippet-note'; n.textContent = note;
+    const show = document.createElement('button'); show.type = 'button'; show.className = 'small-button'; show.textContent = 'Show me';
+    show.setAttribute('aria-label', `Show ${code} on today’s field`);
+    show.addEventListener('click', () => showExample(code));
+    const use = document.createElement('button'); use.type = 'button'; use.className = 'small-button'; use.textContent = 'Use';
+    use.setAttribute('aria-label', `Use ${code} in your code`);
+    use.addEventListener('click', () => useSnippet(code));
+    row.append(c, n, show, use);
+    return row;
   }
 
   function refreshProgress() { renderFarmOptions(); renderGlyphLocks(); renderGuide(); }
@@ -1606,7 +1651,13 @@ Harvest←{0}
 
   function render() {
     // Expose the preview state for tests and assistive tech: none, live or stale.
-    cv.dataset.preview = !preview.mask ? 'none' : preview.stale ? 'stale' : 'live';
+    cv.dataset.preview = example ? 'example' : !preview.mask ? 'none' : preview.stale ? 'stale' : 'live';
+    $('exampleNote').hidden = !example;
+    if (example) {
+      const n = example.mask.flat().filter(Boolean).length;
+      $('exampleCode').textContent = example.code;
+      $('exampleCount').textContent = `${n} plot${n === 1 ? '' : 's'}`;
+    }
     if (!state || !COL) return;
     // data-giants counts every ripe 2×2 square, overlapping ones included, as scoring does.
     const squares = AcresCore.ripeSquares(state.field), tiling = giantTiling(squares);
@@ -1623,7 +1674,8 @@ Harvest←{0}
     for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) drawPlot(fctx, at(c), at(r), s, state.field[r][c], 0, null, inSheaf[r][c]);
     drawGiants(fctx, squares, tiling, at, s, gap);
     for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
-      const p = preview.mask && preview.mask[r][c] ? (preview.stale ? 'stale' : 'live') : null;
+      const p = example ? (example.mask[r][c] ? 'live' : null)
+        : preview.mask && preview.mask[r][c] ? (preview.stale ? 'stale' : 'live') : null;
       drawOverlay(fctx, at(c), at(r), s, state.marks && state.marks[r][c], p);
       if (showNumbers) drawNumber(fctx, at(c), at(r), s, state.field[r][c]);
     }
