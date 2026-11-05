@@ -186,6 +186,10 @@ textarea {
 .season-bar label { font-weight: 600; }
 .season-bar select { font: inherit; font-size: 0.95rem; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 7px 12px; }
 .season-bar span { color: var(--muted); font-size: 0.9rem; }
+.targets { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.targets[hidden] { display: none; }
+.season-bar .tier { color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; }
+.season-bar .tier[data-earned="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
 .controls button:disabled { opacity: 0.45; cursor: not-allowed; }
 .compare { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
 .compare h3 { margin: 0; font-size: 1rem; font-weight: 600; }
@@ -210,6 +214,7 @@ textarea {
         <optgroup label="Challenges" id="challengeOptions"></optgroup>
         <option value="practice">Practice (random fields)</option>
       </select>
+      <span class="targets" id="targets" aria-label="Targets"></span>
       <span id="seasonInfo"></span>
     </div>
   </header>
@@ -269,6 +274,7 @@ textarea {
         <div class="stat"><span>Change</span><strong id="cmpChange">–</strong></div>
       </div>
       <p id="cmpStatus"></p>
+      <p id="cmpTier"></p>
     </div>
     <div class="chart-head">
       <h3>Day by day</h3>
@@ -909,10 +915,18 @@ const AcresCore = (() => {
   // Named challenges: fixed seeds under a fixed ruleset, so every player gets the same season.
   // Chosen by simulating 1,200 candidate seeds with the greedy and hybrid reference strategies.
   const SEASONS = Object.freeze([
-    Object.freeze({ id: 'first-furrows', name: 'First Furrows', rules: 'v1', seed: 6073873 }),
-    Object.freeze({ id: 'the-long-harvest', name: 'The Long Harvest', rules: 'v1', seed: 5004808 }),
-    Object.freeze({ id: 'against-the-odds', name: 'Against the Odds', rules: 'v1', seed: 4806833 }),
+    // Targets: bronze is within reach of harvesting every ripe plot, silver needs a partly right
+    // idea about 2×2 blocks, and gold matches the hybrid reference strategy.
+    Object.freeze({ id: 'first-furrows', name: 'First Furrows', rules: 'v1', seed: 6073873,
+      targets: Object.freeze({ bronze: 1200, silver: 1350, gold: 1550 }) }),
+    Object.freeze({ id: 'the-long-harvest', name: 'The Long Harvest', rules: 'v1', seed: 5004808,
+      targets: Object.freeze({ bronze: 1200, silver: 1400, gold: 1550 }) }),
+    Object.freeze({ id: 'against-the-odds', name: 'Against the Odds', rules: 'v1', seed: 4806833,
+      targets: Object.freeze({ bronze: 1150, silver: 1300, gold: 1450 }) }),
   ]);
+  const TIERS = Object.freeze(['bronze', 'silver', 'gold']);
+  // The highest target a score reaches, or null.
+  const tierFor = (season, score) => [...TIERS].reverse().find(t => score >= season.targets[t]) || null;
 
   // Personal bests belong to a ruleset and a season together, never just a seed.
   const bestKey = (ruleset, season) => `${ruleset}:${season}`;
@@ -1008,7 +1022,7 @@ const AcresCore = (() => {
     st.day++;
   }
 
-  return { RULES, SEASONS, bestKey, recordBest, ResultError, newSeason, compileHarvest, runHarvest, evaluate, advance };
+  return { RULES, SEASONS, TIERS, tierFor, bestKey, recordBest, ResultError, newSeason, compileHarvest, runHarvest, evaluate, advance };
 })();
 </script>
 <script>
@@ -1174,6 +1188,22 @@ Harvest←{⍵=3}
     $('sWasted').textContent = state.wasted;
     const b = season ? bests[AcresCore.bestKey(RULES.id, season.id)] : null;
     $('sBest').textContent = season ? (b ? b.score : '–') : (best[seed] ?? '–');
+    renderTargets(b ? b.score : 0);
+  }
+
+  // Targets show what's possible, filled in as the personal best reaches them.
+  const tierName = t => t[0].toUpperCase() + t.slice(1);
+  function renderTargets(bestScore) {
+    const el = $('targets');
+    el.hidden = !season;
+    if (!season) return;
+    el.replaceChildren(...AcresCore.TIERS.map(t => {
+      const pill = document.createElement('span'), earned = bestScore >= season.targets[t];
+      pill.className = 'tier'; pill.dataset.tier = t; pill.dataset.earned = String(earned);
+      pill.textContent = `${tierName(t)} ${season.targets[t]}`;
+      pill.title = earned ? `${tierName(t)} reached` : `${tierName(t)}: score ${season.targets[t]} or more`;
+      return pill;
+    }));
   }
 
   // Challenges and practice
@@ -1190,7 +1220,7 @@ Harvest←{⍵=3}
     seed = season ? season.seed : newSeed();
     $('newField').disabled = !!season;
     $('bestLabel').textContent = season ? 'Personal best' : 'Best on this field';
-    $('seasonInfo').textContent = season ? `Rules ${RULES.id}. Everyone plays the same field.` : `Rules ${RULES.id}. A new random field each time.`;
+    $('seasonInfo').textContent = season ? '' : 'A new random field each time.';
     try { localStorage.setItem(SEASON_KEY, seasonEl.value); } catch (e) {}
   }
 
@@ -1334,6 +1364,10 @@ Harvest←{⍵=3}
       $('cmpChange').textContent = !prev ? '–' : diff > 0 ? `+${diff}` : diff < 0 ? `−${-diff}` : '0';
       $('cmpStatus').textContent = !prev ? 'Your first result for this challenge.'
         : result.improved ? 'New personal best.' : `Your personal best stays at ${prev.score}.`;
+      const tier = AcresCore.tierFor(season, state.score), T = AcresCore.TIERS;
+      const next = tier ? T[T.indexOf(tier) + 1] : 'bronze';
+      $('cmpTier').textContent = (tier ? `You reached ${tierName(tier)}.` : '')
+        + (next ? `${tier ? ' ' : ''}${tierName(next)} is ${season.targets[next]}.` : '');
     }
     $('rScore').textContent = state.score;
     $('rRot').textContent = total('rotted');
