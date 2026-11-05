@@ -143,7 +143,30 @@ for (const [label, field, want] of fixed) check(`hybrid mask: ${label}`, AcresCo
   check('stats: daily records match the season over 40 seasons' + (detail ? ` (${detail})` : ''), ok, true);
 }
 
-// 6. Allocation limit: 1,000,000 elements is allowed, anything bigger is WS FULL, checked before allocating.
+// 6. Rulesets, named seasons and personal bests
+{
+  check('rules: the ruleset is v1 and cannot be changed', [RULES.id, Object.isFrozen(RULES)], ['v1', true]);
+  const ids = AcresCore.SEASONS.map(s => s.id);
+  check('seasons: three challenges with unique ids, all on rules v1',
+    [ids.length, new Set(ids).size, AcresCore.SEASONS.every(s => s.rules === RULES.id && Object.isFrozen(s))], [3, 3, true]);
+  // Pinned results: if these move, the challenges have changed and old personal bests no longer compare.
+  const pinned = { 'first-furrows': [1242, 1555], 'the-long-harvest': [1216, 1599], 'against-the-odds': [1190, 1463] };
+  for (const s of AcresCore.SEASONS)
+    check(`season ${s.id}: greedy and hybrid scores`, [season(GREEDY, s.seed), season(HYBRID, s.seed)], pinned[s.id]);
+
+  const e = (season, score, ruleset = 'v1') => ({ ruleset, season, seed: 1, score });
+  let r = AcresCore.recordBest({}, e('first-furrows', 1200));
+  check('bests: a first result is recorded', [r.improved, r.previous, r.bests['v1:first-furrows'].score], [true, null, 1200]);
+  const after = AcresCore.recordBest(r.bests, e('first-furrows', 1300));
+  check('bests: a higher score replaces the best', [after.improved, after.previous.score, after.bests['v1:first-furrows'].score], [true, 1200, 1300]);
+  const lower = AcresCore.recordBest(after.bests, e('first-furrows', 1250)), equal = AcresCore.recordBest(after.bests, e('first-furrows', 1300));
+  check('bests: a lower or equal score leaves the best alone', [lower.improved, lower.bests === after.bests, equal.improved, equal.bests === after.bests], [false, true, false, true]);
+  const other = AcresCore.recordBest(after.bests, e('the-long-harvest', 900)), v2 = AcresCore.recordBest(after.bests, e('first-furrows', 100, 'v2'));
+  check('bests: kept separately per season and per ruleset',
+    [other.improved, other.bests['v1:first-furrows'].score, v2.improved, v2.bests['v1:first-furrows'].score], [true, 1300, true, 1300]);
+}
+
+// 7. Allocation limit: 1,000,000 elements is allowed, anything bigger is WS FULL, checked before allocating.
 const WS = 'ERR WS FULL: array exceeds 1,000,000 elements';
 const limits = [
   ['≢⍳1000000', '1000000'], ['⍳1000001', WS], ['⍳1e300', WS],
