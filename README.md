@@ -22,6 +22,12 @@ The plant art is separate, in `assets/plants`, with notes on how it was made and
 
 A season is 100 days. There are three farms, Manor, Bramley and Nuthanger, each with its own weather under ruleset `v2`: sunshine sets how likely an unripe plant is to grow overnight, and rainfall how likely a ripe plant left in the ground is to rot. Each farm also has its own starting field and fixed luck, so the same farm and the same code always give the same score, and its own Bronze, Silver and Gold targets. Personal bests are kept in the browser, and Practice Farm plays random fields with Manor Farm's weather. At the end of a season, a report shows what happened day by day, without suggesting what to change.
 
+## Progression
+
+Medals unlock the game. A new player starts on Manor Farm with only `⍵` and the comparisons `= ≠ < > ≤ ≥`. Bronze on Manor Farm unlocks `∧ ∨ ~`, the `Giants` helper and Bramley Farm. Silver on Bramley Farm unlocks the `Promising` helper and Nuthanger Farm. Gold on any farm unlocks every symbol and the helpers' APL source, so players can see how they work and write better ones. Practice Farm always has everything.
+
+Unlocks are worked out from personal bests, so there's nothing extra to save, and the in-game field guide explains each tool with a small example as it unlocks.
+
 ## Tests
 
 Core tests need only Node:
@@ -56,7 +62,7 @@ Every new mechanic should answer: what's the obvious solution, why does it work 
 
 ## Next
 
-Human playtesting of the three farms, before adding another crop.
+Human playtesting of the three farms and the unlock ladder, before adding another crop. A gentler Starter Farm, to come before Manor Farm, is a candidate for later.
 
 ## Credits
 
