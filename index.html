@@ -220,7 +220,7 @@ textarea {
     <h1>Array Acres</h1>
     <p>Write one APL function. Every day it gets the whole field as a matrix and returns a boolean matrix of plots to harvest. Score as much as you can in 100 days.</p>
     <div class="season-bar">
-      <label for="season">Season</label>
+      <label for="season">Challenge</label>
       <select id="season">
         <optgroup label="Challenges" id="challengeOptions"></optgroup>
         <option value="practice">Practice (random fields)</option>
@@ -1489,7 +1489,7 @@ Harvest←{0}
       `A harvested ripe plant scores 1. If it’s part of a 2×2 square of ripe plants that are all harvested that day, a giant crop, it scores ${B} instead and is outlined in gold the next day. A plant in more than one such square still scores ${B}. Squares don’t wrap around the edges of the field.`,
       'Harvesting a sprout or a growing plant wastes it. Harvesting a seed or a rotten plant scores nothing, so clearing rot is free.',
       `Then the field grows overnight. Every seed, sprout and growing plant, including newly replanted seeds, has a ${pct(RULES.grow)} chance to grow one stage. Every ripe plant left unharvested has a ${pct(RULES.rotChance)} chance to rot. Rotten plants stay until harvested. No plot changes by more than one stage a night.`,
-      'The chances are fixed by the season, so the same field and the same code always give the same result.',
+      'Each challenge has its own fixed luck, so the same challenge and the same code always give the same result. In practice, Restart replays the same field and New field starts a different one.',
     ];
     $('rules').replaceChildren(...items.map(t => Object.assign(document.createElement('li'), { textContent: t })));
   }
