@@ -91,14 +91,41 @@ body {
   line-height: 1.45;
 }
 .wrap { max-width: 1120px; margin: 0 auto; padding: clamp(16px, 4vw, 40px); }
-header h1 {
-  font-size: clamp(2.4rem, 7vw, 4rem);
+.topbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px 24px; }
+.topbar .farm-bar { grid-column: 1 / -1; }
+.topbar h1 {
+  font-size: clamp(1.7rem, 4vw, 2.3rem);
   font-weight: 800;
   letter-spacing: -0.03em;
-  line-height: 0.95;
+  line-height: 1;
   margin: 0;
 }
-header p { margin: 0.6rem 0 0; max-width: 62ch; color: var(--muted); font-size: 1.05rem; }
+.panel-buttons { display: flex; gap: 8px; grid-row: 1; grid-column: 2; }
+.panel-buttons button {
+  font: inherit; font-size: 0.95rem; font-weight: 600; cursor: pointer;
+  border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 7px 14px;
+}
+.panel-buttons button:hover { border-color: var(--muted); }
+.panel-buttons button[aria-expanded="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.new-badge { margin-left: 7px; font-size: 0.72rem; font-weight: 700; background: var(--ripe); color: var(--medal-ink); border-radius: 999px; padding: 1px 7px; vertical-align: 1px; }
+.new-badge[hidden] { display: none; }
+/* The side panel slides in from the right. On wide screens the game moves aside to make room. */
+:root { --panel-w: min(440px, 100vw); }
+.panel {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 10; width: var(--panel-w); overflow-y: auto;
+  background: var(--surface); border-left: 1px solid var(--line); box-shadow: -8px 0 24px rgba(0, 0, 0, 0.15);
+  padding: calc(env(safe-area-inset-top, 0px) + 18px) 22px calc(env(safe-area-inset-bottom, 0px) + 28px);
+}
+.panel[hidden] { display: none; }
+@media (prefers-reduced-motion: no-preference) { .panel:not([hidden]) { animation: panel-in 180ms ease-out; } }
+@keyframes panel-in { from { transform: translateX(24px); opacity: 0; } }
+@media (min-width: 1100px) { body.panel-open .wrap { margin-right: var(--panel-w); } }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.panel-head h2 { margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
+.panel-head h2:focus { outline: none; }
+.panel h3 { margin: 18px 0 6px; font-size: 1rem; font-weight: 600; }
+.panel .lede { margin: 0; color: var(--muted); }
+button.link { font: inherit; font-weight: inherit; background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; }
 .game {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -117,7 +144,6 @@ header p { margin: 0.6rem 0 0; max-width: 62ch; color: var(--muted); font-size: 
 .legend div { display: flex; align-items: center; gap: 6px; }
 .legend canvas { width: 28px; height: 28px; border-radius: 5px; background: var(--soil-2); }
 .legend code { font-family: var(--mono); color: var(--ink); font-weight: 600; }
-.rules-title { margin: 16px 0 4px; font-size: 0.95rem; font-weight: 600; }
 .rules { margin: 0; padding-left: 1.3em; font-size: 0.92rem; color: var(--muted); max-width: 62ch; }
 .rules li { margin: 4px 0; }
 .editor .label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
@@ -134,7 +160,7 @@ p code, li code { font-family: var(--mono); font-size: 0.95em; color: var(--ink)
 #diag { margin-top: 8px; min-height: 1.4em; font: 0.88rem/1.4 var(--mono); color: var(--error); white-space: pre-wrap; }
 textarea {
   width: 100%;
-  min-height: 610px;
+  min-height: 580px;
   resize: vertical;
   font: 16px/1.5 var(--mono);
   background: var(--code-bg);
@@ -170,8 +196,6 @@ textarea {
 .glyphs button:hover { background: var(--code-bg); border-color: var(--line); }
 .glyphs button:disabled { opacity: 0.3; cursor: not-allowed; }
 .glyphs button:disabled:hover { background: transparent; border-color: transparent; }
-.guide { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; }
-.guide h3 { margin: 0 0 8px; font-size: 1rem; font-weight: 600; }
 .guide-item { margin: 0 0 12px; }
 .guide-item h4 { margin: 0; font-size: 1.05rem; font-weight: 600; font-family: var(--mono); }
 .guide-item h4.prose { font-family: inherit; font-size: 0.95rem; }
@@ -199,12 +223,10 @@ textarea {
 .speed { margin-left: auto; display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.9rem; }
 #msg { margin-top: 12px; min-height: 1.5em; font-size: 0.95rem; }
 #msg.error { color: var(--error); font-family: var(--mono); white-space: pre-wrap; }
-.report { margin-top: clamp(20px, 3vw, 32px); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: clamp(14px, 2.5vw, 24px); }
-.report h2 { margin: 0; font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; }
-.report-stats { display: flex; flex-wrap: wrap; gap: 8px 32px; margin-top: 12px; font-variant-numeric: tabular-nums; }
-.farm-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 16px; }
+.report-stats { display: flex; flex-wrap: wrap; gap: 8px 32px; font-variant-numeric: tabular-nums; }
+.farm-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .farm-bar label { font-weight: 600; }
-.farm-bar select { font: inherit; font-size: 0.95rem; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 7px 12px; }
+.farm-bar select { max-width: 15em; font: inherit; font-size: 0.95rem; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 7px 12px; }
 .farm-bar span { color: var(--muted); font-size: 0.9rem; }
 .weather { display: inline-flex; gap: 6px; }
 .farm-bar .weather span { font-size: 0.85rem; font-variant-numeric: tabular-nums; color: var(--ink); background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; }
@@ -236,9 +258,8 @@ textarea {
 </head>
 <body>
 <div class="wrap">
-  <header>
+  <header class="topbar">
     <h1>Array Acres</h1>
-    <p>Write one APL function, <code>Harvest</code>. Every day it’s given today’s field as <code>⍵</code> and gives back 1s and 0s: 1 means harvest that plot, 0 means leave it. Score as much as you can in 100 days.</p>
     <div class="farm-bar">
       <label for="farm">Farm</label>
       <select id="farm">
@@ -247,6 +268,10 @@ textarea {
       <span class="weather" id="weather" aria-label="Weather"></span>
       <span class="targets" id="targets" aria-label="Targets"></span>
       <span id="farmInfo"></span>
+    </div>
+    <div class="panel-buttons">
+      <button type="button" id="openHelp" aria-controls="panel" aria-expanded="false">How to play</button>
+      <button type="button" id="openGuide" aria-controls="panel" aria-expanded="false">Field guide<span class="new-badge" id="guideNew" hidden>New</span></button>
     </div>
   </header>
 
@@ -263,23 +288,6 @@ textarea {
         <div class="stat"><span>Wasted</span><strong id="sWasted">0</strong></div>
         <div class="stat"><span id="bestLabel">Personal best</span><strong id="sBest">–</strong></div>
       </div>
-      <div class="legend" id="legend"></div>
-      <h3 class="rules-title">Rules</h3>
-      <ol class="rules" id="rules"></ol>
-    </section>
-
-    <section class="editor">
-      <div class="label-row">
-        <label class="title" for="code">Your code</label>
-        <span class="label-tools">
-          <span class="status" id="status" aria-live="polite"></span>
-          <button type="button" class="small-button" id="resetCode">Reset code</button>
-        </span>
-      </div>
-      <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
-      <div class="glyphs" id="glyphs" aria-label="APL symbols"></div>
-      <div id="diag" aria-live="polite"></div>
-      <p class="hint">Type symbols with the bar or a backtick prefix, so <kbd>`w</kbd> gives <kbd>⍵</kbd>. Hover a symbol to see its name and key. Dashed outlines preview what <code>Harvest</code> would pick today, without using up a day. Ctrl+Enter or ⌘+Enter moves to the next day. Tab indents; press Esc then Tab to leave the editor.</p>
       <div class="controls">
         <button class="primary" id="run">Play season</button>
         <button id="step">Next day</button>
@@ -294,15 +302,39 @@ textarea {
         </label>
       </div>
       <div id="msg" role="status"></div>
-      <section class="guide" aria-labelledby="guideTitle">
-        <h3 id="guideTitle">Field guide</h3>
-        <div id="guide"></div>
-      </section>
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <section class="editor">
+      <div class="label-row">
+        <label class="title" for="code">Your code</label>
+        <span class="label-tools">
+          <span class="status" id="status" aria-live="polite"></span>
+          <button type="button" class="small-button" id="resetCode">Reset code</button>
+        </span>
+      </div>
+      <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
+      <div class="glyphs" id="glyphs" aria-label="APL symbols"></div>
+      <div id="diag" aria-live="polite"></div>
+      <p class="hint">Type symbols with the bar or a backtick prefix, so <kbd>`w</kbd> gives <kbd>⍵</kbd>. Hover a symbol to see its name and key. Dashed outlines preview what <code>Harvest</code> would pick today, without using up a day. Ctrl+Enter or ⌘+Enter moves to the next day. Tab indents; press Esc then Tab to leave the editor.</p>
     </section>
   </main>
 
-  <section class="report" id="report" hidden aria-labelledby="reportTitle">
-    <h2 id="reportTitle">Season complete</h2>
+  <!-- How to play, the field guide and the season report share one side panel. -->
+  <aside class="panel" id="panel" hidden aria-labelledby="panelTitle">
+    <div class="panel-head">
+      <h2 id="panelTitle" tabindex="-1"></h2>
+      <button type="button" class="small-button" id="closePanel">Close</button>
+    </div>
+    <section id="pHelp" hidden>
+      <p class="lede">Write one APL function, <code>Harvest</code>. Every day it’s given today’s field as <code>⍵</code> and gives back 1s and 0s: 1 means harvest that plot, 0 means leave it. Score as much as you can in 100 days.</p>
+      <h3>Rules</h3>
+      <ol class="rules" id="rules"></ol>
+    </section>
+    <section id="pGuide" hidden>
+      <div id="guide"></div>
+    </section>
+  <section class="report" id="report" hidden>
     <div class="report-stats">
       <div class="stat"><span>Final score</span><strong id="rScore">0</strong></div>
       <div class="stat"><span>Ripe plots lost to rot</span><strong id="rRot">0</strong></div>
@@ -330,6 +362,7 @@ textarea {
     <canvas id="chart" tabindex="0" role="img"></canvas>
     <p class="readout" id="readout" aria-live="polite"></p>
   </section>
+  </aside>
 </div>
 
 <script id="apl-interpreter">
@@ -1325,7 +1358,7 @@ Harvest←{0}
         try { localStorage.setItem(BESTS_KEY, JSON.stringify(bests)); } catch (e) {}
         prog = AcresCore.progress(bests);
         result.unlocked = AcresCore.UNLOCKS.filter(u => prog.earned.includes(u.id) && !before.has(u.id));
-        if (result.unlocked.length) { dirty = true; refreshProgress(); }
+        if (result.unlocked.length) { dirty = true; refreshProgress(); setGuideNew(true); }
       } else {
         best[seed] = Math.max(best[seed] ?? 0, state.score);
       }
@@ -1785,18 +1818,70 @@ Harvest←{0}
         : (tier ? `You reached ${tierName(tier)}. ` : '') + `${tierName(next)} is ${farm.targets[next]}.`;
       const un = result.unlocked || [];
       $('cmpUnlock').hidden = !un.length;
-      $('cmpUnlock').replaceChildren(un.length ? rich(`Unlocked: ${listText(un.flatMap(describeUnlock))}. See the field guide.`) : '');
+      if (un.length) {
+        const go = document.createElement('button');
+        go.type = 'button'; go.className = 'link'; go.textContent = 'See the field guide';
+        go.addEventListener('click', () => openPanel('guide'));
+        $('cmpUnlock').replaceChildren(rich(`Unlocked: ${listText(un.flatMap(describeUnlock))}. `), go, '.');
+      } else $('cmpUnlock').replaceChildren();
     }
     $('rScore').textContent = state.score;
     $('rRot').textContent = total('rotted');
     $('rWasted').textContent = total('wasted');
     $('rBonus').textContent = total('bonusPlots');
-    reportEl.hidden = false;
     hoverDay = null;
+    openPanel('report');
     drawChart();
-    reportEl.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   }
-  function hideReport() { reportEl.hidden = true; hoverDay = null; }
+  function hideReport() {
+    hoverDay = null;
+    if (panelOpen === 'report') closePanel(false);
+    reportEl.hidden = true;
+  }
+
+  // The side panel: How to play, the field guide or the season report, one at a time.
+  const panelEl = $('panel'), panelTitle = $('panelTitle');
+  const PANELS = {
+    help: { el: $('pHelp'), title: 'How to play', button: $('openHelp') },
+    guide: { el: $('pGuide'), title: 'Field guide', button: $('openGuide') },
+    report: { el: reportEl, title: 'Season complete', button: null },
+  };
+  let panelOpen = null, panelReturn = null;
+  function openPanel(name) {
+    if (!panelOpen) panelReturn = document.activeElement;
+    panelOpen = name;
+    for (const [k, p] of Object.entries(PANELS)) {
+      p.el.hidden = k !== name;
+      if (p.button) p.button.setAttribute('aria-expanded', String(k === name));
+    }
+    panelTitle.textContent = PANELS[name].title;
+    panelEl.hidden = false;
+    document.body.classList.add('panel-open');
+    panelEl.scrollTop = 0;
+    if (name === 'guide') setGuideNew(false);
+    panelTitle.focus({ preventScroll: true });
+  }
+  function closePanel(restoreFocus = true) {
+    if (!panelOpen) return;
+    panelOpen = null;
+    panelEl.hidden = true;
+    document.body.classList.remove('panel-open');
+    for (const p of Object.values(PANELS)) if (p.button) p.button.setAttribute('aria-expanded', 'false');
+    if (restoreFocus && panelReturn && document.contains(panelReturn)) panelReturn.focus();
+  }
+  const togglePanel = name => panelOpen === name ? closePanel() : openPanel(name);
+  $('openHelp').addEventListener('click', () => togglePanel('help'));
+  $('openGuide').addEventListener('click', () => togglePanel('guide'));
+  $('closePanel').addEventListener('click', () => closePanel());
+  // Esc closes the panel, except in the editor, where Esc is how you Tab out of it.
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && panelOpen && e.target !== codeEl) closePanel(); });
+
+  // A "New" badge on the field guide button until the guide is opened after an unlock.
+  function setGuideNew(on) {
+    $('guideNew').hidden = !on;
+    try { localStorage.setItem('acres:guide-new', on ? '1' : '0'); } catch (e) {}
+  }
+  try { $('guideNew').hidden = localStorage.getItem('acres:guide-new') !== '1'; } catch (e) {}
 
   // Axis scale with whole-number steps.
   function scale(max) {
@@ -1979,6 +2064,10 @@ Harvest←{0}
   let savedFarm = null;
   try { savedFarm = localStorage.getItem(FARM_KEY); } catch (e) {}
   chooseFarm(savedFarm === 'practice' ? 'practice' : savedFarm || AcresCore.FARMS[0].id);
+  // A first visit opens How to play.
+  try {
+    if (!localStorage.getItem('acres:help-seen')) { localStorage.setItem('acres:help-seen', '1'); setTimeout(() => openPanel('help')); }
+  } catch (e) {}
   reset();
   sizeCanvas();
 })();
