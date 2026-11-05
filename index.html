@@ -379,7 +379,7 @@ const APL = (() => {
   const err = (kind, detail) => { throw new AplError(detail ? `${kind}: ${detail}` : kind); };
 
   // Arrays are { shape, data } with data in row-major order. Numbers only.
-  const arr = (shape, data) => ({ shape, data });
+  const arr = (shape, data) => { spend(data.length); return { shape, data }; };
   const S = x => arr([], [x]);
   const V = xs => arr([xs.length], xs);
   const prod = sh => sh.reduce((a, b) => a * b, 1);
@@ -403,6 +403,13 @@ const APL = (() => {
   let steps = 0, depth = 0;
   const STEP_LIMIT = 200000, DEPTH_LIMIT = 400;
   const tick = () => { if (++steps > STEP_LIMIT) err('INTERRUPT', 'your function ran for too long'); };
+
+  // Work limit: counts every element built, plus the inner loops of primitives whose cost
+  // grows faster than their result (scan, inner product, membership, index of), so a single
+  // expression within the size limit still can't keep the page busy for long.
+  // var, not let: arrays are built while the interpreter loads, before this line runs.
+  var work = 0;
+  function spend(n) { work += n; if (work > 50000000) err('INTERRUPT', 'your function ran for too long'); }
 
   // Size limit, checked before any array is built, so one expression can't exhaust memory.
   const MAX_ELEMENTS = 1000000;
@@ -547,6 +554,7 @@ const APL = (() => {
   function reduceAxis(f, w, k) {
     if (!w.shape.length) return w;
     const [pre, n, post] = axisParts(w.shape, k), g = scalarCall(f);
+    spend(w.data.length);
     const out = new Array(pre * post);
     for (let p = 0; p < pre; p++) for (let q = 0; q < post; q++) {
       if (n === 0) { out[p * post + q] = identity(f); continue; }
@@ -560,6 +568,7 @@ const APL = (() => {
   function scanAxis(f, w, k) {
     if (!w.shape.length) return w;
     const [pre, n, post] = axisParts(w.shape, k), g = scalarCall(f);
+    spend(pre * post * n * (n - 1) / 2); // each item reduces its whole prefix
     const out = new Array(w.data.length);
     for (let p = 0; p < pre; p++) for (let q = 0; q < post; q++) for (let i = 0; i < n; i++) {
       let acc = w.data[(p * n + i) * post + q];
@@ -647,6 +656,7 @@ const APL = (() => {
       return V(range(checkCount(n)));
     }, (a, w) => {
       if (a.shape.length > 1) err('RANK ERROR', 'left argument of ⍳ must be a vector');
+      spend(a.data.length * w.data.length);
       return arr(w.shape, w.data.map(x => { const i = a.data.indexOf(x); return i < 0 ? a.data.length + 1 : i + 1; }));
     }),
     ',': mkfn(',', w => V(w.data.slice()), (a, w) => catenate(a, w, false)),
@@ -661,7 +671,7 @@ const APL = (() => {
     '≢': mkfn('≢', w => S(w.shape.length ? w.shape[0] : 1), (a, w) => S(+!cmp(a, w))),
     '≡': mkfn('≡', w => S(w.shape.length ? 1 : 0), (a, w) => S(+cmp(a, w))),
     '⊃': mkfn('⊃', w => S(w.data.length ? w.data[0] : 0), () => err('NONCE ERROR', 'dyadic ⊃ isn\'t available yet')),
-    '∊': mkfn('∊', w => V(w.data.slice()), (a, w) => arr(a.shape, a.data.map(x => +w.data.includes(x)))),
+    '∊': mkfn('∊', w => V(w.data.slice()), (a, w) => { spend(a.data.length * w.data.length); return arr(a.shape, a.data.map(x => +w.data.includes(x))); }),
     '⍸': mkfn('⍸', w => {
       if (w.shape.length > 1) err('NONCE ERROR', '⍸ on a matrix needs nested arrays, which aren\'t supported yet');
       const counts = w.shape.length ? w.data : [w.data[0]];
@@ -714,7 +724,9 @@ const APL = (() => {
       if (ka !== kw) { if (ka === 1) k = kw; else if (kw === 1) k = ka; else err('LENGTH ERROR', `can't pair ${describe(a)} with ${describe(w)}`); }
       const rows = a.shape.slice(0, -1), cols = w.shape.slice(1);
       sizeOf(rows.concat(cols));
-      const R = prod(rows), C = prod(cols), ff = scalarCall(f), gg = scalarCall(g), out = new Array(R * C);
+      const R = prod(rows), C = prod(cols), ff = scalarCall(f), gg = scalarCall(g);
+      spend(R * C * k);
+      const out = new Array(R * C);
       for (let i = 0; i < R; i++) for (let j = 0; j < C; j++) {
         const vals = [];
         for (let t = 0; t < k; t++) vals.push(gg(a.data[i * ka + (ka === 1 ? 0 : t)], w.data[(kw === 1 ? 0 : t) * C + j]));
@@ -968,7 +980,7 @@ const APL = (() => {
   // Run a whole program and return its top-level names.
   // opts.parent: names visible to the program (and their locks); opts.lockGlyph: see tokenize.
   function run(src, opts = {}) {
-    steps = 0; depth = 0;
+    steps = 0; depth = 0; work = 0;
     const env = { vars: new Map(), parent: opts.parent || null };
     let last;
     for (const st of group(tokenize(src, opts.lockGlyph))) last = evalStmt(st, env);
@@ -976,7 +988,7 @@ const APL = (() => {
   }
 
   function call(f, w) {
-    steps = 0; depth = 0;
+    steps = 0; depth = 0; work = 0;
     return arrResult(f.monad(w));
   }
 
