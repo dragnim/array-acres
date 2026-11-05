@@ -20,7 +20,7 @@ The game is in `index.html`, in three scripts:
 
 The plant art is separate, in `assets/plants`, with notes on how it was made and how to replace it in [its own README](assets/plants/README.md). If the images can't load, the page draws simple plants in code instead, so the game never depends on them.
 
-A season is 100 days. There are three named challenges, each with its own fixed starting field and luck under ruleset `v1`, so the same challenge and the same code always give the same score. Personal bests are kept in the browser, and a practice mode plays random fields. At the end of a season, a report shows what happened day by day, without suggesting what to change.
+A season is 100 days. There are three farms, Manor, Bramley and Nuthanger, each with its own weather under ruleset `v2`: sunshine sets how likely an unripe plant is to grow overnight, and rainfall how likely a ripe plant left in the ground is to rot. Each farm also has its own starting field and fixed luck, so the same farm and the same code always give the same score, and its own Bronze, Silver and Gold targets. Personal bests are kept in the browser, and Practice Farm plays random fields with Manor Farm's weather. At the end of a season, a report shows what happened day by day, without suggesting what to change.
 
 ## Tests
 
@@ -44,7 +44,7 @@ npm run test:browser
 
 ## Reference solution
 
-`reference/hybrid.apl` clears rot, harvests complete ripe 2×2 blocks, and takes any ripe plot that can't become part of a block. Over the 200 test fields it averages 1,535 against 1,216 for `Harvest←{⍵≥3}`, winning on every field. It uses only the current subset and is part of the regression tests.
+`reference/hybrid.apl` clears rot, harvests complete ripe 2×2 blocks, and takes any ripe plot that can't become part of a block. Over the 200 test fields, with Manor Farm's weather, it averages 1,535 against 1,216 for `Harvest←{⍵≥3}`, winning on every field. It uses only the current subset and is part of the regression tests.
 
 ## Design principles
 
