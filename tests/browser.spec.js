@@ -70,5 +70,22 @@ test('preview and diagnostics follow the code and the field', async ({ page }) =
   await expect(page.locator('#msg')).toHaveText(/^Season over\. You scored \d+\.$/, { timeout: 30000 });
   await expect(day).toHaveText('100/100');
 
+  // The season report appears, agrees with the scoreboard, and switches chart views.
+  const report = page.locator('#report'), chart = page.locator('#chart');
+  await expect(report).toBeVisible();
+  await expect(page.locator('#rScore')).toHaveText(await page.locator('#sScore').textContent());
+  await expect(page.locator('#rWasted')).toHaveText(await page.locator('#sWasted').textContent());
+  await expect(chart).toHaveAttribute('data-view', 'score');
+  await page.click('.seg button[data-view="rot"]');
+  await expect(chart).toHaveAttribute('data-view', 'rot');
+  await expect(page.locator('.seg button[data-view="rot"]')).toHaveAttribute('aria-pressed', 'true');
+  await chart.focus();
+  await chart.press('End');
+  await expect(page.locator('#readout')).toHaveText(/^Day 100: \d+ ripe plots? lost to rot$/);
+
+  // A new season hides the report.
+  await page.click('#restart');
+  await expect(report).toBeHidden();
+
   expect(errors).toEqual([]);
 });
