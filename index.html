@@ -126,6 +126,9 @@ header p { margin: 0.6rem 0 0; max-width: 62ch; color: var(--muted); font-size: 
 .label-tools { display: flex; align-items: baseline; gap: 12px; }
 .small-button { font: inherit; font-size: 0.85rem; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 2px 9px; cursor: pointer; }
 .small-button:hover { border-color: var(--muted); }
+.field-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 2px 10px; }
+.field-title { font-weight: 600; }
+.field-title code { font-family: var(--mono); font-size: 1.05em; }
 .status[data-state="code"], .status[data-state="result"], .status[data-state="internal"] { color: var(--error); }
 #diag { margin-top: 8px; min-height: 1.4em; font: 0.88rem/1.4 var(--mono); color: var(--error); white-space: pre-wrap; }
 textarea {
@@ -237,6 +240,10 @@ textarea {
 
   <main class="game">
     <section class="plot" aria-label="Field">
+      <div class="field-head">
+        <span class="field-title">Today’s field, <code>⍵</code></span>
+        <button type="button" class="small-button" id="showNumbers" aria-pressed="false">Show numbers</button>
+      </div>
       <canvas id="field" role="img" aria-label="The field"></canvas>
       <div class="stats">
         <div class="stat"><span>Day</span><strong id="sTick">0/100</strong></div>
@@ -1096,7 +1103,7 @@ Harvest←{0}
 
   // Symbols in this prototype, with names and backtick keys as in Dyalog.
   const GLYPHS = [
-    ['⍵', 'Right argument', 'w'], ['⍺', 'Left argument', 'a'], ['←', 'Assign', '['], ['⋄', 'Statement separator', '`'],
+    ['⍵', 'Today’s field (the right argument)', 'w'], ['⍺', 'Left argument', 'a'], ['←', 'Assign', '['], ['⋄', 'Statement separator', '`'],
     ['⍝', 'Comment', ','], ['∇', 'Self (recursion)', 'g'], ['¯', 'High minus', '2'], null,
     ['×', 'Direction / Times', '-'], ['÷', 'Reciprocal / Divide', '='], ['|', 'Magnitude / Residue', 'm'],
     ['⌈', 'Ceiling / Maximum', 's'], ['⌊', 'Floor / Minimum', 'd'], ['*', 'Exponential / Power', 'p'], null,
@@ -1136,6 +1143,22 @@ Harvest←{0}
   // Preview: the mask Harvest would return for today's field. stale means it no longer
   // matches the current code or field, so it's drawn faded until recalculated.
   let preview = { mask: null, stale: false }, previewTimer = null;
+
+  // Numbers on the field: each plot's stage, exactly as Harvest sees it in ⍵.
+  let showNumbers = false;
+  try { showNumbers = localStorage.getItem('acres:numbers') === 'on'; } catch (e) {}
+  const numbersBtn = $('showNumbers');
+  function syncNumbersButton() {
+    numbersBtn.setAttribute('aria-pressed', String(showNumbers));
+    numbersBtn.textContent = showNumbers ? 'Hide numbers' : 'Show numbers';
+  }
+  numbersBtn.addEventListener('click', () => {
+    showNumbers = !showNumbers;
+    syncNumbersButton();
+    try { localStorage.setItem('acres:numbers', showNumbers ? 'on' : 'off'); } catch (e) {}
+    render();
+  });
+  syncNumbersButton();
 
   function reset() {
     state = AcresCore.newSeason(seed, farm || AcresCore.PRACTICE);
@@ -1308,7 +1331,8 @@ Harvest←{0}
   function readColors() {
     const cs = getComputedStyle(document.documentElement);
     const g = n => cs.getPropertyValue(n).trim();
-    COL = { soil: g('--soil'), seed: g('--seed'), leaf: g('--leaf'), ripe: g('--ripe'), rot: g('--rot'), mark: g('--mark'), preview: g('--preview') };
+    COL = { soil: g('--soil'), seed: g('--seed'), leaf: g('--leaf'), ripe: g('--ripe'), rot: g('--rot'), mark: g('--mark'), preview: g('--preview'),
+            badge: g('--surface'), badgeInk: g('--ink'), mono: g('--mono') };
   }
 
   function rrect(c, x, y, w, h, r) {
@@ -1410,7 +1434,9 @@ Harvest←{0}
     for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
       const p = preview.mask && preview.mask[r][c] ? (preview.stale ? 'stale' : 'live') : null;
       drawOverlay(fctx, at(c), at(r), s, state.marks && state.marks[r][c], p);
+      if (showNumbers) drawNumber(fctx, at(c), at(r), s, state.field[r][c]);
     }
+    cv.dataset.numbers = showNumbers ? 'on' : 'off';
     present();
   }
 
@@ -1519,13 +1545,26 @@ Harvest←{0}
     const pct = p => `${Math.round(p * 100)}%`, N = RULES.size, B = RULES.bonus, w = farm || AcresCore.PRACTICE;
     const items = [
       `The field is ${N}×${N} and a season lasts ${RULES.days} days. Each plot holds one plant at stage 0 seed, 1 sprout, 2 growing, 3 ripe or 4 rotten. A season starts with every plot at a random stage from 0 to 3.`,
-      'Each day, Harvest sees the field and chooses plots to harvest. Every harvested plot is cleared and replanted as a seed.',
+      'Each day, your Harvest function is given today’s field as ⍵, a matrix of stage numbers, and chooses plots to harvest. Every harvested plot is cleared and replanted as a seed.',
       `A harvested ripe plant scores 1. If it’s part of a 2×2 square of ripe plants that are all harvested that day, a giant crop, it scores ${B} instead and is outlined in gold the next day. A plant in more than one such square still scores ${B}. Squares don’t wrap around the edges of the field.`,
       'Harvesting a sprout or a growing plant wastes it. Harvesting a seed or a rotten plant scores nothing, so clearing rot is free.',
       `Then the field grows overnight, depending on the farm’s weather. Sunshine: every seed, sprout and growing plant, including newly replanted seeds, has a ${pct(w.sunshine)} chance to grow one stage. Rainfall: every ripe plant left unharvested has a ${pct(w.rainfall)} chance to rot. Rotten plants stay until harvested. No plot changes by more than one stage a night.`,
       'Every night, each plant still has the stated chance to grow or rot, but each farm’s starting field and luck are set: on any given night, each plot’s chance comes out the same way every time you play. So the same code always scores the same, and only a change to your code can change the result. Practice Farm has Manor Farm’s weather: Restart replays the same field and luck, and New field brings a new field with new luck.',
     ];
     $('rules').replaceChildren(...items.map(t => Object.assign(document.createElement('li'), { textContent: t })));
+  }
+
+  // A plot's stage number in a small badge in its top-left corner.
+  function drawNumber(c, x, y, s, v) {
+    const size = s * 0.34, bx = x + s * 0.13, by = y + s * 0.13;
+    c.save();
+    c.globalAlpha = 0.92; c.fillStyle = COL.badge;
+    rrect(c, bx, by, size, size, s * 0.07); c.fill();
+    c.globalAlpha = 1; c.fillStyle = COL.badgeInk;
+    c.font = `600 ${Math.round(s * 0.26)}px ${COL.mono}`;
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(String(v), bx + size / 2, by + size / 2 + s * 0.01);
+    c.restore();
   }
 
   function drawLegend() {
