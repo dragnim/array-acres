@@ -287,7 +287,7 @@ textarea {
         <span class="field-title">Today’s field, <code>⍵</code></span>
         <button type="button" class="small-button" id="showNumbers" aria-pressed="false">Show numbers</button>
       </div>
-      <p class="example-note" id="exampleNote" hidden>Showing <code id="exampleCode"></code> on today’s field: <span id="exampleCount"></span>. <button type="button" class="link" id="exampleBack">Back to your code</button></p>
+      <p class="example-note" id="exampleNote" hidden>Showing what <code id="exampleCode"></code> would harvest today: <span id="exampleCount"></span>. <button type="button" class="link" id="exampleBack">Back to your code</button></p>
       <canvas id="field" role="img" aria-label="The field"></canvas>
       <div class="stats">
         <div class="stat"><span>Day</span><strong id="sTick">0/100</strong></div>
@@ -339,7 +339,7 @@ textarea {
       <ol class="rules" id="rules"></ol>
     </section>
     <section id="pGuide" hidden>
-      <p class="lede">Show me marks what a snippet picks on today’s field. Use puts it in your code where your cursor is.</p>
+      <p class="lede">Each example below is a small piece of code. Press Show me to see which plots it would harvest today, or Use to add it to your code.</p>
       <div id="guide"></div>
     </section>
   <section class="report" id="report" hidden>
@@ -1530,16 +1530,16 @@ Harvest←{0}
     }));
   }
 
-  // One snippet: its code, what it picks, and buttons to show it on the field or put it in your code.
+  // One example: its code, what it picks, and buttons to show it on the field or add it to your code.
   function snippetRow(code, note) {
     const row = document.createElement('div'); row.className = 'snippet';
     const c = document.createElement('code'); c.textContent = code;
     const n = document.createElement('span'); n.className = 'snippet-note'; n.textContent = note;
     const show = document.createElement('button'); show.type = 'button'; show.className = 'small-button'; show.textContent = 'Show me';
-    show.setAttribute('aria-label', `Show ${code} on today’s field`);
+    show.setAttribute('aria-label', `Show what ${code} would harvest today`);
     show.addEventListener('click', () => showExample(code));
     const use = document.createElement('button'); use.type = 'button'; use.className = 'small-button'; use.textContent = 'Use';
-    use.setAttribute('aria-label', `Use ${code} in your code`);
+    use.setAttribute('aria-label', `Add ${code} to your code`);
     use.addEventListener('click', () => useSnippet(code));
     row.append(c, n, show, use);
     return row;
