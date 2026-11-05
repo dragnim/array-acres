@@ -191,7 +191,15 @@ for (const [label, field, want] of fixed) check(`hybrid mask: ${label}`, AcresCo
     [other.improved, other.bests['v1:first-furrows'].score, v2.improved, v2.bests['v1:first-furrows'].score], [true, 1300, true, 1300]);
 }
 
-// 7. Allocation limit: 1,000,000 elements is allowed, anything bigger is WS FULL, checked before allocating.
+// 7. Giant crops: ripe 2×2 squares for drawing, overlapping squares included
+check('giants: overlapping squares are all found',
+  AcresCore.ripeSquares(grid(['00000000', '03330000', '03330000', '00000000', '31000000', '11000322', '00000220', '00000000'])), [[1, 1], [1, 2]]);
+check('giants: squares in corners are found, and corners never join across edges',
+  AcresCore.ripeSquares(grid(['33000003', '33000000', '00000000', '00000000', '00000000', '00000000', '30000033', '00000033'])), [[0, 0], [6, 6]]);
+check('giants: a square with a rotten or growing plant is not a giant crop',
+  AcresCore.ripeSquares(grid(['34000000', '33000000', '00000000', '00032000', '00033000', '00000000', '00000000', '00000000'])), []);
+
+// 8. Allocation limit: 1,000,000 elements is allowed, anything bigger is WS FULL, checked before allocating.
 const WS = 'ERR WS FULL: array exceeds 1,000,000 elements';
 const limits = [
   ['≢⍳1000000', '1000000'], ['⍳1000001', WS], ['⍳1e300', WS],
