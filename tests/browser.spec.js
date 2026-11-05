@@ -236,3 +236,18 @@ test('Reset code restores the starter code, and undo brings the player’s code 
   await code.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
   await expect(code).toHaveValue('Harvest←{⍵≥3}');
 });
+
+test('the field can show its numbers, exactly as Harvest sees them', async ({ page }) => {
+  await page.goto(PAGE);
+  const field = page.locator('#field'), btn = page.locator('#showNumbers');
+  await expect(page.locator('.field-title')).toHaveText('Today’s field, ⍵');
+  await expect(field).toHaveAttribute('data-numbers', 'off');
+  await btn.click();
+  await expect(field).toHaveAttribute('data-numbers', 'on');
+  await expect(btn).toHaveText('Hide numbers');
+  await expect(btn).toHaveAttribute('aria-pressed', 'true');
+  await page.reload();
+  await expect(field).toHaveAttribute('data-numbers', 'on');
+  await page.locator('#showNumbers').click();
+  await expect(field).toHaveAttribute('data-numbers', 'off');
+});
