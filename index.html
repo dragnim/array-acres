@@ -1075,6 +1075,10 @@ Harvest←{0}
 
   const $ = id => document.getElementById(id);
   const cv = $('field'), ctx = cv.getContext('2d');
+  // Each day is drawn off screen first, then cross-faded onto the visible canvas.
+  const frame = document.createElement('canvas'), fctx = frame.getContext('2d');
+  const prevFrame = document.createElement('canvas');
+  let fade = null, fadeRaf = 0;
   const codeEl = $('code'), msgEl = $('msg'), runBtn = $('run'), speedEl = $('speed');
   const statusEl = $('status'), diagEl = $('diag');
 
@@ -1156,6 +1160,7 @@ Harvest←{0}
     try { mask = AcresCore.runHarvest(fn, state.field); }
     catch (e) { showError(e); stop(); return false; }
 
+    beginFade();
     AcresCore.advance(state, mask);
     setMsg('');
     updateStats();
@@ -1330,23 +1335,52 @@ Harvest←{0}
     cv.setAttribute('aria-label', tiling.length ? `The field, with ${tiling.length} giant crop${tiling.length === 1 ? '' : 's'}` : 'The field');
     const w = cv.clientWidth;
     if (!w) return;
-    ctx.clearRect(0, 0, w, w);
+    fctx.clearRect(0, 0, w, w);
     const gap = Math.max(2, w * 0.008);
     const s = (w - gap * (SIZE + 1)) / SIZE, at = i => gap + i * (s + gap);
     const inSheaf = state.field.map(row => row.map(() => false));
     tiling.forEach(([r, c]) => { inSheaf[r][c] = inSheaf[r + 1][c] = inSheaf[r][c + 1] = inSheaf[r + 1][c + 1] = true; });
-    for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) drawPlot(ctx, at(c), at(r), s, state.field[r][c], 0, null, inSheaf[r][c]);
-    drawGiants(ctx, squares, tiling, at, s, gap);
+    for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) drawPlot(fctx, at(c), at(r), s, state.field[r][c], 0, null, inSheaf[r][c]);
+    drawGiants(fctx, squares, tiling, at, s, gap);
     for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
       const p = preview.mask && preview.mask[r][c] ? (preview.stale ? 'stale' : 'live') : null;
-      drawOverlay(ctx, at(c), at(r), s, state.marks && state.marks[r][c], p);
+      drawOverlay(fctx, at(c), at(r), s, state.marks && state.marks[r][c], p);
     }
+    present();
+  }
+
+  // Start a cross-fade from what's on screen now to the next day. The fade is shorter than the
+  // gap between days, skipped when days come too fast to see it, and off with reduced motion.
+  function beginFade() {
+    const gapMs = running ? +speedEl.value : 400, dur = Math.min(300, gapMs * 0.8);
+    if (dur < 60 || !cv.width || matchMedia('(prefers-reduced-motion: reduce)').matches) { fade = null; return; }
+    prevFrame.width = cv.width; prevFrame.height = cv.height;
+    prevFrame.getContext('2d').drawImage(cv, 0, 0);
+    fade = { start: performance.now(), dur };
+  }
+
+  // Copy the latest frame to the screen, with the previous day fading out on top.
+  function present() {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.drawImage(frame, 0, 0);
+    if (fade) {
+      const t = (performance.now() - fade.start) / fade.dur;
+      if (t < 1) { ctx.globalAlpha = 1 - t; ctx.drawImage(prevFrame, 0, 0); }
+      else fade = null;
+    }
+    ctx.restore();
+    cv.dataset.fading = String(!!fade);
+    if (fade && !fadeRaf) fadeRaf = requestAnimationFrame(() => { fadeRaf = 0; present(); });
   }
 
   function sizeCanvas() {
     const dpr = window.devicePixelRatio || 1, w = cv.clientWidth;
     cv.width = Math.round(w * dpr); cv.height = Math.round(w * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    frame.width = cv.width; frame.height = cv.height;
+    fctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    fade = null;
     render();
   }
 
