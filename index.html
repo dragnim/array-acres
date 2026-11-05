@@ -187,23 +187,25 @@ textarea {
 .report { margin-top: clamp(20px, 3vw, 32px); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: clamp(14px, 2.5vw, 24px); }
 .report h2 { margin: 0; font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; }
 .report-stats { display: flex; flex-wrap: wrap; gap: 8px 32px; margin-top: 12px; font-variant-numeric: tabular-nums; }
-.season-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 16px; }
-.season-bar label { font-weight: 600; }
-.season-bar select { font: inherit; font-size: 0.95rem; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 7px 12px; }
-.season-bar span { color: var(--muted); font-size: 0.9rem; }
+.farm-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 16px; }
+.farm-bar label { font-weight: 600; }
+.farm-bar select { font: inherit; font-size: 0.95rem; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 7px 12px; }
+.farm-bar span { color: var(--muted); font-size: 0.9rem; }
+.weather { display: inline-flex; gap: 6px; }
+.farm-bar .weather span { font-size: 0.85rem; font-variant-numeric: tabular-nums; color: var(--ink); background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; }
 .targets { display: inline-flex; flex-wrap: wrap; gap: 6px; }
 .targets[hidden] { display: none; }
 /* Medal colours: each target is outlined in its metal until earned, then filled with it. */
 :root { --bronze: #C98543; --silver: #B8BEC6; --gold: #E2B53A; --bronze-edge: #9A5A22; --silver-edge: #6F7680; --gold-edge: #94700F; --medal-ink: #2A2114; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bronze-edge: #C98543; --silver-edge: #B8BEC6; --gold-edge: #E2B53A; } }
 :root[data-theme="dark"] { --bronze-edge: #C98543; --silver-edge: #B8BEC6; --gold-edge: #E2B53A; }
-.season-bar .tier[data-tier="bronze"] { --tier: var(--bronze); --tier-edge: var(--bronze-edge); }
-.season-bar .tier[data-tier="silver"] { --tier: var(--silver); --tier-edge: var(--silver-edge); }
-.season-bar .tier[data-tier="gold"] { --tier: var(--gold); --tier-edge: var(--gold-edge); }
-.season-bar .tier { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; border: 1px solid var(--tier-edge); border-radius: 999px; padding: 3px 10px; }
-.season-bar .tier::before { content: ""; width: 0.6em; height: 0.6em; border-radius: 50%; background: var(--tier-edge); }
-.season-bar .tier[data-earned="true"] { background: var(--tier); color: var(--medal-ink); font-weight: 600; }
-.season-bar .tier[data-earned="true"]::before { background: var(--medal-ink); }
+.farm-bar .tier[data-tier="bronze"] { --tier: var(--bronze); --tier-edge: var(--bronze-edge); }
+.farm-bar .tier[data-tier="silver"] { --tier: var(--silver); --tier-edge: var(--silver-edge); }
+.farm-bar .tier[data-tier="gold"] { --tier: var(--gold); --tier-edge: var(--gold-edge); }
+.farm-bar .tier { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; border: 1px solid var(--tier-edge); border-radius: 999px; padding: 3px 10px; }
+.farm-bar .tier::before { content: ""; width: 0.6em; height: 0.6em; border-radius: 50%; background: var(--tier-edge); }
+.farm-bar .tier[data-earned="true"] { background: var(--tier); color: var(--medal-ink); font-weight: 600; }
+.farm-bar .tier[data-earned="true"]::before { background: var(--medal-ink); }
 .controls button:disabled { opacity: 0.45; cursor: not-allowed; }
 .compare { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
 .compare h3 { margin: 0; font-size: 1rem; font-weight: 600; }
@@ -222,14 +224,15 @@ textarea {
   <header>
     <h1>Array Acres</h1>
     <p>Write one APL function. Every day it gets the whole field as a matrix and returns a boolean matrix of plots to harvest. Score as much as you can in 100 days.</p>
-    <div class="season-bar">
-      <label for="season">Challenge</label>
-      <select id="season">
-        <optgroup label="Challenges" id="challengeOptions"></optgroup>
-        <option value="practice">Practice (random fields)</option>
+    <div class="farm-bar">
+      <label for="farm">Farm</label>
+      <select id="farm">
+        <optgroup label="Farms" id="farmOptions"></optgroup>
+        <option value="practice">Practice Farm</option>
       </select>
+      <span class="weather" id="weather" aria-label="Weather"></span>
       <span class="targets" id="targets" aria-label="Targets"></span>
-      <span id="seasonInfo"></span>
+      <span id="farmInfo"></span>
     </div>
   </header>
 
@@ -926,30 +929,34 @@ const APL = (() => {
 <script id="acres-core">
 // Game rules and simulation, with no DOM access, so the page and the tests share one implementation.
 const AcresCore = (() => {
-  // A ruleset is identified by its id. Changing any value here, the order of operations in
-  // advance(), or how random numbers are drawn changes scores, so it needs a new id.
-  const RULES = Object.freeze({ id: 'v1', size: 8, days: 100, ripe: 3, rot: 4, grow: 0.55, rotChance: 0.2, bonus: 3 });
+  // A ruleset is identified by its id. Changing any value here, any farm's weather, seed or
+  // targets, the order of operations in advance(), or how random numbers are drawn changes
+  // scores, so it needs a new id.
+  const RULES = Object.freeze({ id: 'v2', size: 8, days: 100, ripe: 3, rot: 4, bonus: 3 });
 
-  // Named challenges: fixed seeds under a fixed ruleset, so every player gets the same season.
-  // Chosen by simulating 1,200 candidate seeds with the greedy and hybrid reference strategies.
-  const SEASONS = Object.freeze([
-    // Targets: bronze is within reach of harvesting every ripe plot, silver needs a partly right
-    // idea about 2×2 blocks, and gold matches the hybrid reference strategy.
-    Object.freeze({ id: 'first-furrows', name: 'First Furrows', rules: 'v1', seed: 6073873,
-      targets: Object.freeze({ bronze: 1200, silver: 1350, gold: 1550 }) }),
-    Object.freeze({ id: 'the-long-harvest', name: 'The Long Harvest', rules: 'v1', seed: 5004808,
-      targets: Object.freeze({ bronze: 1200, silver: 1400, gold: 1550 }) }),
-    Object.freeze({ id: 'against-the-odds', name: 'Against the Odds', rules: 'v1', seed: 4806833,
-      targets: Object.freeze({ bronze: 1150, silver: 1300, gold: 1450 }) }),
+  // Each farm has its own weather. Sunshine is the chance that an unripe plant grows a stage
+  // overnight; rainfall is the chance that a ripe plant left in the ground rots overnight.
+  // Each also has a fixed seed, so every player gets the same field and the same luck.
+  // Seeds were chosen as typical fields by simulating 1,000 candidates with the reference
+  // strategies. Targets: bronze is within reach of harvesting every ripe plant, silver needs a
+  // partly right idea about giant crops, and gold matches the hybrid reference strategy.
+  const farm = (id, name, sunshine, rainfall, seed, bronze, silver, gold) =>
+    Object.freeze({ id, name, sunshine, rainfall, seed, rules: RULES.id, targets: Object.freeze({ bronze, silver, gold }) });
+  const FARMS = Object.freeze([
+    farm('manor-farm', 'Manor Farm', 0.55, 0.20, 16574467, 1200, 1350, 1500),
+    farm('bramley-farm', 'Bramley Farm', 0.65, 0.15, 14879801, 1450, 1750, 2100),
+    farm('nuthanger-farm', 'Nuthanger Farm', 0.50, 0.25, 17057526, 1050, 1150, 1200),
   ]);
+  // Practice Farm: Manor Farm's weather on a new random field each time, with no targets.
+  const PRACTICE = Object.freeze({ id: 'practice', name: 'Practice Farm', sunshine: 0.55, rainfall: 0.20 });
   const TIERS = Object.freeze(['bronze', 'silver', 'gold']);
   // The highest target a score reaches, or null.
-  const tierFor = (season, score) => [...TIERS].reverse().find(t => score >= season.targets[t]) || null;
+  const tierFor = (farm, score) => [...TIERS].reverse().find(t => score >= farm.targets[t]) || null;
 
-  // Personal bests belong to a ruleset and a season together, never just a seed.
-  const bestKey = (ruleset, season) => `${ruleset}:${season}`;
+  // Personal bests belong to a ruleset and a farm together, never just a seed.
+  const bestKey = (ruleset, farm) => `${ruleset}:${farm}`;
   function recordBest(bests, entry) {
-    const key = bestKey(entry.ruleset, entry.season), previous = bests[key] || null;
+    const key = bestKey(entry.ruleset, entry.farm), previous = bests[key] || null;
     const improved = !previous || entry.score > previous.score;
     return { bests: improved ? { ...bests, [key]: entry } : bests, previous, improved };
   }
@@ -964,10 +971,12 @@ const AcresCore = (() => {
     return ((t ^ t >>> 14) >>> 0) / 4294967296;
   };
 
-  function newSeason(seed) {
+  // A season on a farm: the farm's weather, starting from the field its seed produces.
+  function newSeason(seed, weather = PRACTICE) {
     const rng = mulberry32(seed), N = RULES.size;
     const field = Array.from({ length: N }, () => Array.from({ length: N }, () => Math.floor(rng() * 4)));
-    return { seed, rng, field, day: 0, score: 0, wasted: 0, marks: null, history: [] };
+    return { seed, rng, field, day: 0, score: 0, wasted: 0, marks: null, history: [],
+      sunshine: weather.sunshine, rainfall: weather.rainfall };
   }
 
   function compileHarvest(src) {
@@ -1003,7 +1012,8 @@ const AcresCore = (() => {
 
   // Apply a harvest mask, then grow the field by one day.
   function advance(st, mask) {
-    const { size: N, ripe: RIPE, rot: ROT, grow, rotChance, bonus } = RULES, f = st.field;
+    const { size: N, ripe: RIPE, rot: ROT, bonus } = RULES, f = st.field;
+    const grow = st.sunshine, rotChance = st.rainfall;
 
     // A ripe plot scores the bonus when it's in a 2×2 block of ripe plots all harvested together.
     const picked = f.map((row, r) => row.map((v, c) => v === RIPE && mask[r][c] === 1));
@@ -1049,7 +1059,7 @@ const AcresCore = (() => {
     return out;
   }
 
-  return { RULES, SEASONS, TIERS, tierFor, bestKey, recordBest, ripeSquares, ResultError, newSeason, compileHarvest, runHarvest, evaluate, advance };
+  return { RULES, FARMS, PRACTICE, TIERS, tierFor, bestKey, recordBest, ripeSquares, ResultError, newSeason, compileHarvest, runHarvest, evaluate, advance };
 })();
 </script>
 <script>
@@ -1116,9 +1126,9 @@ Harvest←{0}
   const newSeed = () => (Math.random() * 4294967296) >>> 0;
 
   let seed = newSeed(), state;
-  // The current challenge, or null in practice mode.
-  let season = null;
-  const BESTS_KEY = 'acres:bests', SEASON_KEY = 'acres:season';
+  // The current farm, or null on Practice Farm.
+  let farm = null;
+  const BESTS_KEY = 'acres:bests', FARM_KEY = 'acres:farm';
   let bests = {};
   try { bests = JSON.parse(localStorage.getItem(BESTS_KEY)) || {}; } catch (e) { bests = {}; }
   let running = false, timer = null, fn = null, dirty = true;
@@ -1129,7 +1139,7 @@ Harvest←{0}
   let preview = { mask: null, stale: false }, previewTimer = null;
 
   function reset() {
-    state = AcresCore.newSeason(seed);
+    state = AcresCore.newSeason(seed, farm || AcresCore.PRACTICE);
     hideReport();
     updateStats();
     fieldChanged();
@@ -1199,8 +1209,8 @@ Harvest←{0}
 
     if (state.day >= TICKS) {
       let result = null;
-      if (season) {
-        result = AcresCore.recordBest(bests, { ruleset: RULES.id, season: season.id, seed: season.seed, score: state.score, code: codeEl.value });
+      if (farm) {
+        result = AcresCore.recordBest(bests, { ruleset: RULES.id, farm: farm.id, seed: farm.seed, score: state.score, code: codeEl.value });
         bests = result.bests;
         try { localStorage.setItem(BESTS_KEY, JSON.stringify(bests)); } catch (e) {}
       } else {
@@ -1233,8 +1243,8 @@ Harvest←{0}
     $('sTick').textContent = `${state.day}/${TICKS}`;
     $('sScore').textContent = state.score;
     $('sWasted').textContent = state.wasted;
-    const b = season ? bests[AcresCore.bestKey(RULES.id, season.id)] : null;
-    $('sBest').textContent = season ? (b ? b.score : '–') : (best[seed] ?? '–');
+    const b = farm ? bests[AcresCore.bestKey(RULES.id, farm.id)] : null;
+    $('sBest').textContent = farm ? (b ? b.score : '–') : (best[seed] ?? '–');
     renderTargets(b ? b.score : 0);
   }
 
@@ -1242,36 +1252,42 @@ Harvest←{0}
   const tierName = t => t[0].toUpperCase() + t.slice(1);
   function renderTargets(bestScore) {
     const el = $('targets');
-    el.hidden = !season;
-    if (!season) return;
+    el.hidden = !farm;
+    if (!farm) return;
     el.replaceChildren(...AcresCore.TIERS.map(t => {
-      const pill = document.createElement('span'), earned = bestScore >= season.targets[t];
+      const pill = document.createElement('span'), earned = bestScore >= farm.targets[t];
       pill.className = 'tier'; pill.dataset.tier = t; pill.dataset.earned = String(earned);
-      pill.textContent = `${tierName(t)} ${season.targets[t]}`;
-      pill.title = earned ? `${tierName(t)} reached` : `${tierName(t)}: score ${season.targets[t]} or more`;
+      pill.textContent = `${tierName(t)} ${farm.targets[t]}`;
+      pill.title = earned ? `${tierName(t)} reached` : `${tierName(t)}: score ${farm.targets[t]} or more`;
       return pill;
     }));
   }
 
-  // Challenges and practice
-  const seasonEl = $('season');
-  AcresCore.SEASONS.forEach(s => {
+  // Farms and Practice Farm
+  const farmEl = $('farm');
+  AcresCore.FARMS.forEach(f => {
     const o = document.createElement('option');
-    o.value = s.id; o.textContent = s.name;
-    $('challengeOptions').append(o);
+    o.value = f.id; o.textContent = f.name;
+    $('farmOptions').append(o);
   });
 
-  function chooseSeason(id) {
-    season = AcresCore.SEASONS.find(s => s.id === id) || null;
-    seasonEl.value = season ? season.id : 'practice';
-    seed = season ? season.seed : newSeed();
-    $('newField').disabled = !!season;
-    $('bestLabel').textContent = season ? 'Personal best' : 'Best on this field';
-    $('seasonInfo').textContent = season ? '' : 'A new random field each time.';
-    try { localStorage.setItem(SEASON_KEY, seasonEl.value); } catch (e) {}
+  function chooseFarm(id) {
+    farm = AcresCore.FARMS.find(f => f.id === id) || null;
+    farmEl.value = farm ? farm.id : 'practice';
+    seed = farm ? farm.seed : newSeed();
+    const w = farm || AcresCore.PRACTICE, pct = p => `${Math.round(p * 100)}%`;
+    const sun = document.createElement('span'), rain = document.createElement('span');
+    sun.textContent = `Sunshine ${pct(w.sunshine)}`; sun.title = `Each unripe plant has a ${pct(w.sunshine)} chance to grow a stage overnight`;
+    rain.textContent = `Rainfall ${pct(w.rainfall)}`; rain.title = `Each ripe plant left unharvested has a ${pct(w.rainfall)} chance to rot overnight`;
+    $('weather').replaceChildren(sun, rain);
+    $('newField').disabled = !!farm;
+    $('bestLabel').textContent = farm ? 'Personal best' : 'Best on this field';
+    $('farmInfo').textContent = farm ? '' : 'A new random field each time.';
+    renderRules();
+    try { localStorage.setItem(FARM_KEY, farmEl.value); } catch (e) {}
   }
 
-  seasonEl.addEventListener('change', () => { stop(); chooseSeason(seasonEl.value); reset(); setMsg(''); });
+  farmEl.addEventListener('change', () => { stop(); chooseFarm(farmEl.value); reset(); setMsg(''); });
 
   // Drawing
   let COL;
@@ -1501,14 +1517,14 @@ Harvest←{0}
   // The rules, stated exactly. They're built from the ruleset itself, so the text can't drift
   // from what the game actually does.
   function renderRules() {
-    const pct = p => `${Math.round(p * 100)}%`, N = RULES.size, B = RULES.bonus;
+    const pct = p => `${Math.round(p * 100)}%`, N = RULES.size, B = RULES.bonus, w = farm || AcresCore.PRACTICE;
     const items = [
       `The field is ${N}×${N} and a season lasts ${RULES.days} days. Each plot holds one plant at stage 0 seed, 1 sprout, 2 growing, 3 ripe or 4 rotten. A season starts with every plot at a random stage from 0 to 3.`,
       'Each day, Harvest sees the field and chooses plots to harvest. Every harvested plot is cleared and replanted as a seed.',
       `A harvested ripe plant scores 1. If it’s part of a 2×2 square of ripe plants that are all harvested that day, a giant crop, it scores ${B} instead and is outlined in gold the next day. A plant in more than one such square still scores ${B}. Squares don’t wrap around the edges of the field.`,
       'Harvesting a sprout or a growing plant wastes it. Harvesting a seed or a rotten plant scores nothing, so clearing rot is free.',
-      `Then the field grows overnight. Every seed, sprout and growing plant, including newly replanted seeds, has a ${pct(RULES.grow)} chance to grow one stage. Every ripe plant left unharvested has a ${pct(RULES.rotChance)} chance to rot. Rotten plants stay until harvested. No plot changes by more than one stage a night.`,
-      'Each challenge has its own fixed luck, so the same challenge and the same code always give the same result. In practice, Restart replays the same field and New field starts a different one.',
+      `Then the field grows overnight, depending on the farm’s weather. Sunshine: every seed, sprout and growing plant, including newly replanted seeds, has a ${pct(w.sunshine)} chance to grow one stage. Rainfall: every ripe plant left unharvested has a ${pct(w.rainfall)} chance to rot. Rotten plants stay until harvested. No plot changes by more than one stage a night.`,
+      'Each farm has its own weather, starting field and fixed luck, so the same farm and the same code always give the same result. Practice Farm has Manor Farm’s weather; there, Restart replays the same field and New field starts a different one.',
     ];
     $('rules').replaceChildren(...items.map(t => Object.assign(document.createElement('li'), { textContent: t })));
   }
@@ -1560,16 +1576,16 @@ Harvest←{0}
     cmp.hidden = !result;
     if (result) {
       const prev = result.previous, diff = prev ? state.score - prev.score : 0;
-      $('cmpTitle').textContent = `${season.name}, rules ${RULES.id}`;
+      $('cmpTitle').textContent = `${farm.name}, rules ${RULES.id}`;
       $('cmpPrev').textContent = prev ? prev.score : '–';
       $('cmpThis').textContent = state.score;
       $('cmpChange').textContent = !prev ? '–' : diff > 0 ? `+${diff}` : diff < 0 ? `−${-diff}` : '0';
-      $('cmpStatus').textContent = !prev ? 'Your first result for this challenge.'
+      $('cmpStatus').textContent = !prev ? 'Your first result on this farm.'
         : result.improved ? 'New personal best.' : `Your personal best stays at ${prev.score}.`;
-      const tier = AcresCore.tierFor(season, state.score), T = AcresCore.TIERS;
+      const tier = AcresCore.tierFor(farm, state.score), T = AcresCore.TIERS;
       const next = tier ? T[T.indexOf(tier) + 1] : 'bronze';
       $('cmpTier').textContent = tier === 'gold' ? 'Gold reached! You’ve found a powerful strategy. Can you do even better?'
-        : (tier ? `You reached ${tierName(tier)}. ` : '') + `${tierName(next)} is ${season.targets[next]}.`;
+        : (tier ? `You reached ${tierName(tier)}. ` : '') + `${tierName(next)} is ${farm.targets[next]}.`;
     }
     $('rScore').textContent = state.score;
     $('rRot').textContent = total('rotted');
@@ -1757,10 +1773,9 @@ Harvest←{0}
 
   readColors();
   drawLegend();
-  renderRules();
-  let savedSeason = null;
-  try { savedSeason = localStorage.getItem(SEASON_KEY); } catch (e) {}
-  chooseSeason(savedSeason || AcresCore.SEASONS[0].id);
+  let savedFarm = null;
+  try { savedFarm = localStorage.getItem(FARM_KEY); } catch (e) {}
+  chooseFarm(savedFarm === 'practice' ? 'practice' : savedFarm || AcresCore.FARMS[0].id);
   reset();
   sizeCanvas();
 })();
