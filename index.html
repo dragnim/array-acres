@@ -182,6 +182,14 @@ textarea {
 .report { margin-top: clamp(20px, 3vw, 32px); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: clamp(14px, 2.5vw, 24px); }
 .report h2 { margin: 0; font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; }
 .report-stats { display: flex; flex-wrap: wrap; gap: 8px 32px; margin-top: 12px; font-variant-numeric: tabular-nums; }
+.season-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 16px; }
+.season-bar label { font-weight: 600; }
+.season-bar select { font: inherit; font-size: 0.95rem; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 7px 12px; }
+.season-bar span { color: var(--muted); font-size: 0.9rem; }
+.controls button:disabled { opacity: 0.45; cursor: not-allowed; }
+.compare { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.compare h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+.compare p { margin: 8px 0 0; color: var(--muted); }
 .chart-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 20px; }
 .chart-head h3 { margin: 0; font-size: 1rem; font-weight: 600; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
@@ -196,6 +204,14 @@ textarea {
   <header>
     <h1>Array Acres</h1>
     <p>Write one APL function. Every day it gets the whole field as a matrix and returns a boolean matrix of plots to harvest. Score as much as you can in 100 days.</p>
+    <div class="season-bar">
+      <label for="season">Season</label>
+      <select id="season">
+        <optgroup label="Challenges" id="challengeOptions"></optgroup>
+        <option value="practice">Practice (random fields)</option>
+      </select>
+      <span id="seasonInfo"></span>
+    </div>
   </header>
 
   <main class="game">
@@ -205,7 +221,7 @@ textarea {
         <div class="stat"><span>Day</span><strong id="sTick">0/100</strong></div>
         <div class="stat"><span>Score</span><strong id="sScore">0</strong></div>
         <div class="stat"><span>Wasted</span><strong id="sWasted">0</strong></div>
-        <div class="stat"><span>Best on this field</span><strong id="sBest">–</strong></div>
+        <div class="stat"><span id="bestLabel">Personal best</span><strong id="sBest">–</strong></div>
       </div>
       <div class="legend" id="legend"></div>
       <p class="rules">Each day, unripe plots may grow a stage, ripe plots may rot, and rotten plots stay until you harvest them. A ripe harvest scores 1, or 3 if the plot is part of a 2×2 block of ripe plots harvested together (outlined in gold). Harvesting a sprout or growing plot wastes it. The same field and the same code always give the same result.</p>
@@ -244,6 +260,15 @@ textarea {
       <div class="stat"><span>Ripe plots lost to rot</span><strong id="rRot">0</strong></div>
       <div class="stat"><span>Wasted plots</span><strong id="rWasted">0</strong></div>
       <div class="stat"><span>Bonus plots</span><strong id="rBonus">0</strong></div>
+    </div>
+    <div class="compare" id="compare" hidden>
+      <h3 id="cmpTitle"></h3>
+      <div class="report-stats">
+        <div class="stat"><span>Previous best</span><strong id="cmpPrev">–</strong></div>
+        <div class="stat"><span>This season</span><strong id="cmpThis">0</strong></div>
+        <div class="stat"><span>Change</span><strong id="cmpChange">–</strong></div>
+      </div>
+      <p id="cmpStatus"></p>
     </div>
     <div class="chart-head">
       <h3>Day by day</h3>
@@ -877,7 +902,25 @@ const APL = (() => {
 <script id="acres-core">
 // Game rules and simulation, with no DOM access, so the page and the tests share one implementation.
 const AcresCore = (() => {
-  const RULES = Object.freeze({ size: 8, days: 100, ripe: 3, rot: 4, grow: 0.55, rotChance: 0.2, bonus: 3 });
+  // A ruleset is identified by its id. Changing any value here, the order of operations in
+  // advance(), or how random numbers are drawn changes scores, so it needs a new id.
+  const RULES = Object.freeze({ id: 'v1', size: 8, days: 100, ripe: 3, rot: 4, grow: 0.55, rotChance: 0.2, bonus: 3 });
+
+  // Named challenges: fixed seeds under a fixed ruleset, so every player gets the same season.
+  // Chosen by simulating 1,200 candidate seeds with the greedy and hybrid reference strategies.
+  const SEASONS = Object.freeze([
+    Object.freeze({ id: 'first-furrows', name: 'First Furrows', rules: 'v1', seed: 6073873 }),
+    Object.freeze({ id: 'the-long-harvest', name: 'The Long Harvest', rules: 'v1', seed: 5004808 }),
+    Object.freeze({ id: 'against-the-odds', name: 'Against the Odds', rules: 'v1', seed: 4806833 }),
+  ]);
+
+  // Personal bests belong to a ruleset and a season together, never just a seed.
+  const bestKey = (ruleset, season) => `${ruleset}:${season}`;
+  function recordBest(bests, entry) {
+    const key = bestKey(entry.ruleset, entry.season), previous = bests[key] || null;
+    const improved = !previous || entry.score > previous.score;
+    return { bests: improved ? { ...bests, [key]: entry } : bests, previous, improved };
+  }
 
   // Harvest ran, but what it returned can't be used as a harvest mask.
   class ResultError extends Error {}
@@ -965,7 +1008,7 @@ const AcresCore = (() => {
     st.day++;
   }
 
-  return { RULES, ResultError, newSeason, compileHarvest, runHarvest, evaluate, advance };
+  return { RULES, SEASONS, bestKey, recordBest, ResultError, newSeason, compileHarvest, runHarvest, evaluate, advance };
 })();
 </script>
 <script>
@@ -1013,6 +1056,11 @@ Harvest←{⍵=3}
   const newSeed = () => (Math.random() * 4294967296) >>> 0;
 
   let seed = newSeed(), state;
+  // The current challenge, or null in practice mode.
+  let season = null;
+  const BESTS_KEY = 'acres:bests', SEASON_KEY = 'acres:season';
+  let bests = {};
+  try { bests = JSON.parse(localStorage.getItem(BESTS_KEY)) || {}; } catch (e) { bests = {}; }
   let running = false, timer = null, fn = null, dirty = true;
   const best = {};
 
@@ -1089,11 +1137,18 @@ Harvest←{⍵=3}
     fieldChanged();
 
     if (state.day >= TICKS) {
-      best[seed] = Math.max(best[seed] ?? 0, state.score);
+      let result = null;
+      if (season) {
+        result = AcresCore.recordBest(bests, { ruleset: RULES.id, season: season.id, seed: season.seed, score: state.score, code: codeEl.value });
+        bests = result.bests;
+        try { localStorage.setItem(BESTS_KEY, JSON.stringify(bests)); } catch (e) {}
+      } else {
+        best[seed] = Math.max(best[seed] ?? 0, state.score);
+      }
       updateStats();
       stop();
       setMsg(`Season over. You scored ${state.score}.`);
-      showReport();
+      showReport(result);
       return false;
     }
     return true;
@@ -1117,8 +1172,29 @@ Harvest←{⍵=3}
     $('sTick').textContent = `${state.day}/${TICKS}`;
     $('sScore').textContent = state.score;
     $('sWasted').textContent = state.wasted;
-    $('sBest').textContent = best[seed] ?? '–';
+    const b = season ? bests[AcresCore.bestKey(RULES.id, season.id)] : null;
+    $('sBest').textContent = season ? (b ? b.score : '–') : (best[seed] ?? '–');
   }
+
+  // Challenges and practice
+  const seasonEl = $('season');
+  AcresCore.SEASONS.forEach(s => {
+    const o = document.createElement('option');
+    o.value = s.id; o.textContent = s.name;
+    $('challengeOptions').append(o);
+  });
+
+  function chooseSeason(id) {
+    season = AcresCore.SEASONS.find(s => s.id === id) || null;
+    seasonEl.value = season ? season.id : 'practice';
+    seed = season ? season.seed : newSeed();
+    $('newField').disabled = !!season;
+    $('bestLabel').textContent = season ? 'Personal best' : 'Best on this field';
+    $('seasonInfo').textContent = season ? `Rules ${RULES.id}. Everyone plays the same field.` : `Rules ${RULES.id}. A new random field each time.`;
+    try { localStorage.setItem(SEASON_KEY, seasonEl.value); } catch (e) {}
+  }
+
+  seasonEl.addEventListener('change', () => { stop(); chooseSeason(seasonEl.value); reset(); setMsg(''); });
 
   // Drawing
   let COL;
@@ -1247,7 +1323,18 @@ Harvest←{⍵=3}
   const total = k => state.history.reduce((s, d) => s + d[k], 0);
   const num = v => Math.round(v).toLocaleString('en-GB');
 
-  function showReport() {
+  function showReport(result) {
+    const cmp = $('compare');
+    cmp.hidden = !result;
+    if (result) {
+      const prev = result.previous, diff = prev ? state.score - prev.score : 0;
+      $('cmpTitle').textContent = `${season.name}, rules ${RULES.id}`;
+      $('cmpPrev').textContent = prev ? prev.score : '–';
+      $('cmpThis').textContent = state.score;
+      $('cmpChange').textContent = !prev ? '–' : diff > 0 ? `+${diff}` : diff < 0 ? `−${-diff}` : '0';
+      $('cmpStatus').textContent = !prev ? 'Your first result for this challenge.'
+        : result.improved ? 'New personal best.' : `Your personal best stays at ${prev.score}.`;
+    }
     $('rScore').textContent = state.score;
     $('rRot').textContent = total('rotted');
     $('rWasted').textContent = total('wasted');
@@ -1420,6 +1507,9 @@ Harvest←{⍵=3}
 
   readColors();
   drawLegend();
+  let savedSeason = null;
+  try { savedSeason = localStorage.getItem(SEASON_KEY); } catch (e) {}
+  chooseSeason(savedSeason || AcresCore.SEASONS[0].id);
   reset();
   sizeCanvas();
 })();
