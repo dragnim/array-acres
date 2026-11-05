@@ -61,3 +61,7 @@ Human playtesting of the three farms, before adding another crop.
 ## Credits
 
 The editor uses [APL386](https://github.com/abrudz/APL386), released into the public domain, subset and embedded in the page. The plant illustrations in `assets/plants` were generated with ChatGPT for this project, then aligned and resized for the game.
+
+## Licence
+
+Released under the [MIT licence](LICENSE).
