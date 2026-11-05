@@ -252,10 +252,10 @@ textarea {
       <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
       <div class="glyphs" id="glyphs" aria-label="APL symbols"></div>
       <div id="diag" aria-live="polite"></div>
-      <p class="hint">Type symbols with the bar or a backtick prefix, so <kbd>`w</kbd> gives <kbd>⍵</kbd>. Hover a symbol to see its name and key. Dashed outlines preview what Harvest would pick today, without using up a day. Ctrl+Enter or ⌘+Enter steps once. Tab indents; press Esc then Tab to leave the editor.</p>
+      <p class="hint">Type symbols with the bar or a backtick prefix, so <kbd>`w</kbd> gives <kbd>⍵</kbd>. Hover a symbol to see its name and key. Dashed outlines preview what Harvest would pick today, without using up a day. Ctrl+Enter or ⌘+Enter moves to the next day. Tab indents; press Esc then Tab to leave the editor.</p>
       <div class="controls">
-        <button class="primary" id="run">Run</button>
-        <button id="step">Step</button>
+        <button class="primary" id="run">Play season</button>
+        <button id="step">Next day</button>
         <button id="restart">Restart</button>
         <button id="newField">New field</button>
         <label class="speed">Speed
@@ -1207,7 +1207,7 @@ Harvest←{0}
     loop();
   }
   function stop() {
-    running = false; clearTimeout(timer); runBtn.textContent = 'Run';
+    running = false; clearTimeout(timer); runBtn.textContent = 'Play season';
   }
 
   function updateStats() {
