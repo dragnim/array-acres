@@ -227,8 +227,7 @@ textarea {
     <div class="farm-bar">
       <label for="farm">Farm</label>
       <select id="farm">
-        <optgroup label="Farms" id="farmOptions"></optgroup>
-        <option value="practice">Practice</option>
+        <option value="practice">Practice Farm</option>
       </select>
       <span class="weather" id="weather" aria-label="Weather"></span>
       <span class="targets" id="targets" aria-label="Targets"></span>
@@ -1267,8 +1266,8 @@ Harvest←{0}
   const farmEl = $('farm');
   AcresCore.FARMS.forEach(f => {
     const o = document.createElement('option');
-    o.value = f.id; o.textContent = f.name.replace(/ Farm$/, ''); // the label already says Farm
-    $('farmOptions').append(o);
+    o.value = f.id; o.textContent = f.name;
+    farmEl.insertBefore(o, farmEl.querySelector('option[value="practice"]'));
   });
 
   function chooseFarm(id) {
