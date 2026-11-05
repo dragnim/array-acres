@@ -229,7 +229,7 @@ textarea {
         <div class="stat"><span id="bestLabel">Personal best</span><strong id="sBest">–</strong></div>
       </div>
       <div class="legend" id="legend"></div>
-      <p class="rules">Each day, unripe plots may grow a stage, ripe plots may rot, and rotten plots stay until you harvest them. A ripe harvest scores 1, or 3 if the plot is part of a 2×2 block of ripe plots harvested together (outlined in gold). Harvesting a sprout or growing plot wastes it. The same field and the same code always give the same result.</p>
+      <p class="rules">Each day, unripe plots may grow a stage, ripe plots may rot, and rotten plots stay until you harvest them. A ripe harvest scores 1. Four ripe plants in a 2×2 square grow into a giant crop: harvest all four on the same day and each scores 3 (outlined in gold the next day). Harvesting a sprout or growing plot wastes it. The same field and the same code always give the same result.</p>
     </section>
 
     <section class="editor">
@@ -1022,7 +1022,16 @@ const AcresCore = (() => {
     st.day++;
   }
 
-  return { RULES, SEASONS, TIERS, tierFor, bestKey, recordBest, ResultError, newSeason, compileHarvest, runHarvest, evaluate, advance };
+  // Top-left corners of every 2×2 square of ripe plots, overlapping squares included.
+  // Used to draw giant crops; it never affects scoring.
+  function ripeSquares(field) {
+    const N = field.length, out = [];
+    for (let r = 0; r < N - 1; r++) for (let c = 0; c < N - 1; c++)
+      if (field[r][c] === RULES.ripe && field[r + 1][c] === RULES.ripe && field[r][c + 1] === RULES.ripe && field[r + 1][c + 1] === RULES.ripe) out.push([r, c]);
+    return out;
+  }
+
+  return { RULES, SEASONS, TIERS, tierFor, bestKey, recordBest, ripeSquares, ResultError, newSeason, compileHarvest, runHarvest, evaluate, advance };
 })();
 </script>
 <script>
@@ -1241,14 +1250,16 @@ Harvest←{0}
     if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h);
   }
 
-  function drawPlot(c, x, y, s, v, marked, previewed) {
+  function drawPlot(c, x, y, s, v, marked, previewed, bare) {
     c.fillStyle = COL.soil;
     rrect(c, x, y, s, s, s * 0.12); c.fill();
 
     const cx = x + s / 2, base = y + s * 0.84;
     c.lineCap = 'round';
 
-    if (v === 0) {
+    if (bare) {
+      // The plant is drawn as part of a giant crop instead.
+    } else if (v === 0) {
       c.fillStyle = COL.seed;
       c.beginPath(); c.ellipse(cx, base - s * 0.04, s * 0.075, s * 0.05, 0, 0, Math.PI * 2); c.fill();
     } else {
@@ -1282,6 +1293,11 @@ Harvest←{0}
       }
     }
 
+    drawOverlay(c, x, y, s, marked, previewed);
+  }
+
+  // Harvest outline and preview outline: drawn last, on top of plants and giant crops.
+  function drawOverlay(c, x, y, s, marked, previewed) {
     if (marked) {
       const bonus = marked === 2;
       c.strokeStyle = bonus ? COL.ripe : COL.mark;
@@ -1308,14 +1324,22 @@ Harvest←{0}
     // Expose the preview state for tests and assistive tech: none, live or stale.
     cv.dataset.preview = !preview.mask ? 'none' : preview.stale ? 'stale' : 'live';
     if (!state || !COL) return;
+    // data-giants counts every ripe 2×2 square, overlapping ones included, as scoring does.
+    const squares = AcresCore.ripeSquares(state.field), tiling = giantTiling(squares);
+    cv.dataset.giants = squares.length;
+    cv.setAttribute('aria-label', tiling.length ? `The field, with ${tiling.length} giant crop${tiling.length === 1 ? '' : 's'}` : 'The field');
     const w = cv.clientWidth;
     if (!w) return;
     ctx.clearRect(0, 0, w, w);
     const gap = Math.max(2, w * 0.008);
-    const s = (w - gap * (SIZE + 1)) / SIZE;
+    const s = (w - gap * (SIZE + 1)) / SIZE, at = i => gap + i * (s + gap);
+    const inSheaf = state.field.map(row => row.map(() => false));
+    tiling.forEach(([r, c]) => { inSheaf[r][c] = inSheaf[r + 1][c] = inSheaf[r][c + 1] = inSheaf[r + 1][c + 1] = true; });
+    for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) drawPlot(ctx, at(c), at(r), s, state.field[r][c], 0, null, inSheaf[r][c]);
+    drawGiants(ctx, squares, tiling, at, s, gap);
     for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
       const p = preview.mask && preview.mask[r][c] ? (preview.stale ? 'stale' : 'live') : null;
-      drawPlot(ctx, gap + c * (s + gap), gap + r * (s + gap), s, state.field[r][c], state.marks && state.marks[r][c], p);
+      drawOverlay(ctx, at(c), at(r), s, state.marks && state.marks[r][c], p);
     }
   }
 
@@ -1324,6 +1348,66 @@ Harvest←{0}
     cv.width = Math.round(w * dpr); cv.height = Math.round(w * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     render();
+  }
+
+  // Squares that overlap share plots, so only a non-overlapping selection gets a sheaf.
+  function giantTiling(squares) {
+    const used = new Set(), out = [];
+    for (const [r, k] of squares) {
+      const cells = [`${r},${k}`, `${r + 1},${k}`, `${r},${k + 1}`, `${r + 1},${k + 1}`];
+      if (cells.some(x => used.has(x))) continue;
+      cells.forEach(x => used.add(x)); out.push([r, k]);
+    }
+    return out;
+  }
+
+  // Giant crops. Every plot in a ripe 2×2 square sits on one golden patch, which is exactly
+  // the set of plots that would score the bonus. The patch is translucent so the separate
+  // plots, still separate 3s in ⍵, stay visible. Sheaves are drawn on the tiling only.
+  function drawGiants(c, squares, tiling, at, s, gap) {
+    const size = 2 * s + gap;
+    const off = document.createElement('canvas');
+    off.width = c.canvas.width; off.height = c.canvas.height;
+    const o = off.getContext('2d');
+    o.setTransform(c.getTransform());
+    o.fillStyle = COL.ripe;
+    for (const [r, k] of squares) { rrect(o, at(k), at(r), size, size, s * 0.14); o.fill(); }
+    c.save();
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.globalAlpha = 0.28;
+    c.drawImage(off, 0, 0);
+    c.restore();
+    c.save();
+    c.globalAlpha = 0.9; c.strokeStyle = COL.ripe; c.lineWidth = Math.max(1.5, s * 0.035);
+    for (const [r, k] of tiling) {
+      rrect(c, at(k) + c.lineWidth / 2, at(r) + c.lineWidth / 2, size - c.lineWidth, size - c.lineWidth, s * 0.13); c.stroke();
+    }
+    c.globalAlpha = 1;
+    for (const [r, k] of tiling) drawSheaf(c, at(k), at(r), size);
+    c.restore();
+  }
+
+  function drawSheaf(c, x, y, size) {
+    const cx = x + size / 2, base = y + size * 0.88, h = size * 0.6, n = 7;
+    c.lineCap = 'round';
+    c.fillStyle = COL.leaf;
+    for (const dir of [-1, 1]) {
+      c.beginPath(); c.ellipse(cx + dir * size * 0.13, base - size * 0.06, size * 0.14, size * 0.04, -dir * 0.5, 0, Math.PI * 2); c.fill();
+    }
+    for (let i = 0; i < n; i++) {
+      const t = (i - (n - 1) / 2) / ((n - 1) / 2); // -1 at the left, 1 at the right
+      const tipX = cx + t * size * 0.3, tipY = base - h + Math.abs(t) * size * 0.14;
+      c.strokeStyle = COL.leaf; c.lineWidth = Math.max(1.5, size * 0.02);
+      c.beginPath(); c.moveTo(cx + t * size * 0.03, base); c.quadraticCurveTo(cx + t * size * 0.06, base - h * 0.45, tipX, tipY); c.stroke();
+      const ex = tipX + t * size * 0.02, ey = tipY - size * 0.07;
+      c.fillStyle = COL.ripe;
+      c.beginPath(); c.ellipse(ex, ey, size * 0.045, size * 0.095, t * 0.45, 0, Math.PI * 2); c.fill();
+      c.globalAlpha = 0.45; c.fillStyle = COL.mark;
+      c.beginPath(); c.ellipse(ex - size * 0.012, ey - size * 0.025, size * 0.014, size * 0.04, t * 0.45, 0, Math.PI * 2); c.fill();
+      c.globalAlpha = 1;
+    }
+    c.strokeStyle = COL.seed; c.lineWidth = Math.max(2, size * 0.035);
+    c.beginPath(); c.moveTo(cx - size * 0.06, base - h * 0.25); c.lineTo(cx + size * 0.06, base - h * 0.25); c.stroke();
   }
 
   function drawLegend() {
@@ -1343,6 +1427,19 @@ Harvest←{0}
       el.append(item);
     };
     STAGE_NAMES.forEach((name, v) => add(`<code>${v}</code> ${name}`, v, 0, null));
+    {
+      const item = document.createElement('div'), c = document.createElement('canvas'), dpr = window.devicePixelRatio || 1;
+      c.width = 28 * dpr; c.height = 28 * dpr;
+      c.setAttribute('aria-hidden', 'true');
+      const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const s = 13, gap = 2, at = i => i * (s + gap);
+      for (let r = 0; r < 2; r++) for (let k = 0; k < 2; k++) drawPlot(x, at(k), at(r), s, RIPE, 0, null, true);
+      drawGiants(x, [[0, 0]], [[0, 0]], at, s, gap);
+      const label = document.createElement('span');
+      label.textContent = 'giant crop';
+      item.append(c, label);
+      el.append(item);
+    }
     add('harvested yesterday', 0, 1, null);
     add('Harvest would pick', RIPE, 0, 'live');
   }
