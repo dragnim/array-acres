@@ -199,7 +199,46 @@ check('giants: squares in corners are found, and corners never join across edges
 check('giants: a square with a rotten or growing plant is not a giant crop',
   AcresCore.ripeSquares(grid(['34000000', '33000000', '00000000', '00032000', '00033000', '00000000', '00000000', '00000000'])), []);
 
-// 8. Allocation limit: 1,000,000 elements is allowed, anything bigger is WS FULL, checked before allocating.
+// 8. The rules as written on the page: every claim checked against the simulation
+{
+  const N = RULES.size, ripe = RULES.ripe, rot = RULES.rot;
+  let starts = true, steps = true, waste = true, grew = 0, couldGrow = 0, rotted = 0, couldRot = 0;
+  for (const src of [GREEDY, HYBRID, 'Harvest←{0}']) {
+    const fn = AcresCore.compileHarvest(src);
+    for (const seed of SEEDS.slice(0, 30)) {
+      const st = AcresCore.newSeason(seed);
+      if (!st.field.flat().every(v => v >= 0 && v <= 3)) starts = false;
+      while (st.day < RULES.days) {
+        const mask = AcresCore.runHarvest(fn, st.field), before = st.field.map(r => r.slice());
+        AcresCore.advance(st, mask);
+        let wasted = 0;
+        for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+          const b = before[r][c], a = st.field[r][c];
+          if (mask[r][c]) {
+            if (b === 1 || b === 2) wasted++;
+            if (a !== 0 && a !== 1) steps = false;    // replanted as a seed, which may grow that night
+            couldGrow++; if (a === 1) grew++;
+          } else if (b < ripe) {
+            if (a !== b && a !== b + 1) steps = false;
+            couldGrow++; if (a === b + 1) grew++;
+          } else if (b === ripe) {
+            if (a !== ripe && a !== rot) steps = false;
+            couldRot++; if (a === rot) rotted++;
+          } else if (a !== rot) steps = false;       // rotten stays until harvested
+        }
+        if (st.history[st.history.length - 1].wasted !== wasted) waste = false;
+      }
+    }
+  }
+  check('rules: a season starts with every plot at stage 0 to 3', starts, true);
+  check('rules: no plot changes by more than one stage a night, and rot only comes from unharvested ripe plants', steps, true);
+  check('rules: only harvested sprouts and growing plants count as wasted', waste, true);
+  // The stated chances should be what actually happens, to within sampling error.
+  check('rules: the growth chance matches the ruleset', Math.abs(grew / couldGrow - RULES.grow) < 0.01, true);
+  check('rules: the rot chance matches the ruleset', Math.abs(rotted / couldRot - RULES.rotChance) < 0.01, true);
+}
+
+// 9. Allocation limit: 1,000,000 elements is allowed, anything bigger is WS FULL, checked before allocating.
 const WS = 'ERR WS FULL: array exceeds 1,000,000 elements';
 const limits = [
   ['≢⍳1000000', '1000000'], ['⍳1000001', WS], ['⍳1e300', WS],
