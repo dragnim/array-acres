@@ -310,5 +310,20 @@ const limits = [
 ];
 for (const [src, want] of limits) check(`limit: ${src}`, ev(src), want);
 
+// 11. Work limit: primitives whose cost grows faster than their result stop quickly with
+// INTERRUPT, instead of freezing the page, while ordinary sizes still work.
+{
+  const INT = 'ERR INTERRUPT: your function ran for too long';
+  for (const src of ['+\\⍳1000000', '(1000 1000⍴1)+.×1000 1000⍴1', '(⍳1000000)∊⍳1000000', '(⍳1000000)⍳⍳1000000',
+                     'f←{⍺=0:⍵ ⋄ (⍺-1) ∇ ⍵+1} ⋄ ≢100000 f ⍳1000000']) {
+    const t = Date.now(), got = ev(src);
+    check(`work: ${src} is interrupted`, got, INT);
+    check(`work: ${src} stops within 3 seconds`, Date.now() - t < 3000, true);
+  }
+  check('work: a scan of 3000 items still runs', ev('⊃⌽+\\⍳3000'), '4501500');
+  check('work: a 100×100 matrix product still runs', ev('⊃,(100 100⍴1)+.×100 100⍴1'), '100');
+  check('work: the limit resets for each run', ev('≢,(⍳1000)∘.+⍳1000'), '1000000');
+}
+
 console.log(failures ? `${failures} of ${checks} checks failed` : `All ${checks} checks passed`);
 process.exit(failures ? 1 : 0);
