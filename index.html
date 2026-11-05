@@ -966,7 +966,7 @@ const AcresCore = (() => {
   // Each also has a fixed seed, so every player gets the same field and the same luck.
   // Seeds were chosen as typical fields by simulating 1,000 candidates with the reference
   // strategies. Targets: bronze is within reach of harvesting every ripe plant, silver needs a
-  // partly right idea about giant crops, and gold matches the hybrid reference strategy.
+  // partly right idea about bumper crops, and gold matches the hybrid reference strategy.
   const farm = (id, name, sunshine, rainfall, seed, bronze, silver, gold) =>
     Object.freeze({ id, name, sunshine, rainfall, seed, rules: RULES.id, targets: Object.freeze({ bronze, silver, gold }) });
   const FARMS = Object.freeze([
@@ -1014,11 +1014,11 @@ Squares←{
   tl∨((-⍴⍵)↑0 ¯1↓tl)∨((-⍴⍵)↑¯1 0↓tl)∨(-⍴⍵)↑¯1 ¯1↓tl
 }
 
-⍝ Giants: 1 on every ripe plant that is part of a giant crop.
-Giants←{Squares ⍵=3}
+⍝ BumperCrops: 1 on every ripe plant that is part of a bumper crop.
+BumperCrops←{Squares ⍵=3}
 
 ⍝ Promising: 1 on every plant in a 2×2 square of growing or
-⍝ ripe plants, where a giant crop could still form.
+⍝ ripe plants, where a bumper crop could still form.
 Promising←{Squares ⍵∊2 3}
 `;
   const HELPERS = APL.run(HELPER_SOURCE).env.vars;
@@ -1028,7 +1028,7 @@ Promising←{Squares ⍵∊2 3}
   const ALL_GLYPHS = '+-×÷⌈⌊|*=≠<>≤≥∧∨~⍴⍳,⍪⌽⊖⍉↑↓⊢⊣≢≡⊃∊⍸⍋⍒/⌿\\⍀¨⍨∘.⍺∇';
   const UNLOCKS = Object.freeze([
     Object.freeze({ id: 'start', farm: null, tier: null, glyphs: '=≠<>≤≥', helpers: [], farms: ['manor-farm'], source: false }),
-    Object.freeze({ id: 'manor-bronze', farm: 'manor-farm', tier: 'bronze', glyphs: '∧∨~', helpers: ['Giants'], farms: ['bramley-farm'], source: false }),
+    Object.freeze({ id: 'manor-bronze', farm: 'manor-farm', tier: 'bronze', glyphs: '∧∨~', helpers: ['BumperCrops'], farms: ['bramley-farm'], source: false }),
     Object.freeze({ id: 'bramley-silver', farm: 'bramley-farm', tier: 'silver', glyphs: '', helpers: ['Promising'], farms: ['nuthanger-farm'], source: false }),
     Object.freeze({ id: 'any-gold', farm: '*', tier: 'gold', glyphs: ALL_GLYPHS, helpers: ['Squares'], farms: [], source: true }),
   ]);
@@ -1133,7 +1133,7 @@ Promising←{Squares ⍵∊2 3}
   }
 
   // Top-left corners of every 2×2 square of ripe plots, overlapping squares included.
-  // Used to draw giant crops; it never affects scoring.
+  // Used to draw bumper crops; it never affects scoring.
   function ripeSquares(field) {
     const N = field.length, out = [];
     for (let r = 0; r < N - 1; r++) for (let c = 0; c < N - 1; c++)
@@ -1432,12 +1432,12 @@ Harvest←{0}
 
   // Each entry explains one tool with a small example. Locked entries show only what unlocks them.
   const GUIDE = [
-    { title: '⍵', text: 'Today’s field: one number per plot, from 0 seed to 4 rotten. Show numbers on the field to see it.' },
-    { title: '= ≠ < > ≤ ≥', glyph: '=', text: 'Compare every plot at once, giving 1 where it’s true and 0 where it isn’t.', example: '⍵≤1   ⍝ 1 on every seed and sprout' },
-    { title: '∧ ∨ ~', glyph: '∧', text: 'Combine yes/no grids: a∧b is 1 where both are 1, a∨b where either is, and ~a swaps 1s and 0s.', example: '(⍵=1)∨⍵=2   ⍝ sprouts or growing plants' },
-    { title: 'Giants ⍵', helper: 'Giants', text: 'A helper: 1 on every ripe plant that is part of a giant crop today.', example: 'Giants ⍵' },
-    { title: 'Promising ⍵', helper: 'Promising', text: 'A helper: 1 on every plant in a 2×2 square of growing or ripe plants, where a giant crop could still form.', example: 'Promising ⍵' },
-    { title: 'Every symbol, and how the helpers work', source: true, text: 'Every symbol is unlocked, and so is Squares, the helper behind the others. Here is their APL: can you write better ones?', code: AcresCore.HELPER_SOURCE },
+    { title: '⍵', text: '⍵ is today’s field: 64 numbers, one for each plot (0 seed, 1 sprout, 2 growing, 3 ripe, 4 rotten). Turn on Show numbers to see them on the field.' },
+    { title: '= ≠ < > ≤ ≥', glyph: '=', text: 'Compare. These ask a question of every plot at once, and answer 1 for yes and 0 for no.', example: '⍵≤1   ⍝ 1 on every seed and sprout, 0 everywhere else' },
+    { title: '∧ ∨ ~', glyph: '∧', text: 'Combine answers. ∧ means “and”: 1 only where both answers are 1. ∨ means “or”: 1 where either is. ~ means “not”: it turns 1s into 0s and 0s into 1s.', example: '(⍵=1)∨⍵=2   ⍝ 1 on every sprout or growing plant' },
+    { title: 'BumperCrops ⍵', helper: 'BumperCrops', text: 'A ready-made helper. It gives 1 on every ripe plant that’s part of a bumper crop today (four ripe plants in a 2×2 square), and 0 everywhere else.' },
+    { title: 'Promising ⍵', helper: 'Promising', text: 'A ready-made helper. It gives 1 on every plant that’s part of a 2×2 square of growing or ripe plants: places where a bumper crop could form if you wait.' },
+    { title: 'Every symbol, and how the helpers work', source: true, text: 'You can now use every symbol. BumperCrops and Promising are ordinary APL functions, both built on a third helper, Squares, which finds 2×2 squares of 1s. Here’s their code, and you can now use Squares yourself. Can you write better helpers?', code: AcresCore.HELPER_SOURCE },
   ];
   function renderGuide() {
     const acc = access();
@@ -1493,7 +1493,7 @@ Harvest←{0}
     c.lineCap = 'round';
 
     if (bare) {
-      // The plant is drawn as part of a giant crop instead.
+      // The plant is drawn as part of a bumper crop instead.
     } else if (artReady) {
       c.imageSmoothingQuality = 'high';
       c.drawImage(ART[v], x, y, s, s);
@@ -1534,7 +1534,7 @@ Harvest←{0}
     drawOverlay(c, x, y, s, marked, previewed);
   }
 
-  // Harvest outline and preview outline: drawn last, on top of plants and giant crops.
+  // Harvest outline and preview outline: drawn last, on top of plants and bumper crops.
   function drawOverlay(c, x, y, s, marked, previewed) {
     if (marked) {
       const bonus = marked === 2;
@@ -1566,7 +1566,7 @@ Harvest←{0}
     const squares = AcresCore.ripeSquares(state.field), tiling = giantTiling(squares);
     cv.dataset.giants = squares.length;
     cv.dataset.art = artReady ? 'images' : 'drawn';
-    cv.setAttribute('aria-label', tiling.length ? `The field, with ${tiling.length} giant crop${tiling.length === 1 ? '' : 's'}` : 'The field');
+    cv.setAttribute('aria-label', tiling.length ? `The field, with ${tiling.length} bumper crop${tiling.length === 1 ? '' : 's'}` : 'The field');
     const w = cv.clientWidth;
     if (!w) return;
     fctx.clearRect(0, 0, w, w);
@@ -1631,7 +1631,7 @@ Harvest←{0}
     return out;
   }
 
-  // Giant crops. Every plot in a ripe 2×2 square sits on one golden patch, which is exactly
+  // Bumper crops. Every plot in a ripe 2×2 square sits on one golden patch, which is exactly
   // the set of plots that would score the bonus. The patch is translucent so the separate
   // plots, still separate 3s in ⍵, stay visible. Sheaves are drawn on the tiling only.
   function drawGiants(c, squares, tiling, at, s, gap) {
@@ -1691,7 +1691,7 @@ Harvest←{0}
     const items = [
       `The field is ${N}×${N} and a season lasts ${RULES.days} days. Each plot holds one plant at stage 0 seed, 1 sprout, 2 growing, 3 ripe or 4 rotten. A season starts with every plot at a random stage from 0 to 3.`,
       'Each day, your Harvest function is given today’s field as ⍵, a matrix of stage numbers, and chooses plots to harvest. Every harvested plot is cleared and replanted as a seed.',
-      `A harvested ripe plant scores 1. If it’s part of a 2×2 square of ripe plants that are all harvested that day, a giant crop, it scores ${B} instead and is outlined in gold the next day. A plant in more than one such square still scores ${B}. Squares don’t wrap around the edges of the field.`,
+      `A harvested ripe plant scores 1. If it’s part of a 2×2 square of ripe plants that are all harvested that day, a bumper crop, it scores ${B} instead and is outlined in gold the next day. A plant in more than one such square still scores ${B}. Squares don’t wrap around the edges of the field.`,
       'Harvesting a sprout or a growing plant wastes it. Harvesting a seed or a rotten plant scores nothing, so clearing rot is free.',
       `Then the field grows overnight, depending on the farm’s weather. Sunshine: every seed, sprout and growing plant, including newly replanted seeds, has a ${pct(w.sunshine)} chance to grow one stage. Rainfall: every ripe plant left unharvested has a ${pct(w.rainfall)} chance to rot. Rotten plants stay until harvested. No plot changes by more than one stage a night.`,
       'Every night, each plant still has the stated chance to grow or rot, but each farm’s starting field and luck are set: on any given night, each plot’s chance comes out the same way every time you play. So the same code always scores the same, and only a change to your code can change the result. Practice Farm has Manor Farm’s weather: Restart replays the same field and luck, and New field brings a new field with new luck.',
@@ -1738,7 +1738,7 @@ Harvest←{0}
       for (let r = 0; r < 2; r++) for (let k = 0; k < 2; k++) drawPlot(x, at(k), at(r), s, RIPE, 0, null, true);
       drawGiants(x, [[0, 0]], [[0, 0]], at, s, gap);
       const label = document.createElement('span');
-      label.textContent = 'giant crop';
+      label.textContent = 'bumper crop';
       item.append(c, label);
       el.append(item);
     }
