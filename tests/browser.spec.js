@@ -1,6 +1,7 @@
 // Browser test for the editor: preview, stale state, diagnostics, stepping and a full season.
 // Run with `npm run test:browser`. Waits on the page's own state, never on fixed delays.
 const { test, expect } = require('@playwright/test');
+const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 
@@ -134,6 +135,11 @@ test('challenges keep separate personal bests that survive a reload', async ({ p
   await page.selectOption('#season', 'first-furrows');
   await expect(best).toHaveText('–');
   await expect(page.locator('.tier[data-earned="true"]')).toHaveCount(0);
+
+  // Reaching Gold celebrates without claiming the puzzle is solved.
+  await playSeason(fs.readFileSync(path.join(__dirname, '..', 'reference', 'hybrid.apl'), 'utf8'));
+  await expect(page.locator('#cmpTier')).toHaveText('Gold reached! You’ve found a powerful strategy. Can you do even better?');
+  await expect(page.locator('.tier[data-earned="true"]')).toHaveCount(3);
   await page.selectOption('#season', 'practice');
   await expect(page.locator('#newField')).toBeEnabled();
   await expect(page.locator('#bestLabel')).toHaveText('Best on this field');
