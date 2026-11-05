@@ -57,7 +57,7 @@ check('hybrid reference total over 200 seasons', total(HYBRID), 307061);
 
 // 3. Preview
 const grid = rows => rows.map(r => [...r].map(Number));
-const snapshot = st => JSON.stringify({ day: st.day, score: st.score, wasted: st.wasted, field: st.field, marks: st.marks });
+const snapshot = st => JSON.stringify({ day: st.day, score: st.score, wasted: st.wasted, field: st.field, marks: st.marks, history: st.history });
 
 const sample = grid(['33000003', '33000000', '00000000', '00000004', '00000000', '22000000', '32000033', '00000033']);
 check('preview: valid Harvest returns the expected mask', AcresCore.evaluate(GREEDY, sample),
@@ -113,7 +113,37 @@ const fixed = [
 ];
 for (const [label, field, want] of fixed) check(`hybrid mask: ${label}`, AcresCore.evaluate(HYBRID, grid(field)), { ok: true, mask: grid(want) });
 
-// 5. Allocation limit: 1,000,000 elements is allowed, anything bigger is WS FULL, checked before allocating.
+// 5. Daily statistics: observations of the rules, checked against totals and an independent count of rot.
+{
+  check('stats: a new season starts with no history', AcresCore.newSeason(SEEDS[0]).history, []);
+  const sum = (h, k) => h.reduce((s, d) => s + d[k], 0);
+  let ok = true, detail = '';
+  for (const [name, src] of [['greedy', GREEDY], ['hybrid', HYBRID]]) {
+    const fn = AcresCore.compileHarvest(src);
+    for (const seed of SEEDS.slice(0, 20)) {
+      const st = AcresCore.newSeason(seed);
+      while (st.day < RULES.days) {
+        const mask = AcresCore.runHarvest(fn, st.field), before = st.field.map(r => r.slice());
+        AcresCore.advance(st, mask);
+        // Rot counted from the fields themselves: ripe, not harvested, and rotten afterwards.
+        let rotted = 0;
+        for (let r = 0; r < RULES.size; r++) for (let c = 0; c < RULES.size; c++)
+          if (before[r][c] === RULES.ripe && !mask[r][c] && st.field[r][c] === RULES.rot) rotted++;
+        const d = st.history[st.history.length - 1];
+        if (d.day !== st.day || d.rotted !== rotted || d.cumulative !== st.score
+          || d.points !== d.ripeHarvested + (RULES.bonus - 1) * d.bonusPlots || d.bonusPlots > d.ripeHarvested) {
+          ok = false; detail = `${name} seed ${seed} day ${st.day}: ${JSON.stringify(d)}, rot counted ${rotted}`;
+        }
+      }
+      if (st.history.length !== RULES.days || sum(st.history, 'points') !== st.score || sum(st.history, 'wasted') !== st.wasted) {
+        ok = false; detail = `${name} seed ${seed}: history doesn't add up to the season totals`;
+      }
+    }
+  }
+  check('stats: daily records match the season over 40 seasons' + (detail ? ` (${detail})` : ''), ok, true);
+}
+
+// 6. Allocation limit: 1,000,000 elements is allowed, anything bigger is WS FULL, checked before allocating.
 const WS = 'ERR WS FULL: array exceeds 1,000,000 elements';
 const limits = [
   ['≢⍳1000000', '1000000'], ['⍳1000001', WS], ['⍳1e300', WS],
