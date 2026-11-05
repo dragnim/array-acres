@@ -30,7 +30,7 @@ Core tests need only Node:
 npm test
 ```
 
-They check interpreter results against known Dyalog answers, exact season totals for two reference strategies over 200 seeded fields, that previewing never changes the game, and fixed-field masks for edge cases.
+They check interpreter results against known Dyalog answers, exact season totals for two reference strategies over 200 seeded fields, each farm's pinned scores and targets, that every rule stated on the page matches what the simulation actually does, that previewing never changes the game, and fixed-field masks for edge cases.
 
 Browser tests use Playwright and are kept separate:
 
@@ -56,7 +56,7 @@ Every new mechanic should answer: what's the obvious solution, why does it work 
 
 ## Next
 
-Human playtesting of the three challenges, before adding another crop.
+Human playtesting of the three farms, before adding another crop.
 
 ## Credits
 
