@@ -130,7 +130,7 @@ header p { margin: 0.6rem 0 0; max-width: 62ch; color: var(--muted); font-size: 
 #diag { margin-top: 8px; min-height: 1.4em; font: 0.88rem/1.4 var(--mono); color: var(--error); white-space: pre-wrap; }
 textarea {
   width: 100%;
-  min-height: 480px;
+  min-height: 610px;
   resize: vertical;
   font: 16px/1.5 var(--mono);
   background: var(--code-bg);
@@ -1060,13 +1060,14 @@ const AcresCore = (() => {
   const STAGE_NAMES = ['seed', 'sprout', 'growing', 'ripe', 'rotten'];
   const STORE_KEY = 'allotment:apl';
 
-  const DEFAULT_CODE = `⍝ Your function, Harvest, runs once a day.
-⍝ ⍵ is the field: an 8×8 matrix of stages.
+  const DEFAULT_CODE = `⍝ Each day, your function Harvest looks at
+⍝ the field and decides what to harvest.
+⍝ ⍵ is the field: 8×8 numbers, one per plot:
 ⍝   0 seed  1 sprout  2 growing
 ⍝   3 ripe  4 rotten
-⍝ Return 1 for each plot to harvest and 0
-⍝ for each plot to leave: an 8×8 matrix, or
-⍝ a single 0 or 1 for every plot at once.
+⍝ It must give back 8×8 numbers too: 1 means
+⍝ harvest that plot today, 0 means leave it.
+⍝ A single 1 or 0 counts for every plot.
 ⍝
 ⍝ Example: if one corner of ⍵ is    0 3
 ⍝                                   4 2
@@ -1076,7 +1077,10 @@ const AcresCore = (() => {
 ⍝
 ⍝ Ripe plants score 1, or 3 each when four
 ⍝ in a 2×2 square are harvested together.
-⍝ For now it returns 0, harvesting nothing.
+⍝
+⍝ Below, Harvest gives back 0, which means
+⍝ "leave every plot": nothing is harvested.
+⍝ Change the 0 to start farming.
 
 Harvest←{0}
 `;
