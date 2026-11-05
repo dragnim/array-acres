@@ -197,3 +197,15 @@ test('painted plant art is used, and the game still works without it', async ({ 
   await expect(page.locator('#field')).toHaveAttribute('data-art', 'drawn');
   expect(errors).toEqual([]);
 });
+
+test('the rules on the page state the numbers the game actually uses', async ({ page }) => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const script = id => html.match(new RegExp(`<script id="${id}">([\\s\\S]*?)<\\/script>`))[1];
+  const { AcresCore } = new Function(script('apl-interpreter') + '\n' + script('acres-core') + '\nreturn { AcresCore };')();
+  const R = AcresCore.RULES, pct = p => `${Math.round(p * 100)}%`;
+
+  await page.goto(PAGE);
+  const rules = await page.locator('#rules').innerText();
+  for (const claim of [`${R.size}×${R.size}`, `${R.days} days`, `${pct(R.grow)} chance to grow`, `${pct(R.rotChance)} chance to rot`, `scores ${R.bonus} instead`])
+    expect(rules).toContain(claim);
+});
