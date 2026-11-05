@@ -147,3 +147,20 @@ test('challenges keep separate personal bests that survive a reload', async ({ p
 
   expect(errors).toEqual([]);
 });
+
+test('giant crops appear exactly where ripe 2×2 squares are', async ({ page }) => {
+  // The expected squares come from the game core itself, run in Node on the same season.
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const script = id => html.match(new RegExp(`<script id="${id}">([\\s\\S]*?)<\\/script>`))[1];
+  const { AcresCore } = new Function(script('apl-interpreter') + '\n' + script('acres-core') + '\nreturn { AcresCore };')();
+  const st = AcresCore.newSeason(AcresCore.SEASONS[0].seed), nothing = AcresCore.compileHarvest('Harvest←{0}');
+
+  await page.goto(PAGE);
+  await page.locator('#code').fill('Harvest←{0}');
+  await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
+  for (let day = 0; day < 8; day++) {
+    await expect(page.locator('#field')).toHaveAttribute('data-giants', String(AcresCore.ripeSquares(st.field).length));
+    AcresCore.advance(st, AcresCore.runHarvest(nothing, st.field));
+    await page.click('#step');
+  }
+});
