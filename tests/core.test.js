@@ -154,6 +154,31 @@ for (const [label, field, want] of fixed) check(`hybrid mask: ${label}`, AcresCo
   for (const s of AcresCore.SEASONS)
     check(`season ${s.id}: greedy and hybrid scores`, [season(GREEDY, s.seed), season(HYBRID, s.seed)], pinned[s.id]);
 
+  // Targets: a ladder of strategies must land in the intended tiers on every challenge.
+  const BLOCKS = `Blocks←{
+    tl←⍵∧((⍴⍵)↑0 1↓⍵)∧((⍴⍵)↑1 0↓⍵)∧(⍴⍵)↑1 1↓⍵
+    tl∨((-⍴⍵)↑0 ¯1↓tl)∨((-⍴⍵)↑¯1 0↓tl)∨(-⍴⍵)↑¯1 ¯1↓tl
+  }`;
+  const BLOCKS_ONLY = `Harvest←{\n  ${BLOCKS}\n  (⍵=4)∨Blocks ⍵=3\n}`;
+  const WRAPPED = `Harvest←{
+  Blocks←{
+    tl←⍵∧(1⌽⍵)∧(1⊖⍵)∧1⊖1⌽⍵
+    tl∨(¯1⌽tl)∨(¯1⊖tl)∨¯1⊖¯1⌽tl
+  }
+  ripe←⍵=3
+  (⍵=4)∨(Blocks ripe)∨ripe∧~Blocks ⍵∊2 3
+}`;
+  for (const s of AcresCore.SEASONS) {
+    const t = s.targets, tier = src => AcresCore.tierFor(s, season(src, s.seed));
+    check(`targets ${s.id}: fixed and rising`, [Object.isFrozen(t), t.bronze < t.silver && t.silver < t.gold], [true, true]);
+    check(`targets ${s.id}: ripe-only is bronze, blocks-only below silver, wrap-around silver, hybrid gold`,
+      [tier('Harvest←{⍵=3}'), tier(BLOCKS_ONLY) !== 'silver' && tier(BLOCKS_ONLY) !== 'gold', tier(WRAPPED), tier(HYBRID)],
+      ['bronze', true, 'silver', 'gold']);
+  }
+  const ff = AcresCore.SEASONS[0];
+  check('targets: a score exactly on a target reaches it',
+    [AcresCore.tierFor(ff, ff.targets.bronze - 1), AcresCore.tierFor(ff, ff.targets.bronze), AcresCore.tierFor(ff, ff.targets.gold)], [null, 'bronze', 'gold']);
+
   const e = (season, score, ruleset = 'v1') => ({ ruleset, season, seed: 1, score });
   let r = AcresCore.recordBest({}, e('first-furrows', 1200));
   check('bests: a first result is recorded', [r.improved, r.previous, r.bests['v1:first-furrows'].score], [true, null, 1200]);
