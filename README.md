@@ -18,7 +18,7 @@ Everything is in `index.html`, in three scripts:
 - `acres-core`: the rules and simulation, with no access to the page, so the browser and the tests share one implementation.
 - The page script: drawing, the editor, the live harvest preview and diagnostics.
 
-Seasons are seeded, so the same field and the same code always give the same score.
+Seasons are seeded, so the same field and the same code always give the same score. There are three named challenges, each a fixed season under ruleset `v1`, with personal bests kept in the browser, plus a practice mode that plays random fields. At the end of a season, a report shows what happened day by day, without suggesting what to change.
 
 ## Tests
 
@@ -54,7 +54,7 @@ Every new mechanic should answer: what's the obvious solution, why does it work 
 
 ## Next
 
-End-of-season diagnostics, starting with a day-by-day breakdown of score and rot.
+Human playtesting of the three challenges, before adding another crop.
 
 ## Credits
 
