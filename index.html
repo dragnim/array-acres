@@ -1909,6 +1909,8 @@ Harvest←{0}
 
   let saved = null;
   try { saved = localStorage.getItem(STORE_KEY); } catch (e) {}
+  // The Giants helper was renamed BumperCrops, so code saved before then keeps working.
+  if (saved) saved = saved.replace(/\bGiants\b/g, 'BumperCrops');
   codeEl.value = saved || DEFAULT_CODE;
 
   // Back to the starter code. Done as an edit, so Ctrl+Z or ⌘+Z brings the player's code back.
