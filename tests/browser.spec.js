@@ -89,3 +89,50 @@ test('preview and diagnostics follow the code and the field', async ({ page }) =
 
   expect(errors).toEqual([]);
 });
+
+test('challenges keep separate personal bests that survive a reload', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await page.goto(PAGE);
+
+  const code = page.locator('#code'), status = page.locator('#status');
+  const best = page.locator('#sBest'), msg = page.locator('#msg');
+  const playSeason = async src => {
+    await code.fill(src);
+    await expect(status).toHaveAttribute('data-state', 'ready');
+    await page.click('#restart');
+    await page.click('#run');
+    await expect(msg).toHaveText(/^Season over\./, { timeout: 30000 });
+  };
+
+  await page.selectOption('#season', 'the-long-harvest');
+  await expect(page.locator('#newField')).toBeDisabled();
+  await expect(best).toHaveText('–');
+  await page.selectOption('#speed', '30');
+
+  // First result: recorded, with no previous best to compare against.
+  await playSeason('Harvest←{⍵≥3}');
+  await expect(page.locator('#cmpThis')).toHaveText('1216');
+  await expect(page.locator('#cmpStatus')).toHaveText('Your first result for this challenge.');
+  await expect(best).toHaveText('1216');
+
+  // A worse run doesn't replace it.
+  await playSeason('Harvest←{⍵=3}');
+  await expect(page.locator('#cmpPrev')).toHaveText('1216');
+  await expect(page.locator('#cmpStatus')).toHaveText('Your personal best stays at 1216.');
+  await expect(best).toHaveText('1216');
+
+  // Bests and the chosen season survive a reload.
+  await page.reload();
+  await expect(page.locator('#season')).toHaveValue('the-long-harvest');
+  await expect(best).toHaveText('1216');
+
+  // Other challenges have their own bests, and practice has none to keep.
+  await page.selectOption('#season', 'first-furrows');
+  await expect(best).toHaveText('–');
+  await page.selectOption('#season', 'practice');
+  await expect(page.locator('#newField')).toBeEnabled();
+  await expect(page.locator('#bestLabel')).toHaveText('Best on this field');
+
+  expect(errors).toEqual([]);
+});
