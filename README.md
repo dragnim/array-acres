@@ -20,7 +20,7 @@ The game is in `index.html`, in three scripts:
 
 The plant art is separate, in `assets/plants`, with notes on how it was made and how to replace it in [its own README](assets/plants/README.md). If the images can't load, the page draws simple plants in code instead, so the game never depends on them.
 
-Seasons are seeded, so the same field and the same code always give the same score. There are three named challenges, each a fixed season under ruleset `v1`, with personal bests kept in the browser, plus a practice mode that plays random fields. At the end of a season, a report shows what happened day by day, without suggesting what to change.
+A season is 100 days. There are three named challenges, each with its own fixed starting field and luck under ruleset `v1`, so the same challenge and the same code always give the same score. Personal bests are kept in the browser, and a practice mode plays random fields. At the end of a season, a report shows what happened day by day, without suggesting what to change.
 
 ## Tests
 
