@@ -1033,14 +1033,16 @@ const AcresCore = (() => {
   const STAGE_NAMES = ['seed', 'sprout', 'growing', 'ripe', 'rotten'];
   const STORE_KEY = 'allotment:apl';
 
-  const DEFAULT_CODE = `⍝ Harvest is called once per day with the field
-⍝ as an 8×8 matrix of stages:
+  const DEFAULT_CODE = `⍝ Harvest←{...} defines your function. Each day it's called with
+⍝ ⍵, today's field: an 8×8 matrix of crop stages.
 ⍝   0 seed  1 sprout  2 growing  3 ripe  4 rotten
-⍝ It returns an 8×8 boolean matrix: 1 means harvest.
-⍝ Harvesting resets a plot to 0. Only ripe plots score:
-⍝ 1 each, or 3 each when harvested as a 2×2 ripe block.
+⍝ It returns 1 for plots to harvest and 0 for plots to leave,
+⍝ as an 8×8 matrix, or a single 0 or 1 for every plot.
+⍝ Only ripe plots score: 1 each, or 3 each when four are
+⍝ harvested together as a 2×2 block.
+⍝ Right now it returns 0, so nothing is ever harvested.
 
-Harvest←{⍵=3}
+Harvest←{0}
 `;
 
   // Symbols in this prototype, with names and backtick keys as in Dyalog.
