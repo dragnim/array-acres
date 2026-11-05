@@ -115,6 +115,9 @@ test('challenges keep separate personal bests that survive a reload', async ({ p
   await expect(page.locator('#cmpThis')).toHaveText('1216');
   await expect(page.locator('#cmpStatus')).toHaveText('Your first result for this challenge.');
   await expect(best).toHaveText('1216');
+  await expect(page.locator('#cmpTier')).toHaveText('You reached Bronze. Silver is 1400.');
+  await expect(page.locator('.tier[data-tier="bronze"]')).toHaveAttribute('data-earned', 'true');
+  await expect(page.locator('.tier[data-tier="silver"]')).toHaveAttribute('data-earned', 'false');
 
   // A worse run doesn't replace it.
   await playSeason('Harvest←{⍵=3}');
@@ -130,9 +133,11 @@ test('challenges keep separate personal bests that survive a reload', async ({ p
   // Other challenges have their own bests, and practice has none to keep.
   await page.selectOption('#season', 'first-furrows');
   await expect(best).toHaveText('–');
+  await expect(page.locator('.tier[data-earned="true"]')).toHaveCount(0);
   await page.selectOption('#season', 'practice');
   await expect(page.locator('#newField')).toBeEnabled();
   await expect(page.locator('#bestLabel')).toHaveText('Best on this field');
+  await expect(page.locator('#targets')).toBeHidden();
 
   expect(errors).toEqual([]);
 });
