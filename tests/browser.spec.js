@@ -119,7 +119,7 @@ test('medals unlock farms, symbols and helpers, and bests survive a reload', asy
   await expect(page.locator('#cmpThis')).toHaveText('1213');
   await expect(page.locator('#cmpStatus')).toHaveText('Your first result on this farm.');
   await expect(page.locator('#cmpTier')).toHaveText('You reached Bronze. Silver is 1350.');
-  await expect(unlock).toHaveText('Unlocked: ∧ ∨ ~, the Giants helper and Bramley Farm. See the field guide.');
+  await expect(unlock).toHaveText('Unlocked: ∧ ∨ ~, the BumperCrops helper and Bramley Farm. See the field guide.');
   await expect(page.locator('.tier[data-tier="bronze"]')).toHaveAttribute('data-earned', 'true');
   await expect(page.locator('#farm option[value="bramley-farm"]')).toBeEnabled();
 
@@ -134,16 +134,16 @@ test('medals unlock farms, symbols and helpers, and bests survive a reload', asy
   await expect(best).toHaveText('1213');
   await expect(page.locator('#farm option[value="bramley-farm"]')).toBeEnabled();
 
-  // Silver on Bramley Farm, harvesting only giant crops.
+  // Silver on Bramley Farm, harvesting only bumper crops.
   await page.selectOption('#farm', 'bramley-farm');
   await expect(best).toHaveText('–');
   await page.selectOption('#speed', '30');
-  await playSeason('Harvest←{(⍵=4)∨Giants ⍵}');
+  await playSeason('Harvest←{(⍵=4)∨BumperCrops ⍵}');
   await expect(page.locator('#cmpTier')).toHaveText('You reached Silver. Gold is 2100.');
   await expect(unlock).toHaveText('Unlocked: the Promising helper and Nuthanger Farm. See the field guide.');
 
   // Gold with the helpers, which unlocks everything else.
-  await playSeason('Harvest←{(⍵=4)∨(Giants ⍵)∨(⍵=3)∧~Promising ⍵}');
+  await playSeason('Harvest←{(⍵=4)∨(BumperCrops ⍵)∨(⍵=3)∧~Promising ⍵}');
   await expect(page.locator('#cmpTier')).toHaveText('Gold reached! You’ve found a powerful strategy. Can you do even better?');
   await expect(unlock).toHaveText('Unlocked: every symbol, the Squares helper and the helpers’ source code. See the field guide.');
   await expect(page.locator('.tier[data-earned="true"]')).toHaveCount(3);
@@ -175,7 +175,7 @@ test('locked symbols and helpers say what unlocks them, except on Practice Farm'
   await expect(page.locator('.guide-item[data-locked="true"]')).toHaveCount(0);
 });
 
-test('giant crops appear exactly where ripe 2×2 squares are', async ({ page }) => {
+test('bumper crops appear exactly where ripe 2×2 squares are', async ({ page }) => {
   // The expected squares come from the game core itself, run in Node on the same season.
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   const script = id => html.match(new RegExp(`<script id="${id}">([\\s\\S]*?)<\\/script>`))[1];
