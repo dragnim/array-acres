@@ -117,7 +117,9 @@ header p { margin: 0.6rem 0 0; max-width: 62ch; color: var(--muted); font-size: 
 .legend div { display: flex; align-items: center; gap: 6px; }
 .legend canvas { width: 28px; height: 28px; border-radius: 5px; background: var(--soil-2); }
 .legend code { font-family: var(--mono); color: var(--ink); font-weight: 600; }
-.rules { margin: 12px 0 2px; font-size: 0.92rem; color: var(--muted); max-width: 62ch; }
+.rules-title { margin: 16px 0 4px; font-size: 0.95rem; font-weight: 600; }
+.rules { margin: 0; padding-left: 1.3em; font-size: 0.92rem; color: var(--muted); max-width: 62ch; }
+.rules li { margin: 4px 0; }
 .editor .label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
 .editor label.title { font-weight: 600; }
 .status { font-size: 0.85rem; color: var(--muted); }
@@ -238,7 +240,8 @@ textarea {
         <div class="stat"><span id="bestLabel">Personal best</span><strong id="sBest">–</strong></div>
       </div>
       <div class="legend" id="legend"></div>
-      <p class="rules">Each day, unripe plots may grow a stage, ripe plots may rot, and rotten plots stay until you harvest them. A ripe harvest scores 1. Four ripe plants in a 2×2 square grow into a giant crop: harvest all four on the same day and each scores 3 (outlined in gold the next day). Harvesting a sprout or growing plot wastes it. The same field and the same code always give the same result.</p>
+      <h3 class="rules-title">Rules</h3>
+      <ol class="rules" id="rules"></ol>
     </section>
 
     <section class="editor">
@@ -1476,6 +1479,21 @@ Harvest←{0}
     c.beginPath(); c.moveTo(cx - size * 0.06, base - h * 0.25); c.lineTo(cx + size * 0.06, base - h * 0.25); c.stroke();
   }
 
+  // The rules, stated exactly. They're built from the ruleset itself, so the text can't drift
+  // from what the game actually does.
+  function renderRules() {
+    const pct = p => `${Math.round(p * 100)}%`, N = RULES.size, B = RULES.bonus;
+    const items = [
+      `The field is ${N}×${N} and a season lasts ${RULES.days} days. Each plot holds one plant at stage 0 seed, 1 sprout, 2 growing, 3 ripe or 4 rotten. A season starts with every plot at a random stage from 0 to 3.`,
+      'Each day, Harvest sees the field and chooses plots to harvest. Every harvested plot is cleared and replanted as a seed.',
+      `A harvested ripe plant scores 1. If it’s part of a 2×2 square of ripe plants that are all harvested that day, a giant crop, it scores ${B} instead and is outlined in gold the next day. A plant in more than one such square still scores ${B}. Squares don’t wrap around the edges of the field.`,
+      'Harvesting a sprout or a growing plant wastes it. Harvesting a seed or a rotten plant scores nothing, so clearing rot is free.',
+      `Then the field grows overnight. Every seed, sprout and growing plant, including newly replanted seeds, has a ${pct(RULES.grow)} chance to grow one stage. Every ripe plant left unharvested has a ${pct(RULES.rotChance)} chance to rot. Rotten plants stay until harvested. No plot changes by more than one stage a night.`,
+      'The chances are fixed by the season, so the same field and the same code always give the same result.',
+    ];
+    $('rules').replaceChildren(...items.map(t => Object.assign(document.createElement('li'), { textContent: t })));
+  }
+
   function drawLegend() {
     const el = $('legend');
     el.innerHTML = '';
@@ -1706,6 +1724,7 @@ Harvest←{0}
 
   readColors();
   drawLegend();
+  renderRules();
   let savedSeason = null;
   try { savedSeason = localStorage.getItem(SEASON_KEY); } catch (e) {}
   chooseSeason(savedSeason || AcresCore.SEASONS[0].id);
