@@ -339,3 +339,35 @@ test('How to play opens on a first visit, and the side panel switches and closes
   await expect(panel).toBeVisible();
   await page.close();
 });
+
+test('field guide snippets can be shown on the field and put in your code', async ({ page }) => {
+  const field = page.locator('#field'), note = page.locator('#exampleNote'), code = page.locator('#code');
+  await code.fill('Harvest←{⍵≥3}');
+  await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
+  await page.click('#openGuide');
+
+  // Show me marks what the snippet picks, without touching your code.
+  await page.getByRole('button', { name: 'Show ⍵≤1 on today’s field' }).click();
+  await expect(field).toHaveAttribute('data-preview', 'example');
+  await expect(note).toHaveText(/^Showing ⍵≤1 on today’s field: \d+ plots?\. Back to your code$/);
+  await expect(code).toHaveValue('Harvest←{⍵≥3}');
+
+  // Back to your code, or pressing Show me again, returns to your own preview.
+  await page.getByRole('button', { name: 'Back to your code' }).click();
+  await expect(field).toHaveAttribute('data-preview', 'live');
+  await page.getByRole('button', { name: 'Show ⍵=4 on today’s field' }).click();
+  await page.getByRole('button', { name: 'Show ⍵=4 on today’s field' }).click();
+  await expect(note).toBeHidden();
+
+  // A new day returns to your preview too.
+  await page.getByRole('button', { name: 'Show ⍵≠0 on today’s field' }).click();
+  await page.click('#step');
+  await expect(field).toHaveAttribute('data-preview', 'live');
+
+  // Use puts the snippet in your code at the cursor, selected.
+  await code.evaluate(el => { el.setSelectionRange(9, 12); });
+  await page.getByRole('button', { name: 'Use ⍵≠0 in your code' }).click();
+  await expect(code).toHaveValue('Harvest←{⍵≠0}');
+  expect(await code.evaluate(el => el.value.slice(el.selectionStart, el.selectionEnd))).toBe('⍵≠0');
+  await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
+});
