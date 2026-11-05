@@ -1715,14 +1715,14 @@ Harvest←{0}
   function drawLegend() {
     const el = $('legend');
     el.innerHTML = '';
-    const add = (html, v, marked, previewed) => {
+    const add = (html, v, marked, previewed, bare = false) => {
       const item = document.createElement('div');
       const c = document.createElement('canvas');
       const dpr = window.devicePixelRatio || 1;
       c.width = 28 * dpr; c.height = 28 * dpr;
       c.setAttribute('aria-hidden', 'true');
       const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
-      drawPlot(x, 0, 0, 28, v, marked, previewed);
+      drawPlot(x, 0, 0, 28, v, marked, previewed, bare);
       const label = document.createElement('span');
       label.innerHTML = html;
       item.append(c, label);
@@ -1742,8 +1742,9 @@ Harvest←{0}
       item.append(c, label);
       el.append(item);
     }
-    add('harvested yesterday', 0, 1, null);
-    add('Harvest would pick', RIPE, 0, 'live');
+    // Outlines alone, on bare soil, so they read as plot states rather than plants.
+    add('harvested yesterday', 0, 1, null, true);
+    add('Harvest would pick', 0, 0, 'live', true);
   }
 
   function refreshTheme() { readColors(); render(); drawLegend(); drawChart(); }
