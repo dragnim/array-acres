@@ -12,11 +12,13 @@ Open `index.html` in a browser. There's no build step and nothing to install.
 
 ## How it's built
 
-Everything is in `index.html`, in three scripts:
+The game is in `index.html`, in three scripts:
 
 - `apl-interpreter`: the APL subset. Glyphs outside it report `NONCE ERROR`, which is where future unlocks will slot in.
 - `acres-core`: the rules and simulation, with no access to the page, so the browser and the tests share one implementation.
 - The page script: drawing, the editor, the live harvest preview and diagnostics.
+
+The plant art is separate, in `assets/plants`, with notes on how it was made and how to replace it in [its own README](assets/plants/README.md). If the images can't load, the page draws simple plants in code instead, so the game never depends on them.
 
 Seasons are seeded, so the same field and the same code always give the same score. There are three named challenges, each a fixed season under ruleset `v1`, with personal bests kept in the browser, plus a practice mode that plays random fields. At the end of a season, a report shows what happened day by day, without suggesting what to change.
 
@@ -58,4 +60,4 @@ Human playtesting of the three challenges, before adding another crop.
 
 ## Credits
 
-The editor uses [APL386](https://github.com/abrudz/APL386), released into the public domain, subset and embedded in the page. The plant illustrations in `assets/plants` were made for this project with ChatGPT.
+The editor uses [APL386](https://github.com/abrudz/APL386), released into the public domain, subset and embedded in the page. The plant illustrations in `assets/plants` were generated with ChatGPT for this project, then aligned and resized for the game.
