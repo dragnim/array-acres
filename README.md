@@ -4,7 +4,7 @@
 
 A programming puzzle game where your farm is an array and APL is your toolkit. Each day, your `Harvest` function receives the whole field as a matrix and returns a boolean matrix of plots to harvest. Simple code works; cleverer array reasoning scores more.
 
-This is an early prototype. The APL runs on a small interpreter written in JavaScript, covering a subset of Dyalog APL, so that the game can be tried in any browser before moving to real Dyalog.
+This is an early prototype. The APL runs on a small interpreter written in JavaScript, covering a subset of Dyalog APL, so the game can be tried in any browser. If it proves fun and valuable as a teaching tool, the plan is to move it to proper Dyalog APL.
 
 ## Play
 
@@ -46,7 +46,7 @@ npm run test:browser
 
 ## Design principles
 
-1. **The field is the array.** No drone, no intermediary. Players manipulate the world directly with APL.
+1. **The field is the array.** Players manipulate the whole field directly with APL.
 2. **Every mechanic teaches an array concept.** Complexity is added only when it gives a reason to use a particular primitive or technique.
 3. **Simple solutions work, clever solutions work better.** Straightforward code makes progress; better array reasoning earns meaningfully more.
 
