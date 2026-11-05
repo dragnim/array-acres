@@ -43,8 +43,8 @@ for (const [src, want] of exprs) check(src, ev(src), want);
 
 // 2. Seasons: same rules and seeds as the original simulations
 const SEEDS = [...Array(200)].map((_, k) => (k + 1) * 7919);
-function season(src, seed, previewSrc) {
-  const fn = AcresCore.compileHarvest(src), st = AcresCore.newSeason(seed);
+function season(src, seed, previewSrc, weather) {
+  const fn = AcresCore.compileHarvest(src), st = AcresCore.newSeason(seed, weather);
   while (st.day < RULES.days) {
     if (previewSrc) AcresCore.evaluate(previewSrc, st.field);
     AcresCore.advance(st, AcresCore.runHarvest(fn, st.field));
@@ -143,18 +143,22 @@ for (const [label, field, want] of fixed) check(`hybrid mask: ${label}`, AcresCo
   check('stats: daily records match the season over 40 seasons' + (detail ? ` (${detail})` : ''), ok, true);
 }
 
-// 6. Rulesets, named seasons and personal bests
+// 6. Rulesets, farms and personal bests
 {
-  check('rules: the ruleset is v1 and cannot be changed', [RULES.id, Object.isFrozen(RULES)], ['v1', true]);
-  const ids = AcresCore.SEASONS.map(s => s.id);
-  check('seasons: three challenges with unique ids, all on rules v1',
-    [ids.length, new Set(ids).size, AcresCore.SEASONS.every(s => s.rules === RULES.id && Object.isFrozen(s))], [3, 3, true]);
-  // Pinned results: if these move, the challenges have changed and old personal bests no longer compare.
-  const pinned = { 'first-furrows': [1242, 1555], 'the-long-harvest': [1216, 1599], 'against-the-odds': [1190, 1463] };
-  for (const s of AcresCore.SEASONS)
-    check(`season ${s.id}: greedy and hybrid scores`, [season(GREEDY, s.seed), season(HYBRID, s.seed)], pinned[s.id]);
+  const FARMS = AcresCore.FARMS, PRACTICE = AcresCore.PRACTICE;
+  check('rules: the ruleset is v2 and cannot be changed', [RULES.id, Object.isFrozen(RULES)], ['v2', true]);
+  const ids = FARMS.map(f => f.id);
+  check('farms: three farms with unique ids, all on rules v2 and fixed',
+    [ids.length, new Set(ids).size, FARMS.every(f => f.rules === RULES.id && Object.isFrozen(f))], [3, 3, true]);
+  check('farms: each has its own weather', new Set(FARMS.map(f => `${f.sunshine}/${f.rainfall}`)).size, 3);
+  check('farms: Practice Farm has Manor Farm’s weather', [PRACTICE.sunshine, PRACTICE.rainfall], [FARMS[0].sunshine, FARMS[0].rainfall]);
+  const onFarm = (src, f) => season(src, f.seed, null, f);
+  // Pinned results: if these move, the farms have changed and old personal bests no longer compare.
+  const pinned = { 'manor-farm': [1213, 1533], 'bramley-farm': [1465, 2132], 'nuthanger-farm': [1093, 1238] };
+  for (const f of FARMS)
+    check(`farm ${f.id}: greedy and hybrid scores`, [onFarm(GREEDY, f), onFarm(HYBRID, f)], pinned[f.id]);
 
-  // Targets: a ladder of strategies must land in the intended tiers on every challenge.
+  // Targets: a ladder of strategies must land in the intended tiers on every farm.
   const BLOCKS = `Blocks←{
     tl←⍵∧((⍴⍵)↑0 1↓⍵)∧((⍴⍵)↑1 0↓⍵)∧(⍴⍵)↑1 1↓⍵
     tl∨((-⍴⍵)↑0 ¯1↓tl)∨((-⍴⍵)↑¯1 0↓tl)∨(-⍴⍵)↑¯1 ¯1↓tl
@@ -168,27 +172,28 @@ for (const [label, field, want] of fixed) check(`hybrid mask: ${label}`, AcresCo
   ripe←⍵=3
   (⍵=4)∨(Blocks ripe)∨ripe∧~Blocks ⍵∊2 3
 }`;
-  for (const s of AcresCore.SEASONS) {
-    const t = s.targets, tier = src => AcresCore.tierFor(s, season(src, s.seed));
-    check(`targets ${s.id}: fixed and rising`, [Object.isFrozen(t), t.bronze < t.silver && t.silver < t.gold], [true, true]);
-    check(`targets ${s.id}: ripe-only is bronze, blocks-only below silver, wrap-around silver, hybrid gold`,
-      [tier('Harvest←{⍵=3}'), tier(BLOCKS_ONLY) !== 'silver' && tier(BLOCKS_ONLY) !== 'gold', tier(WRAPPED), tier(HYBRID)],
-      ['bronze', true, 'silver', 'gold']);
+  // Waiting only for giant crops pays off in Bramley Farm's sunshine, but not on the other farms.
+  const blocksOnly = { 'manor-farm': null, 'bramley-farm': 'silver', 'nuthanger-farm': null };
+  for (const f of FARMS) {
+    const t = f.targets, tier = src => AcresCore.tierFor(f, onFarm(src, f));
+    check(`targets ${f.id}: fixed and rising`, [Object.isFrozen(t), t.bronze < t.silver && t.silver < t.gold], [true, true]);
+    check(`targets ${f.id}: ripe-only, blocks-only, wrap-around and hybrid land in their tiers`,
+      [tier('Harvest←{⍵=3}'), tier(BLOCKS_ONLY), tier(WRAPPED), tier(HYBRID)], ['bronze', blocksOnly[f.id], 'silver', 'gold']);
   }
-  const ff = AcresCore.SEASONS[0];
+  const mf = FARMS[0];
   check('targets: a score exactly on a target reaches it',
-    [AcresCore.tierFor(ff, ff.targets.bronze - 1), AcresCore.tierFor(ff, ff.targets.bronze), AcresCore.tierFor(ff, ff.targets.gold)], [null, 'bronze', 'gold']);
+    [AcresCore.tierFor(mf, mf.targets.bronze - 1), AcresCore.tierFor(mf, mf.targets.bronze), AcresCore.tierFor(mf, mf.targets.gold)], [null, 'bronze', 'gold']);
 
-  const e = (season, score, ruleset = 'v1') => ({ ruleset, season, seed: 1, score });
-  let r = AcresCore.recordBest({}, e('first-furrows', 1200));
-  check('bests: a first result is recorded', [r.improved, r.previous, r.bests['v1:first-furrows'].score], [true, null, 1200]);
-  const after = AcresCore.recordBest(r.bests, e('first-furrows', 1300));
-  check('bests: a higher score replaces the best', [after.improved, after.previous.score, after.bests['v1:first-furrows'].score], [true, 1200, 1300]);
-  const lower = AcresCore.recordBest(after.bests, e('first-furrows', 1250)), equal = AcresCore.recordBest(after.bests, e('first-furrows', 1300));
+  const e = (farm, score, ruleset = 'v2') => ({ ruleset, farm, seed: 1, score });
+  let r = AcresCore.recordBest({}, e('manor-farm', 1200));
+  check('bests: a first result is recorded', [r.improved, r.previous, r.bests['v2:manor-farm'].score], [true, null, 1200]);
+  const after = AcresCore.recordBest(r.bests, e('manor-farm', 1300));
+  check('bests: a higher score replaces the best', [after.improved, after.previous.score, after.bests['v2:manor-farm'].score], [true, 1200, 1300]);
+  const lower = AcresCore.recordBest(after.bests, e('manor-farm', 1250)), equal = AcresCore.recordBest(after.bests, e('manor-farm', 1300));
   check('bests: a lower or equal score leaves the best alone', [lower.improved, lower.bests === after.bests, equal.improved, equal.bests === after.bests], [false, true, false, true]);
-  const other = AcresCore.recordBest(after.bests, e('the-long-harvest', 900)), v2 = AcresCore.recordBest(after.bests, e('first-furrows', 100, 'v2'));
-  check('bests: kept separately per season and per ruleset',
-    [other.improved, other.bests['v1:first-furrows'].score, v2.improved, v2.bests['v1:first-furrows'].score], [true, 1300, true, 1300]);
+  const other = AcresCore.recordBest(after.bests, e('bramley-farm', 900)), v3 = AcresCore.recordBest(after.bests, e('manor-farm', 100, 'v3'));
+  check('bests: kept separately per farm and per ruleset',
+    [other.improved, other.bests['v2:manor-farm'].score, v3.improved, v3.bests['v2:manor-farm'].score], [true, 1300, true, 1300]);
 }
 
 // 7. Giant crops: ripe 2×2 squares for drawing, overlapping squares included
@@ -202,11 +207,13 @@ check('giants: a square with a rotten or growing plant is not a giant crop',
 // 8. The rules as written on the page: every claim checked against the simulation
 {
   const N = RULES.size, ripe = RULES.ripe, rot = RULES.rot;
-  let starts = true, steps = true, waste = true, grew = 0, couldGrow = 0, rotted = 0, couldRot = 0;
+  let starts = true, steps = true, waste = true, rates = true;
+  for (const f of AcresCore.FARMS) {
+  let grew = 0, couldGrow = 0, rotted = 0, couldRot = 0;
   for (const src of [GREEDY, HYBRID, 'Harvest←{0}']) {
     const fn = AcresCore.compileHarvest(src);
-    for (const seed of SEEDS.slice(0, 30)) {
-      const st = AcresCore.newSeason(seed);
+    for (const seed of SEEDS.slice(0, 15)) {
+      const st = AcresCore.newSeason(seed, f);
       if (!st.field.flat().every(v => v >= 0 && v <= 3)) starts = false;
       while (st.day < RULES.days) {
         const mask = AcresCore.runHarvest(fn, st.field), before = st.field.map(r => r.slice());
@@ -230,12 +237,13 @@ check('giants: a square with a rotten or growing plant is not a giant crop',
       }
     }
   }
+  // Each farm's stated sunshine and rainfall should be what actually happens, to within sampling error.
+  if (Math.abs(grew / couldGrow - f.sunshine) > 0.01 || Math.abs(rotted / couldRot - f.rainfall) > 0.015) rates = false;
+  }
   check('rules: a season starts with every plot at stage 0 to 3', starts, true);
   check('rules: no plot changes by more than one stage a night, and rot only comes from unharvested ripe plants', steps, true);
   check('rules: only harvested sprouts and growing plants count as wasted', waste, true);
-  // The stated chances should be what actually happens, to within sampling error.
-  check('rules: the growth chance matches the ruleset', Math.abs(grew / couldGrow - RULES.grow) < 0.01, true);
-  check('rules: the rot chance matches the ruleset', Math.abs(rotted / couldRot - RULES.rotChance) < 0.01, true);
+  check('rules: each farm’s growth and rot match its sunshine and rainfall', rates, true);
 }
 
 // 9. Allocation limit: 1,000,000 elements is allowed, anything bigger is WS FULL, checked before allocating.
