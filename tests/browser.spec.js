@@ -20,6 +20,8 @@ test('preview and diagnostics follow the code and the field', async ({ page }) =
   page.on('pageerror', e => errors.push(e.message));
   await page.goto(PAGE);
   await page.selectOption('#farm', 'practice'); // every symbol is unlocked on Practice Farm
+  // This test times the preview's pause after typing, so it leaves out the purely visual harvest effects.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
 
   const code = page.locator('#code');
   const status = page.locator('#status');
@@ -376,4 +378,20 @@ test('field guide snippets can be shown on the field and put in your code', asyn
   await expect(code).toHaveValue('Harvest←{⍵≠Seed}');
   expect(await code.evaluate(el => el.value.slice(el.selectionStart, el.selectionEnd))).toBe('⍵≠Seed');
   await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
+});
+
+test('harvests are celebrated on the field, except with reduced motion', async ({ browser }) => {
+  for (const reducedMotion of ['no-preference', 'reduce']) {
+    const context = await browser.newContext({ reducedMotion });
+    const page = await context.newPage();
+    await returning(page);
+    await page.goto(PAGE);
+    await page.locator('#code').fill('Harvest←{⍵≥Ripe}');
+    await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
+    await page.click('#step');
+    const fx = page.locator('#fx');
+    expect(Number(await fx.getAttribute('data-ripe'))).toBeGreaterThan(0);
+    await expect(fx).toHaveAttribute('data-shown', reducedMotion === 'reduce' ? 'no' : 'yes');
+    await context.close();
+  }
 });
