@@ -30,7 +30,7 @@ Unlocks are worked out from personal bests, so there's nothing extra to save, an
 
 ## Leaderboard
 
-Middlebourne, Sunnyhill and Marshgate each have a top 10. When a season's score makes it, the player enters three initials, arcade style, and the score and the code that earned it go to a small Cloudflare Worker (`leaderboard/worker.mjs`). Nothing counts until it's checked: every 15 minutes a GitHub Actions job (`leaderboard/verify.js`) replays each new entry's code with the game's own rules, and only a score the code really earns goes on the board. The job and the Worker share a secret, `LEADERBOARD_TOKEN`, set in the repository's Actions secrets and in the Worker's settings. Crowhurst has no board while its rules are still changing.
+Middlebourne, Sunnyhill and Marshgate each have a top 10. When a season's score makes it, the player enters three initials, arcade style, and the score and the code that earned it go to a small Cloudflare Worker (`leaderboard/worker.mjs`). Nothing counts until it's checked: every 15 minutes a GitHub Actions job (`leaderboard/verify.js`) replays each new entry's code with the game's own rules, and only a score the code really earns goes on the board. The job and the Worker share a secret, `LEADERBOARD_TOKEN`, set in the repository's Actions secrets and in the Worker's settings. Crowhurst's board is marked experimental and starts fresh whenever its rules change: bump `boardVersion` for the farm in the game and `VERSIONS` in the Worker together.
 
 ## Tests
 
