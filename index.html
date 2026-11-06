@@ -382,6 +382,7 @@ textarea {
       <div class="stat"><span>Ripe plants lost to rot</span><strong id="rRot">0</strong></div>
       <div class="stat"><span>Wasted plants</span><strong id="rWasted">0</strong></div>
       <div class="stat"><span>Bumper crop plants</span><strong id="rBonus">0</strong></div>
+      <div class="stat" id="rEatenStat" hidden><span>Ripe plants eaten by crows</span><strong id="rEaten">0</strong></div>
     </div>
     <div class="compare" id="compare" hidden>
       <h3 id="cmpTitle"></h3>
@@ -1050,7 +1051,7 @@ const AcresCore = (() => {
   // A ruleset is identified by its id. Changing any value here, any farm's weather, seed or
   // targets, the order of operations in advance(), or how random numbers are drawn changes
   // scores, so it needs a new id.
-  const RULES = Object.freeze({ id: 'v2', size: 8, days: 100, ripe: 3, rot: 4, bonus: 3 });
+  const RULES = Object.freeze({ id: 'v2', size: 8, days: 100, ripe: 3, rot: 4, bonus: 3, scarecrows: 2 });
 
   // Each farm has its own weather. Sunshine is the chance that an unripe plant grows a stage
   // overnight; rainfall is the chance that a ripe plant left in the ground rots overnight.
@@ -1058,12 +1059,14 @@ const AcresCore = (() => {
   // Seeds were chosen as typical fields by simulating 1,000 candidates with the reference
   // strategies. Targets: bronze is within reach of harvesting every ripe plant, silver needs a
   // partly right idea about bumper crops, and gold matches the hybrid reference strategy.
-  const farm = (id, name, sunshine, rainfall, seed, bronze, silver, gold) =>
-    Object.freeze({ id, name, sunshine, rainfall, seed, rules: RULES.id, targets: Object.freeze({ bronze, silver, gold }) });
+  // crows: flocks landing each night (Crowhurst Farm only, so far).
+  const farm = (id, name, sunshine, rainfall, seed, bronze, silver, gold, crows = 0) =>
+    Object.freeze({ id, name, sunshine, rainfall, seed, crows, rules: RULES.id, targets: Object.freeze({ bronze, silver, gold }) });
   const FARMS = Object.freeze([
     farm('middlebourne-farm', 'Middlebourne Farm', 0.55, 0.20, 16574467, 1200, 1350, 1500),
     farm('sunnyhill-farm', 'Sunnyhill Farm', 0.65, 0.15, 14879801, 1450, 1750, 2100),
     farm('marshgate-farm', 'Marshgate Farm', 0.50, 0.25, 17057526, 1050, 1150, 1200),
+    farm('crowhurst-farm', 'Crowhurst Farm', 0.55, 0.20, 175218, 1050, 1200, 1300, 1),
   ]);
   // Practice Farm: Middlebourne Farm's weather on a new random field each time, with no targets.
   const PRACTICE = Object.freeze({ id: 'practice', name: 'Practice Farm', sunshine: 0.55, rainfall: 0.20 });
@@ -1093,8 +1096,8 @@ const AcresCore = (() => {
   function newSeason(seed, weather = PRACTICE) {
     const rng = mulberry32(seed), N = RULES.size;
     const field = Array.from({ length: N }, () => Array.from({ length: N }, () => Math.floor(rng() * 4)));
-    return { seed, rng, field, day: 0, score: 0, wasted: 0, marks: null, history: [],
-      sunshine: weather.sunshine, rainfall: weather.rainfall };
+    return { seed, rng, field, day: 0, score: 0, wasted: 0, eaten: 0, marks: null, history: [],
+      sunshine: weather.sunshine, rainfall: weather.rainfall, crows: weather.crows || 0, crowPatches: [], eatenAt: [] };
   }
 
   // Helpers: farm tools written in APL. Players unlock them by name, and once they reach Gold
@@ -1129,7 +1132,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     Object.freeze({ id: 'start', farm: null, tier: null, glyphs: '=≠<>≤≥', helpers: [], farms: ['middlebourne-farm'], source: false }),
     Object.freeze({ id: 'middlebourne-bronze', farm: 'middlebourne-farm', tier: 'bronze', glyphs: '∧∨~', helpers: ['BumperCrops'], farms: ['sunnyhill-farm'], source: false }),
     Object.freeze({ id: 'sunnyhill-silver', farm: 'sunnyhill-farm', tier: 'silver', glyphs: '', helpers: ['Promising'], farms: ['marshgate-farm'], source: false }),
-    Object.freeze({ id: 'any-gold', farm: '*', tier: 'gold', glyphs: ALL_GLYPHS, helpers: ['Squares'], farms: [], source: true }),
+    Object.freeze({ id: 'any-gold', farm: '*', tier: 'gold', glyphs: ALL_GLYPHS, helpers: ['Squares'], farms: ['crowhurst-farm'], source: true }),
   ]);
   const cap = t => t[0].toUpperCase() + t.slice(1);
   const needText = u => u.farm === '*' ? `${cap(u.tier)} on any farm` : `${cap(u.tier)} on ${FARMS.find(f => f.id === u.farm).name}`;
@@ -1152,7 +1155,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   // Everything unlocked: Practice Farm, and the default for tests and tools.
   const FULL = Object.freeze({ glyphs: null, helpers: new Set(HELPERS.keys()), farms: new Set(FARMS.map(f => f.id)), source: true });
 
-  function compileHarvest(src, access = FULL) {
+  function compileProgram(src, access = FULL) {
     const lockGlyph = ch => {
       if (!access.glyphs || access.glyphs.has(ch) || !ALL_GLYPHS.includes(ch)) return null;
       return `${ch} unlocks with ${needText(unlockFor('glyph', ch))}`;
@@ -1165,26 +1168,38 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     const f = env.vars.get('Harvest');
     if (!f) throw new APL.AplError('VALUE ERROR: define a function called Harvest, for example Harvest←{⍵=3}');
     if (!APL.isFn(f)) throw new APL.AplError('DOMAIN ERROR: Harvest must be a function, but it\'s an array');
-    return f;
+    const scare = env.vars.get('Scare') || null;
+    if (scare && !APL.isFn(scare)) throw new APL.AplError('DOMAIN ERROR: Scare must be a function, but it\'s an array');
+    return { harvest: f, scare };
   }
+  const compileHarvest = (src, access = FULL) => compileProgram(src, access).harvest;
 
-  function toMask(res) {
+  function toMask(res, who = 'Harvest') {
     const N = RULES.size;
     let d = res.data;
     if (d.length === 1) d = new Array(N * N).fill(d[0]);
     else if (res.shape.length !== 2 || res.shape[0] !== N || res.shape[1] !== N)
-      throw new ResultError(`Harvest returned ${APL.describe(res)}, but it must return an ${N}×${N} matrix`);
-    if (!d.every(x => x === 0 || x === 1)) throw new ResultError('Harvest must return only 0s and 1s');
+      throw new ResultError(`${who} returned ${APL.describe(res)}, but it must return an ${N}×${N} matrix`);
+    if (!d.every(x => x === 0 || x === 1)) throw new ResultError(`${who} must return only 0s and 1s`);
     return Array.from({ length: N }, (_, r) => d.slice(r * N, r * N + N));
   }
 
   // Calls Harvest on a copy of the field; never touches the season.
   const runHarvest = (fn, field) => toMask(APL.call(fn, APL.arr([RULES.size, RULES.size], field.flat())));
+  // Calls Scare the same way; at most RULES.scarecrows scarecrows may be placed.
+  function runScare(fn, field) {
+    const m = toMask(APL.call(fn, APL.arr([RULES.size, RULES.size], field.flat())), 'Scare');
+    const n = m.flat().filter(Boolean).length;
+    if (n > RULES.scarecrows) throw new ResultError(`Scare placed ${n} scarecrows, but you only have ${RULES.scarecrows}`);
+    return m;
+  }
 
   // Compile and run src against a field without changing anything. Used for the preview.
-  function evaluate(src, field, access = FULL) {
+  function evaluate(src, field, access = FULL, crows = false) {
     try {
-      return { ok: true, mask: runHarvest(compileHarvest(src, access), field) };
+      const p = compileProgram(src, access), out = { ok: true, mask: runHarvest(p.harvest, field) };
+      if (crows) out.scare = p.scare ? runScare(p.scare, field) : null;
+      return out;
     } catch (e) {
       const kind = e instanceof ResultError ? 'result' : e instanceof APL.AplError ? (/^LOCKED/.test(e.message) ? 'locked' : 'code') : 'internal';
       return { ok: false, kind, message: String(e && e.message) };
@@ -1192,7 +1207,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   }
 
   // Apply a harvest mask, then grow the field by one day.
-  function advance(st, mask) {
+  function advance(st, mask, scare = null) {
     const { size: N, ripe: RIPE, rot: ROT, bonus } = RULES, f = st.field;
     const grow = st.sunshine, rotChance = st.rainfall;
 
@@ -1205,7 +1220,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     }
 
     // Daily statistics are recorded as the rules run, never recalculated separately.
-    const rec = { day: st.day + 1, points: 0, ripeHarvested: 0, bonusPlots: 0, wasted: 0, rotted: 0, cumulative: 0 };
+    const rec = { day: st.day + 1, points: 0, ripeHarvested: 0, bonusPlots: 0, wasted: 0, rotted: 0, eaten: 0, cumulative: 0 };
 
     for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
       if (!mask[r][c]) continue;
@@ -1225,6 +1240,19 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
       else if (v === RIPE && roll < rotChance) { f[r][c] = ROT; rec.rotted++; }
     }
 
+    // Crows: each flock lands on a 3×3 patch and eats the ripe plants there, leaving seeds, except
+    // within one plot of a scarecrow. Only farms with crows roll for them, so other farms are unchanged.
+    const guarded = (r, c) => scare && scare.some((row, i) => row.some((v, j) => v && Math.abs(i - r) <= 1 && Math.abs(j - c) <= 1));
+    st.crowPatches = []; st.eatenAt = [];
+    for (let k = 0; k < (st.crows || 0); k++) {
+      const cr = Math.floor(st.rng() * N), cc = Math.floor(st.rng() * N);
+      st.crowPatches.push([cr, cc]);
+      for (let r = cr - 1; r <= cr + 1; r++) for (let c = cc - 1; c <= cc + 1; c++) {
+        if (r < 0 || c < 0 || r >= N || c >= N || f[r][c] !== RIPE || guarded(r, c)) continue;
+        f[r][c] = 0; rec.eaten++; st.eaten++; st.eatenAt.push([r, c]);
+      }
+    }
+
     rec.cumulative = st.score;
     st.history.push(rec);
     st.marks = marks;
@@ -1240,7 +1268,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     return out;
   }
 
-  return { RULES, FARMS, PRACTICE, TIERS, STAGE_NAMES, HELPER_SOURCE, UNLOCKS, FULL, progress, needText, unlockFor, tierFor, bestKey, recordBest, ripeSquares, ResultError, newSeason, compileHarvest, runHarvest, evaluate, advance };
+  return { RULES, FARMS, PRACTICE, TIERS, STAGE_NAMES, compileProgram, runScare, HELPER_SOURCE, UNLOCKS, FULL, progress, needText, unlockFor, tierFor, bestKey, recordBest, ripeSquares, ResultError, newSeason, compileHarvest, runHarvest, evaluate, advance };
 })();
 </script>
 <script>
@@ -1303,7 +1331,8 @@ Harvest←{0}
   let prog = AcresCore.progress(bests);
   // Practice Farm has everything; real farms have what the player has earned.
   const access = () => farm ? prog : AcresCore.FULL;
-  let running = false, timer = null, fn = null, dirty = true;
+  let running = false, timer = null, fn = null, scareFn = null, dirty = true;
+  const hasCrows = () => !!(farm && farm.crows);
   const best = {};
 
   // Preview: the mask Harvest would return for today's field. stale means it no longer
@@ -1347,7 +1376,7 @@ Harvest←{0}
   const showError = e => setMsg(errorText(kindOf(e), e && e.message), true);
 
   function compile() {
-    try { fn = AcresCore.compileHarvest(codeEl.value, access()); dirty = false; return true; }
+    try { ({ harvest: fn, scare: scareFn } = AcresCore.compileProgram(codeEl.value, access())); dirty = false; return true; }
     catch (e) { showError(e); return false; }
   }
 
@@ -1357,9 +1386,9 @@ Harvest←{0}
 
   function runPreview() {
     clearTimeout(previewTimer); previewTimer = null;
-    const r = AcresCore.evaluate(codeEl.value, state.field, access());
+    const r = AcresCore.evaluate(codeEl.value, state.field, access(), hasCrows());
     if (r.ok) {
-      preview = { mask: r.mask, stale: false };
+      preview = { mask: r.mask, scare: r.scare || null, stale: false };
       diagEl.textContent = '';
       setStatus('ready');
     } else {
@@ -1410,14 +1439,18 @@ Harvest←{0}
     if (state.day >= TICKS) { stop(); setMsg('Season complete. Restart to play this field again.'); return false; }
     if (dirty && !compile()) { stop(); return false; }
 
-    let mask;
-    try { mask = AcresCore.runHarvest(fn, state.field); }
+    let mask, scare = null;
+    try {
+      mask = AcresCore.runHarvest(fn, state.field);
+      if (hasCrows() && scareFn) scare = AcresCore.runScare(scareFn, state.field);
+    }
     catch (e) { showError(e); stop(); return false; }
 
     beginFade();
     const before = state.field.map(row => row.slice());
-    AcresCore.advance(state, mask);
+    AcresCore.advance(state, mask, scare);
     celebrate(before, mask, state.marks);
+    crowsAte(state.eatenAt, state.crowPatches);
     setMsg('');
     updateStats();
     fieldChanged();
@@ -1500,7 +1533,15 @@ Harvest←{0}
     const sun = document.createElement('span'), rain = document.createElement('span');
     sun.textContent = `Sunshine ${pct(w.sunshine)}`; sun.title = `Each unripe plant has a ${pct(w.sunshine)} chance to grow a stage overnight`;
     rain.textContent = `Rainfall ${pct(w.rainfall)}`; rain.title = `Each ripe plant left unharvested has a ${pct(w.rainfall)} chance to rot overnight`;
-    $('weather').replaceChildren(sun, rain);
+    const chips = [sun, rain];
+    if (w.crows) {
+      const crows = document.createElement('span');
+      crows.textContent = `Crows ${w.crows} flock${w.crows === 1 ? '' : 's'}`;
+      crows.title = 'Each night a flock of crows lands on a 3×3 patch and eats the ripe plants there';
+      chips.push(crows);
+    }
+    $('weather').replaceChildren(...chips);
+    $('rEatenStat').hidden = !w.crows;
     $('newField').disabled = !!farm;
     $('newField').hidden = !!farm;
     $('bestLabel').textContent = farm ? 'Personal best' : 'Best on this field';
@@ -1557,13 +1598,14 @@ Harvest←{0}
     { title: '∧ ∨ ~', glyph: '∧', text: 'Combine answers. ∧ means “and”: 1 only where both answers are 1. ∨ means “or”: 1 where either is. ~ means “not”: it turns 1s into 0s and 0s into 1s.', snippets: [['(⍵=Sprout)∨⍵=Growing', 'everything still growing'], ['(⍵≥Growing)∧⍵≤Ripe', 'growing or ripe plants'], ['~⍵=Rotten', 'everything except rotten plants']] },
     { title: 'BumperCrops ⍵', helper: 'BumperCrops', text: 'A ready-made helper. It gives 1 on every ripe plant that’s part of a bumper crop today (four ripe plants in a 2×2 square), and 0 everywhere else.', snippets: [['BumperCrops ⍵', 'today’s bumper crops']] },
     { title: 'Promising ⍵', helper: 'Promising', text: 'A ready-made helper. It gives 1 on every plant that’s part of a 2×2 square of growing or ripe plants: places where a bumper crop could form if you wait.', snippets: [['Promising ⍵', 'where a bumper crop could form']] },
+    { title: 'Scare ⍵', farm: 'crowhurst-farm', text: 'A second function you can write for Crowhurst Farm, beside `Harvest`. It’s given today’s field as ⍵ and gives back 1s where up to two scarecrows should stand tonight. Crows eat nothing within one plot of a scarecrow, so stand them where the ripe plants you’re waiting for are.' },
     { title: 'Every symbol, and how the helpers work', source: true, text: 'You can now use every symbol. `BumperCrops` and `Promising` are ordinary APL functions, both built on a third helper, `Squares`, which finds 2×2 squares of 1s, and the stage names are ordinary variables. Here’s their code, and you can now use `Squares` yourself. Can you write better helpers?', snippets: [['Squares ⍵=Growing', '2×2 squares of growing plants']], code: AcresCore.HELPER_SOURCE },
   ];
   function renderGuide() {
     const acc = access();
     $('guide').replaceChildren(...GUIDE.map(g => {
-      const u = g.glyph ? AcresCore.unlockFor('glyph', g.glyph) : g.helper ? AcresCore.unlockFor('helper', g.helper) : g.source ? AcresCore.UNLOCKS.find(x => x.source) : null;
-      const open = !u || (g.glyph ? !acc.glyphs || acc.glyphs.has(g.glyph) : g.helper ? acc.helpers.has(g.helper) : acc.source);
+      const u = g.glyph ? AcresCore.unlockFor('glyph', g.glyph) : g.helper ? AcresCore.unlockFor('helper', g.helper) : g.farm ? AcresCore.unlockFor('farm', g.farm) : g.source ? AcresCore.UNLOCKS.find(x => x.source) : null;
+      const open = !u || (g.glyph ? !acc.glyphs || acc.glyphs.has(g.glyph) : g.helper ? acc.helpers.has(g.helper) : g.farm ? acc.farms.has(g.farm) : acc.source);
       const item = document.createElement('div');
       item.className = 'guide-item'; item.dataset.locked = String(!open);
       const h = document.createElement('h4'); h.textContent = g.title; if (g.source) h.className = 'prose';
@@ -1723,7 +1765,9 @@ Harvest←{0}
         : preview.mask && preview.mask[r][c] ? (preview.stale ? 'stale' : 'live') : null;
       drawOverlay(fctx, at(c), at(r), s, state.marks && state.marks[r][c], p);
       if (showNumbers) drawNumber(fctx, at(c), at(r), s, state.field[r][c]);
+      if (hasCrows() && preview.scare && preview.scare[r][c]) drawScarecrow(fctx, at(c), at(r), s, preview.stale);
     }
+    cv.dataset.scarecrows = hasCrows() && preview.scare ? preview.scare.flat().filter(Boolean).length : 0;
     cv.dataset.numbers = showNumbers ? 'on' : 'off';
     present();
   }
@@ -1798,6 +1842,23 @@ Harvest←{0}
     if (tiles.length) { stageEl.classList.remove('bump'); void stageEl.offsetWidth; stageEl.classList.add('bump'); }
     if (!fxRaf && fxItems.length) fxRaf = requestAnimationFrame(fxFrame);
   }
+  // Crows: each plant eaten flashes dark with a "−1", and a couple of crows flap away.
+  function crowsAte(eatenAt, patches) {
+    $('fx').dataset.eaten = eatenAt.length;
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches || Number($('speed').value) <= 30;
+    const { s, at } = plotGeom();
+    if (still || !s || !eatenAt.length) return;
+    const now = performance.now(), life = 900;
+    eatenAt.forEach(([r, c]) => {
+      const x = at(c) + s / 2, y = at(r) + s / 2;
+      burst(x, y, s * 0.5, '#2b2b2b', 5, life, now);
+      fxItems.push({ kind: 'text', x, y, text: '−1', size: s * 0.36, color: '#f3ede0', t0: now, life });
+    });
+    patches.forEach(([r, c]) => {
+      for (let k = 0; k < 3; k++) fxItems.push({ kind: 'crow', x: at(c) + s / 2 + (k - 1) * s * 0.4, y: at(r) + s / 2, dx: (k - 1) * s * 0.8 + s * 0.6, dy: -s * (1.6 + k * 0.3), size: s * 0.28, t0: now, life: life * 1.2 });
+    });
+    if (!fxRaf) fxRaf = requestAnimationFrame(fxFrame);
+  }
   function burst(x, y, reach, color, n, life, t0) {
     fxItems.push({ kind: 'ring', x, y, reach, color, t0, life: life * 0.7 });
     for (let k = 0; k < n; k++) {
@@ -1823,6 +1884,12 @@ Harvest←{0}
         const e = easeOut(p);
         g.globalAlpha = fade; g.fillStyle = it.color;
         g.beginPath(); g.arc(it.x + it.dx * e, it.y + it.dy * e, 1 + 2.5 * fade, 0, Math.PI * 2); g.fill();
+      } else if (it.kind === 'crow') {
+        // A crow in flight: two wing strokes that flap as it rises away.
+        const e = easeOut(p), cx = it.x + it.dx * e, cy = it.y + it.dy * e, flap = Math.sin(p * 30) * it.size * 0.35;
+        g.globalAlpha = p < 0.7 ? 1 : (1 - p) / 0.3; g.strokeStyle = '#1d1d1d'; g.lineWidth = Math.max(2, it.size * 0.18); g.lineCap = 'round';
+        g.beginPath(); g.moveTo(cx - it.size, cy - flap); g.quadraticCurveTo(cx - it.size * 0.4, cy - it.size * 0.3, cx, cy);
+        g.quadraticCurveTo(cx + it.size * 0.4, cy - it.size * 0.3, cx + it.size, cy - flap); g.stroke();
       } else if (it.kind === 'text') {
         const pop = 1 + 0.35 * Math.max(0, 1 - p * 6), size = it.size * pop;
         g.globalAlpha = p < 0.6 ? 1 : (1 - p) / 0.4;
@@ -1920,10 +1987,30 @@ Harvest←{0}
       'Each day, your `Harvest` function is given today’s field as ⍵, a matrix of stage numbers, and chooses plots to harvest. Every harvested plot is cleared and replanted as a seed.',
       `A harvested ripe plant scores 1. If it’s part of a 2×2 square of ripe plants that are all harvested that day, a bumper crop, it scores ${B} instead and is outlined in gold the next day. A plant in more than one such square still scores ${B}. Squares don’t wrap around the edges of the field.`,
       'Harvesting a sprout or a growing plant wastes it. Harvesting a seed or a rotten plant scores nothing, so clearing rot is free.',
-      `Then the field grows overnight, depending on the farm’s weather. Sunshine: every seed, sprout and growing plant, including newly replanted seeds, has a ${pct(w.sunshine)} chance to grow one stage. Rainfall: every ripe plant left unharvested has a ${pct(w.rainfall)} chance to rot. Rotten plants stay until harvested. No plot changes by more than one stage a night.`,
+      `Then the field grows overnight, depending on the farm’s weather. Sunshine: every seed, sprout and growing plant, including newly replanted seeds, has a ${pct(w.sunshine)} chance to grow one stage. Rainfall: every ripe plant left unharvested has a ${pct(w.rainfall)} chance to rot. Rotten plants stay until harvested. No plot changes by more than one stage a night${w.crows ? ', except where crows eat' : ''}.`,
       'Every night, each plant still has the stated chance to grow or rot, but each farm’s starting field and luck are set: on any given night, each plot’s chance comes out the same way every time you play. So the same code always scores the same, and only a change to your code can change the result. Practice Farm has Middlebourne Farm’s weather: Restart replays the same field and luck, and New field brings a new field with new luck.',
     ];
+    if (w.crows) items.push(`Crows: after the field grows, ${w.crows === 1 ? 'a flock of crows lands' : `${w.crows} flocks of crows land`} on a 3×3 patch of plots each night and eats every ripe plant there, leaving seeds. Where they land is part of the farm’s set luck. You can stand up to ${RULES.scarecrows} scarecrows each night by writing a second function, \`Scare\`: it’s given today’s field as ⍵ and gives back 1s where scarecrows should stand. Crows eat nothing within one plot of a scarecrow.`);
     $('rules').replaceChildren(...items.map(t => { const li = document.createElement('li'); li.append(rich(t)); return li; }));
+  }
+
+  // A scarecrow where Scare will place one tonight: a post, arms, a straw head and a hat.
+  function drawScarecrow(c, x, y, s, faded) {
+    const cx = x + s / 2, top = y + s * 0.14, u = s / 20;
+    c.save();
+    c.globalAlpha = faded ? 0.45 : 1;
+    c.lineCap = 'round';
+    c.strokeStyle = '#5b3d1e'; c.lineWidth = 2.2 * u;
+    c.beginPath(); c.moveTo(cx, top + 5 * u); c.lineTo(cx, y + s * 0.9); c.stroke();
+    c.beginPath(); c.moveTo(cx - 6.5 * u, top + 8 * u); c.lineTo(cx + 6.5 * u, top + 8 * u); c.stroke();
+    c.fillStyle = '#b5443a';
+    c.beginPath(); c.moveTo(cx - 4 * u, top + 6.5 * u); c.lineTo(cx + 4 * u, top + 6.5 * u); c.lineTo(cx + 3 * u, top + 13 * u); c.lineTo(cx - 3 * u, top + 13 * u); c.closePath(); c.fill();
+    c.fillStyle = COL.ripe;
+    c.beginPath(); c.arc(cx, top + 3.5 * u, 2.8 * u, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#3b2a1a';
+    c.fillRect(cx - 4 * u, top + 0.8 * u, 8 * u, 1.2 * u);
+    c.fillRect(cx - 2.2 * u, top - 1.8 * u, 4.4 * u, 2.8 * u);
+    c.restore();
   }
 
   // A plot's stage number in a small badge in its top-left corner.
@@ -2010,6 +2097,7 @@ Harvest←{0}
     $('rRot').textContent = total('rotted');
     $('rWasted').textContent = total('wasted');
     $('rBonus').textContent = total('bonusPlots');
+    $('rEaten').textContent = total('eaten');
     hoverDay = null;
     openPanel('report');
     drawChart();
