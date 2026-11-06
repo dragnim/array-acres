@@ -1,0 +1,25 @@
+name: Leaderboard
+
+# Every 15 minutes, replay the code behind each new leaderboard score with the game's own rules,
+# and tell the leaderboard which scores are real. See leaderboard/verify.js.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Check new scores
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: node leaderboard/verify.js
+        env:
+          LEADERBOARD_URL: https://array-acres-leaderboard.long-tree-e1ed.workers.dev
+          LEADERBOARD_TOKEN: ${{ secrets.LEADERBOARD_TOKEN }}
