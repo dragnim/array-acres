@@ -1124,14 +1124,15 @@ const AcresCore = (() => {
   // Seeds were chosen as typical fields by simulating 1,000 candidates with the reference
   // strategies. Targets: bronze is within reach of harvesting every ripe plant, silver needs a
   // partly right idea about bumper crops, and gold matches the hybrid reference strategy.
-  // crows: flocks landing each night (Crowhurst Farm only, so far).
-  const farm = (id, name, sunshine, rainfall, seed, bronze, silver, gold, crows = 0) =>
-    Object.freeze({ id, name, sunshine, rainfall, seed, crows, rules: RULES.id, targets: Object.freeze({ bronze, silver, gold }) });
+  // crows: flocks landing each night (Crowhurst Farm only, so far). boardVersion: an experimental
+  // farm's leaderboard version; bump it, and VERSIONS in leaderboard/worker.mjs, when its rules change.
+  const farm = (id, name, sunshine, rainfall, seed, bronze, silver, gold, crows = 0, boardVersion = 0) =>
+    Object.freeze({ id, name, sunshine, rainfall, seed, crows, boardVersion, rules: RULES.id, targets: Object.freeze({ bronze, silver, gold }) });
   const FARMS = Object.freeze([
     farm('middlebourne-farm', 'Middlebourne Farm', 0.55, 0.20, 16574467, 1200, 1350, 1500),
     farm('sunnyhill-farm', 'Sunnyhill Farm', 0.65, 0.15, 14879801, 1450, 1750, 2100),
     farm('marshgate-farm', 'Marshgate Farm', 0.50, 0.25, 17057526, 1050, 1150, 1200),
-    farm('crowhurst-farm', 'Crowhurst Farm', 0.55, 0.20, 413813, 1050, 1150, 1250, 1),
+    farm('crowhurst-farm', 'Crowhurst Farm', 0.55, 0.20, 413813, 1050, 1150, 1250, 1, 1),
   ]);
   // Practice Farm: Middlebourne Farm's weather on a new random field each time, with no targets.
   const PRACTICE = Object.freeze({ id: 'practice', name: 'Practice Farm', sunshine: 0.55, rainfall: 0.20 });
@@ -2264,10 +2265,10 @@ Harvest←{0}
   let lbEntry = null;
   async function showLeaderboard(score) {
     const sec = $('lbSection');
-    sec.hidden = !farm || !!farm.crows;
+    sec.hidden = !farm;
     $('lbEnter').hidden = true; $('lbMsg').textContent = ''; $('lbList').replaceChildren();
     if (sec.hidden) return;
-    lbEntry = { farm: farm.id, score, code: compiledSrc };
+    lbEntry = { farm: farm.id, version: farm.boardVersion, score, code: compiledSrc };
     try {
       const board = await loadBoard(farm.id);
       const full = board.entries.length >= 10, lowest = full ? Math.min(...board.entries.map(e => e.score)) : -1;
@@ -2289,16 +2290,18 @@ Harvest←{0}
     list.replaceChildren(...rows);
     return board;
   }
-  // The Leaderboard page: every farm's top 10 at once. Crowhurst has no board while it's experimental.
+  // The Leaderboard page: every farm's top 10 at once. Experimental farms' boards reset when their rules change.
   function showBoards() {
-    $('boards').replaceChildren(...AcresCore.FARMS.filter(f => !f.crows).map(f => {
+    $('boards').replaceChildren(...AcresCore.FARMS.map(f => {
       const box = document.createElement('div'); box.className = 'leaderboard';
-      const h = document.createElement('h3'); h.textContent = f.name;
+      const h = document.createElement('h3'); h.textContent = f.boardVersion ? `${f.name} (experimental)` : f.name;
       const list = document.createElement('ol'); list.className = 'lb-list'; list.dataset.farm = f.id;
       const wait = document.createElement('li'); wait.className = 'empty'; wait.textContent = 'Loading…';
       list.append(wait);
       loadBoard(f.id, list).catch(() => { wait.textContent = 'The leaderboard can’t be reached right now.'; });
-      box.append(h, list);
+      box.append(h);
+      if (f.boardVersion) { const n = document.createElement('p'); n.className = 'lb-note'; n.textContent = 'This board starts fresh whenever the farm’s rules change.'; box.append(n); }
+      box.append(list);
       return box;
     }));
   }
@@ -2320,6 +2323,7 @@ Harvest←{0}
           'initials-not-allowed': 'Please choose different initials.',
           'not-high-enough': `${initials} already has a score at least this high on this farm.`,
           'busy': 'Lots of scores are waiting to be checked. Please try again in a few minutes.',
+          'outdated': 'This farm’s rules have changed since this page loaded. Please refresh and play again.',
         }[body.error] || 'Your score couldn’t be entered. Please try again.';
       }
     } catch (e) {
