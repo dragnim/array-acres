@@ -477,7 +477,7 @@ test('the leaderboard takes three initials from a top-10 score, and sends the co
   await expect(page.locator('#lbInitials')).toHaveValue('MKX');
   await page.click('#lbSubmit');
   await expect(page.locator('#lbMsg')).toContainText('Thanks, MKX!');
-  expect(sent).toEqual({ farm: 'middlebourne-farm', score: 1213, code: 'Harvest←{⍵≥Ripe}', initials: 'MKX' });
+  expect(sent).toEqual({ farm: 'middlebourne-farm', version: 0, score: 1213, code: 'Harvest←{⍵≥Ripe}', initials: 'MKX' });
 });
 
 test('the Leaderboard page shows every farm’s top 10, without playing a season', async ({ page }) => {
@@ -490,7 +490,7 @@ test('the Leaderboard page shows every farm’s top 10, without playing a season
   await page.goto(PAGE);
   await page.click('#openBoard');
   await expect(page.locator('#panelTitle')).toHaveText('Leaderboard');
-  await expect(page.locator('#boards h3')).toHaveText(['Middlebourne Farm', 'Sunnyhill Farm', 'Marshgate Farm']);
+  await expect(page.locator('#boards h3')).toHaveText(['Middlebourne Farm', 'Sunnyhill Farm', 'Marshgate Farm', 'Crowhurst Farm (experimental)']);
   await expect(page.locator('#boards ol[data-farm="sunnyhill-farm"]')).toContainText('SUN');
   await expect(page.locator('#boards ol[data-farm="sunnyhill-farm"] li.checking')).toContainText('NEW');
   await expect(page.locator('#boards ol[data-farm="middlebourne-farm"]')).toContainText('No scores yet');
