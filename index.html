@@ -853,7 +853,7 @@ const APL = (() => {
     // Names are case-sensitive, so suggest a known name that differs only in capitals.
     let near = null;
     for (let e = env; e && !near; e = e.parent) for (const k of e.vars.keys()) if (k !== name && k.toLowerCase() === name.toLowerCase()) { near = k; break; }
-    return err('VALUE ERROR', `undefined name ${name}` + (near ? `. Did you mean ${near}?` : ''));
+    return err('VALUE ERROR', `undefined name ${name}` + (near ? `. Did you mean ${near}? APL names are case-sensitive.` : ''));
   }
 
   function evalArr(toks, env) {
@@ -1216,7 +1216,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     return out;
   }
 
-  return { RULES, FARMS, PRACTICE, TIERS, HELPER_SOURCE, UNLOCKS, FULL, progress, needText, unlockFor, tierFor, bestKey, recordBest, ripeSquares, ResultError, newSeason, compileHarvest, runHarvest, evaluate, advance };
+  return { RULES, FARMS, PRACTICE, TIERS, STAGE_NAMES, HELPER_SOURCE, UNLOCKS, FULL, progress, needText, unlockFor, tierFor, bestKey, recordBest, ripeSquares, ResultError, newSeason, compileHarvest, runHarvest, evaluate, advance };
 })();
 </script>
 <script>
@@ -1224,7 +1224,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   const { RULES } = AcresCore;
   const SIZE = RULES.size, TICKS = RULES.days, RIPE = RULES.ripe, ROT = RULES.rot;
   const PREVIEW_DELAY = 400;
-  const STAGE_NAMES = ['seed', 'sprout', 'growing', 'ripe', 'rotten'];
+  const STAGE_NAMES = AcresCore.STAGE_NAMES;
   const STORE_KEY = 'allotment:apl';
 
   const DEFAULT_CODE = `⍝ ⍵ is today's field, one number per plot:
@@ -1804,7 +1804,7 @@ Harvest←{0}
   function renderRules() {
     const pct = p => `${Math.round(p * 100)}%`, N = RULES.size, B = RULES.bonus, w = farm || AcresCore.PRACTICE;
     const items = [
-      `The field is ${N}×${N} and a season lasts ${RULES.days} days. Each plot holds one plant at stage 0 seed, 1 sprout, 2 growing, 3 ripe or 4 rotten. Your code can use the names \`Seed\`, \`Sprout\`, \`Growing\`, \`Ripe\` and \`Rotten\` for these numbers. A season starts with every plot at a random stage from 0 to 3.`,
+      `The field is ${N}×${N} and a season lasts ${RULES.days} days. Each plot holds one plant at one of five stages: \`Seed\` 0, \`Sprout\` 1, \`Growing\` 2, \`Ripe\` 3 or \`Rotten\` 4. Your code can use either the name or the number. A season starts with every plot at a random stage from \`Seed\` to \`Ripe\`.`,
       'Each day, your `Harvest` function is given today’s field as ⍵, a matrix of stage numbers, and chooses plots to harvest. Every harvested plot is cleared and replanted as a seed.',
       `A harvested ripe plant scores 1. If it’s part of a 2×2 square of ripe plants that are all harvested that day, a bumper crop, it scores ${B} instead and is outlined in gold the next day. A plant in more than one such square still scores ${B}. Squares don’t wrap around the edges of the field.`,
       'Harvesting a sprout or a growing plant wastes it. Harvesting a seed or a rotten plant scores nothing, so clearing rot is free.',
@@ -1843,7 +1843,7 @@ Harvest←{0}
       item.append(c, label);
       el.append(item);
     };
-    STAGE_NAMES.forEach((name, v) => add(`<code>${v}</code> ${name}`, v, 0, null));
+    STAGE_NAMES.forEach((name, v) => add(`<code>${name}</code> ${v}`, v, 0, null));
     {
       const item = document.createElement('div'), c = document.createElement('canvas'), dpr = window.devicePixelRatio || 1;
       c.width = 28 * dpr; c.height = 28 * dpr;
