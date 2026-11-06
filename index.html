@@ -850,7 +850,10 @@ const APL = (() => {
     if (name === '⍺') err('VALUE ERROR', '⍺ is undefined because there was no left argument');
     // A name the game provides but the player hasn't unlocked yet.
     for (let e = env; e; e = e.parent) if (e.lock) { const m = e.lock(name); if (m) err('LOCKED', m); }
-    return err('VALUE ERROR', `undefined name ${name}`);
+    // Names are case-sensitive, so suggest a known name that differs only in capitals.
+    let near = null;
+    for (let e = env; e && !near; e = e.parent) for (const k of e.vars.keys()) if (k !== name && k.toLowerCase() === name.toLowerCase()) { near = k; break; }
+    return err('VALUE ERROR', `undefined name ${name}` + (near ? `. Did you mean ${near}?` : ''));
   }
 
   function evalArr(toks, env) {
