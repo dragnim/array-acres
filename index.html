@@ -1100,7 +1100,7 @@ const AcresCore = (() => {
     const rng = mulberry32(seed), N = RULES.size;
     const field = Array.from({ length: N }, () => Array.from({ length: N }, () => Math.floor(rng() * 4)));
     return { seed, rng, field, day: 0, score: 0, wasted: 0, eaten: 0, marks: null, history: [],
-      sunshine: weather.sunshine, rainfall: weather.rainfall, crows: weather.crows || 0, crowPatches: [], eatenAt: [] };
+      sunshine: weather.sunshine, rainfall: weather.rainfall, crows: weather.crows || 0, crowPatches: [], eatenAt: [], rottedAt: [] };
   }
 
   // Helpers: farm tools written in APL. Players unlock them by name, and once they reach Gold
@@ -1241,11 +1241,12 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     if (scare) for (let r = 0; r < N; r++) for (let c = 0; c < N; c++)
       if (scare[r][c]) { if (f[r][c] > 0) rec.trampled++; f[r][c] = 0; }
 
+    st.rottedAt = [];
     // One roll per plot per day, whatever the player did, so randomness is fixed by the seed.
     for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
       const roll = st.rng(), v = f[r][c];
       if (v < RIPE) { if (roll < grow) f[r][c] = v + 1; }
-      else if (v === RIPE && roll < rotChance) { f[r][c] = ROT; rec.rotted++; }
+      else if (v === RIPE && roll < rotChance) { f[r][c] = ROT; rec.rotted++; st.rottedAt.push([r, c]); }
     }
 
     // Crows: each flock lands on a 3×3 patch and eats the ripe plants there, leaving seeds, except
@@ -1463,6 +1464,7 @@ Harvest←{0}
     const before = state.field.map(row => row.slice());
     AcresCore.advance(state, mask, scare);
     celebrate(before, mask, state.marks);
+    lament(before, mask, state.rottedAt);
     crowsAte(state.eatenAt, state.crowPatches);
     setMsg('');
     updateStats();
@@ -1874,7 +1876,29 @@ Harvest←{0}
     if (tiles.length) { stageEl.classList.remove('bump'); void stageEl.offsetWidth; stageEl.classList.add('bump'); }
     if (!fxRaf && fxItems.length) fxRaf = requestAnimationFrame(fxFrame);
   }
-  // Crows: each plant eaten flashes dark with a "−1", and a couple of crows flap away.
+  // Bad moments are the opposite of good ones: a dull red flash, particles falling like dropped
+  // leaves, and a word that sinks and fades, rather than numbers rising in bright colours.
+  const SAD = '#e0705e';
+  function sorrow(x, y, s, word, now, life) {
+    fxItems.push({ kind: 'flash', x: x - s / 2, y: y - s / 2, size: s, color: '#7a2318', t0: now, life: life * 0.8 });
+    for (let k = 0; k < 5; k++)
+      fxItems.push({ kind: 'drop', x: x + (Math.random() - 0.5) * s * 0.6, y: y - s * 0.1, fall: s * (0.45 + Math.random() * 0.35), color: '#6b4a32', t0: now, life: life * (0.8 + Math.random() * 0.2) });
+    fxItems.push({ kind: 'text', x, y: y - s * 0.15, text: word, size: s * 0.26, color: SAD, sink: true, t0: now, life });
+  }
+  function lament(before, mask, rottedAt) {
+    const wasted = [];
+    for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) if (mask[r][c] && (before[r][c] === 1 || before[r][c] === 2)) wasted.push([r, c]);
+    fxCv.dataset.rotted = rottedAt.length; fxCv.dataset.wasted = wasted.length;
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches || Number($('speed').value) <= 30;
+    const { s, at } = plotGeom();
+    if (still || !s || (!rottedAt.length && !wasted.length)) return;
+    const now = performance.now();
+    rottedAt.forEach(([r, c]) => sorrow(at(c) + s / 2, at(r) + s / 2, s, 'rotted', now, 900));
+    wasted.forEach(([r, c]) => sorrow(at(c) + s / 2, at(r) + s / 2, s, 'wasted', now, 900));
+    if (!fxRaf) fxRaf = requestAnimationFrame(fxFrame);
+  }
+
+  // Crows: each plant eaten gets the same sinking treatment, and a couple of crows flap away.
   function crowsAte(eatenAt, patches) {
     $('fx').dataset.eaten = eatenAt.length;
     const still = matchMedia('(prefers-reduced-motion: reduce)').matches || Number($('speed').value) <= 30;
@@ -1883,8 +1907,7 @@ Harvest←{0}
     const now = performance.now(), life = 900;
     eatenAt.forEach(([r, c]) => {
       const x = at(c) + s / 2, y = at(r) + s / 2;
-      burst(x, y, s * 0.5, '#2b2b2b', 5, life, now);
-      fxItems.push({ kind: 'text', x, y, text: '−1', size: s * 0.36, color: '#f3ede0', t0: now, life });
+      sorrow(x, y, s, 'eaten', now, life);
     });
     patches.forEach(([r, c]) => {
       for (let k = 0; k < 3; k++) fxItems.push({ kind: 'crow', x: at(c) + s / 2 + (k - 1) * s * 0.4, y: at(r) + s / 2, dx: (k - 1) * s * 0.8 + s * 0.6, dy: -s * (1.6 + k * 0.3), size: s * 0.28, t0: now, life: life * 1.2 });
@@ -1907,7 +1930,7 @@ Harvest←{0}
       const p = Math.max(0, (now - it.t0) / it.life), fade = 1 - p;
       g.save();
       if (it.kind === 'flash') {
-        g.globalAlpha = 0.45 * fade; g.fillStyle = COL.ripe;
+        g.globalAlpha = 0.45 * fade; g.fillStyle = it.color || COL.ripe;
         rrect(g, it.x, it.y, it.size, it.size, it.size * 0.08); g.fill();
       } else if (it.kind === 'ring') {
         g.globalAlpha = fade; g.strokeStyle = it.color; g.lineWidth = 3 * fade + 0.5;
@@ -1916,6 +1939,10 @@ Harvest←{0}
         const e = easeOut(p);
         g.globalAlpha = fade; g.fillStyle = it.color;
         g.beginPath(); g.arc(it.x + it.dx * e, it.y + it.dy * e, 1 + 2.5 * fade, 0, Math.PI * 2); g.fill();
+      } else if (it.kind === 'drop') {
+        // A falling particle: it drops with gravity and fades.
+        g.globalAlpha = fade; g.fillStyle = it.color;
+        g.beginPath(); g.ellipse(it.x, it.y + it.fall * p * p, 2.6 * fade + 1, 1.6 * fade + 0.8, 0.6, 0, Math.PI * 2); g.fill();
       } else if (it.kind === 'crow') {
         // A crow in flight: two wing strokes that flap as it rises away.
         const e = easeOut(p), cx = it.x + it.dx * e, cy = it.y + it.dy * e, flap = Math.sin(p * 30) * it.size * 0.35;
@@ -1926,7 +1953,7 @@ Harvest←{0}
         const pop = 1 + 0.35 * Math.max(0, 1 - p * 6), size = it.size * pop;
         g.globalAlpha = p < 0.6 ? 1 : (1 - p) / 0.4;
         g.font = `800 ${size}px system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
-        const ty = it.y - it.size * 1.2 * easeOut(p);
+        const ty = it.sink ? it.y + it.size * 1.6 * easeOut(p) : it.y - it.size * 1.2 * easeOut(p);
         g.lineWidth = Math.max(3, size * 0.16); g.strokeStyle = 'rgba(30, 22, 10, 0.7)'; g.lineJoin = 'round';
         g.strokeText(it.text, it.x, ty); g.fillStyle = it.color; g.fillText(it.text, it.x, ty);
       }
