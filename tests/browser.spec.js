@@ -160,7 +160,7 @@ test('medals unlock farms, symbols and helpers, and bests survive a reload', asy
   // Gold with the helpers, which unlocks everything else.
   await playSeason('Harvest←{(⍵=4)∨(BumperCrops ⍵)∨(⍵=3)∧~Promising ⍵}');
   await expect(page.locator('#cmpTier')).toHaveText('Gold reached! You’ve found a powerful strategy. Can you do even better?');
-  await expect(unlock).toHaveText('Unlocked: every symbol, the Squares helper and the helpers’ source code. See the farming guide.');
+  await expect(unlock).toHaveText('Unlocked: every symbol, the Squares helper, the helpers’ source code and Crowhurst Farm. See the farming guide.');
   await expect(page.locator('.tier[data-earned="true"]')).toHaveCount(3);
 
   // Practice Farm keeps no bests.
@@ -182,7 +182,7 @@ test('locked symbols and helpers say what unlocks them, except on Practice Farm'
   await code.fill('Harvest←{(⍵=3)∨⍵=4}');
   await expect(status).toHaveAttribute('data-state', 'locked');
   await expect(diag).toHaveText('∨ unlocks with Bronze on Middlebourne Farm. Practice Farm has every symbol and helper.');
-  await expect(page.locator('.guide-item[data-locked="true"]')).toHaveCount(4);
+  await expect(page.locator('.guide-item[data-locked="true"]')).toHaveCount(5);
 
   await page.selectOption('#farm', 'practice');
   await expect(glyph('∨')).toBeEnabled();
@@ -394,4 +394,27 @@ test('harvests are celebrated on the field, except with reduced motion', async (
     await expect(fx).toHaveAttribute('data-shown', reducedMotion === 'reduce' ? 'no' : 'yes');
     await context.close();
   }
+});
+
+test('Crowhurst Farm: scarecrows from Scare, a limit of two, and crows in the report', async ({ page }) => {
+  await page.evaluate(() => localStorage.setItem('acres:bests', JSON.stringify({ 'v2:marshgate-farm': { score: 9999 } })));
+  await page.goto(PAGE);
+  await page.selectOption('#farm', 'crowhurst-farm');
+  await expect(page.locator('#weather')).toContainText('Crows 1 flock');
+  await expect(page.locator('#rules')).toContainText('Crows eat nothing within one plot of a scarecrow');
+  const code = page.locator('#code'), status = page.locator('#status'), field = page.locator('#field');
+
+  await code.fill('Harvest←{⍵≥Ripe}\nScare←{⍵≥0}');
+  await expect(status).toHaveAttribute('data-state', 'result');
+  await expect(page.locator('#diag')).toHaveText('Invalid result: Scare placed 64 scarecrows, but you only have 2');
+
+  await code.fill('Harvest←{⍵≥Ripe}\nScare←{8 8⍴(⍳64)∊10 30}');
+  await expect(status).toHaveAttribute('data-state', 'ready');
+  await expect(field).toHaveAttribute('data-scarecrows', '2');
+
+  await page.selectOption('#speed', '30');
+  await page.click('#run');
+  await expect(page.locator('#msg')).toHaveText(/^Season complete\./, { timeout: 30000 });
+  await expect(page.locator('#rEatenStat')).toBeVisible();
+  expect(Number(await page.locator('#rEaten').textContent())).toBeGreaterThan(0);
 });
