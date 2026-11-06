@@ -392,6 +392,12 @@ test('harvests are celebrated on the field, except with reduced motion', async (
     const fx = page.locator('#fx');
     expect(Number(await fx.getAttribute('data-ripe'))).toBeGreaterThan(0);
     await expect(fx).toHaveAttribute('data-shown', reducedMotion === 'reduce' ? 'no' : 'yes');
+    // Bad moments are counted too: harvesting sprouts wastes them, and ripe plants left standing can rot.
+    await page.locator('#code').fill('Harvest←{⍵=Sprout}');
+    await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
+    let rotted = 0;
+    for (let i = 0; i < 6 && !rotted; i++) { await page.click('#step'); rotted = Number(await fx.getAttribute('data-rotted')); }
+    expect(rotted).toBeGreaterThan(0);
     await context.close();
   }
 });
