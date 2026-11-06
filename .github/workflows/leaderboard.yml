@@ -14,6 +14,8 @@ jobs:
   verify:
     name: Check new scores
     runs-on: ubuntu-latest
+    # Each replay stops after 10 seconds; this caps the whole batch.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
