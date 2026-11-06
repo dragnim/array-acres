@@ -284,6 +284,11 @@ check('bumper crops: a square with a rotten or growing plant is not a bumper cro
   check('journey: Gold on any farm unlocks every symbol and the helpers’ source',
     [p3.earned.includes('any-gold'), p3.glyphs.has('↑'), p3.helpers.has('Squares'), p3.source], [true, true, true, true]);
 
+  const day1 = AcresCore.newSeason(F['manor-farm'].seed, F['manor-farm']).field;
+  check('names: the stage names work from the start and mean their numbers',
+    [msg('Harvest←{⍵≥Growing}', p0),
+     JSON.stringify(AcresCore.evaluate('Harvest←{⍵=Ripe}', day1, p0).mask) === JSON.stringify(AcresCore.evaluate('Harvest←{⍵=3}', day1, p0).mask)], ['ok', true]);
+  check('names: players can still use a stage name for their own value', msg('Ripe←4\nHarvest←{⍵=Ripe}', p0), 'ok');
   check('helpers: BumperCrops marks exactly the plants in ripe 2×2 squares',
     AcresCore.evaluate('Harvest←BumperCrops', grid(['33000003', '33000000', '00000000', '00000000', '00000000', '00000000', '30000033', '00000033'])).mask,
     grid(['11000000', '11000000', '00000000', '00000000', '00000000', '00000000', '00000011', '00000011']));
