@@ -77,7 +77,7 @@ test('preview and diagnostics follow the code and the field', async ({ page }) =
   // Play out the season.
   await page.selectOption('#speed', '30');
   await page.click('#run');
-  await expect(page.locator('#msg')).toHaveText(/^Season over\. You scored \d+\.$/, { timeout: 30000 });
+  await expect(page.locator('#msg')).toHaveText(/^Season complete\. You scored \d+\.$/, { timeout: 30000 });
   await expect(day).toHaveText('100/100');
 
   // The season report appears, agrees with the scoreboard, and switches chart views.
@@ -91,7 +91,7 @@ test('preview and diagnostics follow the code and the field', async ({ page }) =
   await expect(page.locator('.seg button[data-view="rot"]')).toHaveAttribute('aria-pressed', 'true');
   await chart.focus();
   await chart.press('End');
-  await expect(page.locator('#readout')).toHaveText(/^Day 100: \d+ ripe plots? lost to rot$/);
+  await expect(page.locator('#readout')).toHaveText(/^Day 100: \d+ ripe plants? lost to rot$/);
 
   // A new season hides the report.
   await page.click('#restart');
@@ -112,7 +112,7 @@ test('medals unlock farms, symbols and helpers, and bests survive a reload', asy
     await expect(status).toHaveAttribute('data-state', 'ready');
     await page.click('#restart');
     await page.click('#run');
-    await expect(msg).toHaveText(/^Season over\./, { timeout: 30000 });
+    await expect(msg).toHaveText(/^Season complete\./, { timeout: 30000 });
   };
   await page.selectOption('#speed', '30');
 
