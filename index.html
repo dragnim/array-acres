@@ -1072,7 +1072,10 @@ const AcresCore = (() => {
 
   // Helpers: farm tools written in APL. Players unlock them by name, and once they reach Gold
   // they can read this source and write their own.
-  const HELPER_SOURCE = `⍝ Squares: 1 on every plot that is part of
+  const HELPER_SOURCE = `⍝ The stages, by name: just numbers with labels.
+Seed←0 ⋄ Sprout←1 ⋄ Growing←2 ⋄ Ripe←3 ⋄ Rotten←4
+
+⍝ Squares: 1 on every plot that is part of
 ⍝ a 2×2 square of 1s.
 Squares←{
   tl←⍵∧((⍴⍵)↑0 1↓⍵)∧((⍴⍵)↑1 0↓⍵)∧(⍴⍵)↑1 1↓⍵
@@ -1081,14 +1084,16 @@ Squares←{
 
 ⍝ BumperCrops: 1 on every ripe plant that is
 ⍝ part of a bumper crop.
-BumperCrops←{Squares ⍵=3}
+BumperCrops←{Squares ⍵=Ripe}
 
 ⍝ Promising: 1 on every plant in a 2×2 square
 ⍝ of growing or ripe plants, where a bumper
 ⍝ crop could still form.
-Promising←{Squares ⍵∊2 3}
+Promising←{Squares (⍵=Growing)∨⍵=Ripe}
 `;
   const HELPERS = APL.run(HELPER_SOURCE).env.vars;
+  // The stage names are there from the start; the helpers are unlocked one by one.
+  const STAGE_NAMES = ['Seed', 'Sprout', 'Growing', 'Ripe', 'Rotten'];
 
   // Progression: medals unlock symbols, helpers and farms. Unlocks are worked out from personal
   // bests, so there's nothing extra to save. Practice Farm always has everything.
@@ -1126,8 +1131,8 @@ Promising←{Squares ⍵∊2 3}
       return `${ch} unlocks with ${needText(unlockFor('glyph', ch))}`;
     };
     const parent = {
-      vars: new Map([...HELPERS].filter(([k]) => access.helpers.has(k))), parent: null,
-      lock: name => HELPERS.has(name) && !access.helpers.has(name) ? `${name} unlocks with ${needText(unlockFor('helper', name))}` : null,
+      vars: new Map([...HELPERS].filter(([k]) => STAGE_NAMES.includes(k) || access.helpers.has(k))), parent: null,
+      lock: name => HELPERS.has(name) && !STAGE_NAMES.includes(name) && !access.helpers.has(name) ? `${name} unlocks with ${needText(unlockFor('helper', name))}` : null,
     };
     const { env } = APL.run(src, { parent, lockGlyph });
     const f = env.vars.get('Harvest');
@@ -1220,8 +1225,10 @@ Promising←{Squares ⍵∊2 3}
   const STORE_KEY = 'allotment:apl';
 
   const DEFAULT_CODE = `⍝ ⍵ is today's field, one number per plot:
-⍝   0 seed  1 sprout  2 growing
-⍝   3 ripe  4 rotten
+⍝   0 Seed  1 Sprout  2 Growing
+⍝   3 Ripe  4 Rotten
+⍝ Use the names or the numbers:
+⍝ ⍵=Rotten means the same as ⍵=4.
 ⍝ Give back 1 to harvest a plot,
 ⍝ or 0 to leave it. A single 0 leaves
 ⍝ every plot. Change it to start farming.
@@ -1514,12 +1521,12 @@ Harvest←{0}
 
   // Each entry explains one tool with a small example. Locked entries show only what unlocks them.
   const GUIDE = [
-    { title: '⍵', text: '⍵ is today’s field: 8×8 numbers, one for each plot (0 seed, 1 sprout, 2 growing, 3 ripe, 4 rotten). Turn on “Show numbers” to see them on the field.' },
-    { title: '= ≠ < > ≤ ≥', glyph: '=', text: 'Compare. These ask a question of every plot at once, and answer 1 for yes and 0 for no.', snippets: [['⍵=4', 'the rotten plants'], ['⍵≤1', 'seeds and sprouts'], ['⍵≠0', 'everything except seeds']] },
-    { title: '∧ ∨ ~', glyph: '∧', text: 'Combine answers. ∧ means “and”: 1 only where both answers are 1. ∨ means “or”: 1 where either is. ~ means “not”: it turns 1s into 0s and 0s into 1s.', snippets: [['(⍵=1)∨⍵=2', 'everything still growing'], ['(⍵≥2)∧⍵≤3', 'growing or ripe plants'], ['~⍵=4', 'everything except rotten plants']] },
+    { title: '⍵', text: '⍵ is today’s field: 8×8 numbers, one for each plot. Each stage also has a name you can use instead of its number: `Seed` 0, `Sprout` 1, `Growing` 2, `Ripe` 3 and `Rotten` 4. Turn on “Show numbers” to see the numbers on the field.', snippets: [['⍵=Sprout', 'the sprouts']] },
+    { title: '= ≠ < > ≤ ≥', glyph: '=', text: 'Compare. These ask a question of every plot at once, and answer 1 for yes and 0 for no.', snippets: [['⍵=Rotten', 'the rotten plants'], ['⍵≤Sprout', 'seeds and sprouts'], ['⍵≠Seed', 'everything except seeds']] },
+    { title: '∧ ∨ ~', glyph: '∧', text: 'Combine answers. ∧ means “and”: 1 only where both answers are 1. ∨ means “or”: 1 where either is. ~ means “not”: it turns 1s into 0s and 0s into 1s.', snippets: [['(⍵=Sprout)∨⍵=Growing', 'everything still growing'], ['(⍵≥Growing)∧⍵≤Ripe', 'growing or ripe plants'], ['~⍵=Rotten', 'everything except rotten plants']] },
     { title: 'BumperCrops ⍵', helper: 'BumperCrops', text: 'A ready-made helper. It gives 1 on every ripe plant that’s part of a bumper crop today (four ripe plants in a 2×2 square), and 0 everywhere else.', snippets: [['BumperCrops ⍵', 'today’s bumper crops']] },
     { title: 'Promising ⍵', helper: 'Promising', text: 'A ready-made helper. It gives 1 on every plant that’s part of a 2×2 square of growing or ripe plants: places where a bumper crop could form if you wait.', snippets: [['Promising ⍵', 'where a bumper crop could form']] },
-    { title: 'Every symbol, and how the helpers work', source: true, text: 'You can now use every symbol. `BumperCrops` and `Promising` are ordinary APL functions, both built on a third helper, `Squares`, which finds 2×2 squares of 1s. Here’s their code, and you can now use `Squares` yourself. Can you write better helpers?', snippets: [['Squares ⍵=2', '2×2 squares of growing plants']], code: AcresCore.HELPER_SOURCE },
+    { title: 'Every symbol, and how the helpers work', source: true, text: 'You can now use every symbol. `BumperCrops` and `Promising` are ordinary APL functions, both built on a third helper, `Squares`, which finds 2×2 squares of 1s, and the stage names are ordinary variables. Here’s their code, and you can now use `Squares` yourself. Can you write better helpers?', snippets: [['Squares ⍵=Growing', '2×2 squares of growing plants']], code: AcresCore.HELPER_SOURCE },
   ];
   function renderGuide() {
     const acc = access();
@@ -1794,7 +1801,7 @@ Harvest←{0}
   function renderRules() {
     const pct = p => `${Math.round(p * 100)}%`, N = RULES.size, B = RULES.bonus, w = farm || AcresCore.PRACTICE;
     const items = [
-      `The field is ${N}×${N} and a season lasts ${RULES.days} days. Each plot holds one plant at stage 0 seed, 1 sprout, 2 growing, 3 ripe or 4 rotten. A season starts with every plot at a random stage from 0 to 3.`,
+      `The field is ${N}×${N} and a season lasts ${RULES.days} days. Each plot holds one plant at stage 0 seed, 1 sprout, 2 growing, 3 ripe or 4 rotten. Your code can use the names \`Seed\`, \`Sprout\`, \`Growing\`, \`Ripe\` and \`Rotten\` for these numbers. A season starts with every plot at a random stage from 0 to 3.`,
       'Each day, your `Harvest` function is given today’s field as ⍵, a matrix of stage numbers, and chooses plots to harvest. Every harvested plot is cleared and replanted as a seed.',
       `A harvested ripe plant scores 1. If it’s part of a 2×2 square of ripe plants that are all harvested that day, a bumper crop, it scores ${B} instead and is outlined in gold the next day. A plant in more than one such square still scores ${B}. Squares don’t wrap around the edges of the field.`,
       'Harvesting a sprout or a growing plant wastes it. Harvesting a seed or a rotten plant scores nothing, so clearing rot is free.',
