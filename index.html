@@ -1054,7 +1054,8 @@ const APL = (() => {
 const AcresCore = (() => {
   // A ruleset is identified by its id. Changing any value here, any farm's weather, seed or
   // targets, the order of operations in advance(), or how random numbers are drawn changes
-  // scores, so it needs a new id.
+  // scores, so it needs a new id. The exception is Crowhurst Farm, an experiment whose crow and
+  // scarecrow rules may still change under v2; the other farms' scores never depend on them.
   const RULES = Object.freeze({ id: 'v2', size: 8, days: 100, ripe: 3, rot: 4, bonus: 3, scarecrows: 2 });
 
   // Each farm has its own weather. Sunshine is the chance that an unripe plant grows a stage
@@ -1671,14 +1672,13 @@ Harvest←{0}
   // Drawing
   let COL;
 
-  // Painted plant art from assets/plants. Until all of it has loaded, or if it can't load,
-  // the plants are drawn in code instead, so the game never depends on the images.
+  // Painted art from assets/plants. Any image that hasn't loaded, or can't load, is drawn in
+  // code instead, so the game never depends on the images.
   const ART_FILES = { 0: '0-seed', 1: '1-sprout', 2: '2-growing', 3: '3-ripe', 4: '4-rotten', giant: 'giant', crows: 'crows', scarecrow: 'scarecrow' };
   const ART = {};
   let artReady = false;
   {
     const entries = Object.entries(ART_FILES);
-    let loaded = 0;
     for (const [key, name] of entries) {
       const img = new Image();
       // Each image is used as soon as it loads; any that fails is drawn in code instead.
