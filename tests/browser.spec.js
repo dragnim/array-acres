@@ -201,7 +201,7 @@ test('bumper crops appear exactly where ripe 2×2 squares are', async ({ page })
   await page.locator('#code').fill('Harvest←{0}');
   await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
   for (let day = 0; day < 8; day++) {
-    await expect(page.locator('#field')).toHaveAttribute('data-giants', String(AcresCore.ripeSquares(st.field).length));
+    await expect(page.locator('#field')).toHaveAttribute('data-bumpers', String(AcresCore.ripeSquares(st.field).length));
     AcresCore.advance(st, AcresCore.runHarvest(nothing, st.field));
     await page.click('#step');
   }
@@ -241,7 +241,7 @@ test('painted plant art is used, and the game still works without it', async ({ 
 
   // Images load one by one: with the crow and scarecrow art missing, the plants are still painted.
   fs.mkdirSync(path.join(dir, 'assets', 'plants'), { recursive: true });
-  for (const f of ['0-seed', '1-sprout', '2-growing', '3-ripe', '4-rotten', 'giant'])
+  for (const f of ['0-seed', '1-sprout', '2-growing', '3-ripe', '4-rotten', 'bumper-crop'])
     fs.copyFileSync(path.join(__dirname, '..', 'assets', 'plants', `${f}.webp`), path.join(dir, 'assets', 'plants', `${f}.webp`));
   await page.goto(pathToFileURL(path.join(dir, 'index.html')).href);
   await expect(page.locator('#field')).toHaveAttribute('data-art', 'images');
