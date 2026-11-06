@@ -110,6 +110,8 @@ body {
 .panel-buttons button[aria-expanded="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .new-badge { margin-left: 7px; font-size: 0.72rem; font-weight: 700; background: var(--ripe); color: var(--medal-ink); border-radius: 999px; padding: 1px 7px; vertical-align: 1px; }
 .new-badge[hidden] { display: none; }
+.god-badge { align-self: center; font-size: 0.78rem; font-weight: 700; background: var(--error); color: #fff; border-radius: 999px; padding: 3px 9px; }
+.god-badge[hidden] { display: none; }
 /* The side panel slides in from the right. On wide screens the game moves aside to make room. */
 :root { --panel-w: min(440px, 100vw); }
 .panel {
@@ -297,6 +299,7 @@ textarea {
       <span id="farmInfo"></span>
     </div>
     <div class="panel-buttons">
+      <span class="god-badge" id="godBadge" title="Everything is unlocked for testing. Press G to turn it off." hidden>God mode</span>
       <button type="button" id="openAbout" aria-controls="panel" aria-expanded="false">What is APL?</button>
       <button type="button" id="openHelp" aria-controls="panel" aria-expanded="false">How to play</button>
       <button type="button" id="openGuide" aria-controls="panel" aria-expanded="false">Farming guide<span class="new-badge" id="guideNew" hidden>New</span></button>
@@ -1330,7 +1333,12 @@ Harvest←{0}
   // What the player has unlocked so far, worked out from their personal bests.
   let prog = AcresCore.progress(bests);
   // Practice Farm has everything; real farms have what the player has earned.
-  const access = () => farm ? prog : AcresCore.FULL;
+  // God mode, for testing: G (outside the editor) unlocks every farm, symbol and helper.
+  // It changes nothing that's saved: bests and real unlocks carry on as normal underneath.
+  let godMode = false;
+  try { godMode = localStorage.getItem('acres:god') === 'on'; } catch (e) {}
+  const unlocked = () => godMode ? AcresCore.FULL : prog;
+  const access = () => farm ? unlocked() : AcresCore.FULL;
   let running = false, timer = null, fn = null, scareFn = null, dirty = true;
   const hasCrows = () => !!(farm && farm.crows);
   const best = {};
@@ -1525,7 +1533,7 @@ Harvest←{0}
 
   function chooseFarm(id) {
     // A locked farm falls back to the first farm.
-    farm = id === 'practice' ? null : AcresCore.FARMS.find(f => f.id === id && prog.farms.has(f.id)) || AcresCore.FARMS[0];
+    farm = id === 'practice' ? null : AcresCore.FARMS.find(f => f.id === id && unlocked().farms.has(f.id)) || AcresCore.FARMS[0];
     dirty = true;
     farmEl.value = farm ? farm.id : 'practice';
     seed = farm ? farm.seed : newSeed();
@@ -1576,7 +1584,7 @@ Harvest←{0}
 
   function renderFarmOptions() {
     AcresCore.FARMS.forEach(f => {
-      const o = farmEl.querySelector(`option[value="${f.id}"]`), open = prog.farms.has(f.id);
+      const o = farmEl.querySelector(`option[value="${f.id}"]`), open = unlocked().farms.has(f.id);
       o.disabled = !open;
       o.textContent = open ? f.name : `${f.name} (unlocks with ${AcresCore.needText(AcresCore.unlockFor('farm', f.id))})`;
     });
@@ -1631,6 +1639,22 @@ Harvest←{0}
     row.append(c, n, show, use);
     return row;
   }
+
+  function setGodMode(on) {
+    godMode = on;
+    try { localStorage.setItem('acres:god', on ? 'on' : 'off'); } catch (e) {}
+    $('godBadge').hidden = !on;
+    dirty = true;
+    refreshProgress();
+    // Turning it off can leave you on a farm you haven't unlocked yet.
+    if (farm && !unlocked().farms.has(farm.id)) { stop(); chooseFarm(farm.id); reset(); setMsg(''); }
+    else fieldChanged();
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'g' && e.key !== 'G') return;
+    if (e.ctrlKey || e.metaKey || e.altKey || e.target.closest('input, textarea, select, [contenteditable]')) return;
+    setGodMode(!godMode);
+  });
 
   function refreshProgress() { renderFarmOptions(); renderGlyphLocks(); renderGuide(); }
 
@@ -2335,6 +2359,7 @@ Harvest←{0}
   let savedFarm = null;
   try { savedFarm = localStorage.getItem(FARM_KEY); } catch (e) {}
   chooseFarm(savedFarm === 'practice' ? 'practice' : savedFarm || AcresCore.FARMS[0].id);
+  $('godBadge').hidden = !godMode;
   // A first visit opens How to play.
   try {
     if (!localStorage.getItem('acres:help-seen')) { localStorage.setItem('acres:help-seen', '1'); setTimeout(() => openPanel('help')); }
