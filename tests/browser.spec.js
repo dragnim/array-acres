@@ -332,6 +332,12 @@ test('How to play opens on a first visit, and the side panel switches and closes
   await page.click('#closePanel');
   await expect(panel).toBeHidden();
 
+  // What is APL? opens its own page in the same panel.
+  await page.click('#openAbout');
+  await expect(title).toHaveText('What is APL?');
+  await expect(page.locator('#pAbout')).toContainText('Why it suits farming');
+  await page.click('#closePanel');
+
   // Esc in the editor leaves it for Tab, and doesn't close the panel.
   await page.click('#openGuide');
   await page.locator('#code').focus();
