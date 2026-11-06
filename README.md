@@ -24,7 +24,7 @@ A season is 100 days. There are three farms, Middlebourne, Sunnyhill and Marshga
 
 ## Progression
 
-Medals unlock the game. A new player starts on Middlebourne Farm with only `⍵` and the comparisons `= ≠ < > ≤ ≥`. Bronze on Middlebourne Farm unlocks `∧ ∨ ~`, the `BumperCrops` helper and Sunnyhill Farm. Silver on Sunnyhill Farm unlocks the `Promising` helper and Marshgate Farm. Gold on any farm unlocks every symbol and the helpers' APL source, so players can see how they work and write better ones. Practice Farm always has everything.
+Medals unlock the game. A new player starts on Middlebourne Farm with only `⍵` and the comparisons `= ≠ < > ≤ ≥`. Bronze on Middlebourne Farm unlocks `∧ ∨ ~`, the `BumperCrops` helper and Sunnyhill Farm. Silver on Sunnyhill Farm unlocks the `Promising` helper and Marshgate Farm. Gold on any farm unlocks every symbol and the helpers' APL source, so players can see how they work and write better ones. It also unlocks Crowhurst Farm, an experiment: each night a flock of crows eats the ripe plants on a 3×3 patch, and players can write a second function, `Scare`, to stand up to two scarecrows that protect the plots around them. Practice Farm always has everything.
 
 Unlocks are worked out from personal bests, so there's nothing extra to save, and the in-game farming guide explains each tool with a small example as it unlocks.
 
