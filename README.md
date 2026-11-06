@@ -66,7 +66,7 @@ Human playtesting of the four farms and the unlock ladder, before adding another
 
 ## Credits
 
-The editor uses [APL386](https://github.com/abrudz/APL386), released into the public domain, subset and embedded in the page. The plant illustrations in `assets/plants` were generated with ChatGPT for this project, then aligned and resized for the game.
+The editor uses [APL386](https://github.com/abrudz/APL386), released into the public domain, subset and embedded in the page. All the illustrations in `assets/plants`, the plants, crows and scarecrow, were generated with ChatGPT for this project, then prepared for the game.
 
 ## Licence
 
