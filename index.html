@@ -348,14 +348,14 @@ textarea {
       <button type="button" class="small-button" id="closePanel">Close</button>
     </div>
     <section id="pAbout" hidden>
-      <p class="lede">APL is a programming language built around arrays: lists, tables and grids of values. Kenneth Iverson first designed it as a mathematical notation, described in his 1962 book <cite>A Programming Language</cite>, which gave APL its name. It became a working language at IBM in the 1960s and is still used today, especially in finance and insurance.</p>
+      <p class="lede">APL is a programming language built around <a href="https://aplwiki.com/wiki/Array" target="_blank" rel="noopener">arrays</a>: lists, tables and grids of values. <a href="https://aplwiki.com/wiki/Ken_Iverson" target="_blank" rel="noopener">Kenneth Iverson</a> first designed it as a mathematical notation, described in his 1962 book <a href="https://aplwiki.com/wiki/A_Programming_Language" target="_blank" rel="noopener"><cite>A Programming Language</cite></a>, which gave APL its name. It became a working language at IBM in the 1960s and is still used today, especially in finance and insurance.</p>
       <h3>Whole arrays at once</h3>
       <p>Most languages make you visit items one at a time, with a loop. In APL, functions work on whole arrays. <code>⍵=Ripe</code> asks every plot on the field at once, and answers with a whole field of 1s and 0s.</p>
       <h3>Why it suits farming</h3>
       <p>A field is a grid, and grids are exactly what APL is built for. Every harvest decision is a question about the whole field: which plants are ripe, which are rotten, where a bumper crop could form. In APL each question is a short expression, and combining them takes a single symbol, like <code>∨</code> for “or”. That’s why a whole farming strategy can fit on one line.</p>
       <h3>Why the symbols?</h3>
-      <p>Each symbol is a function, just like <code>+</code> or <code>×</code>. They look unfamiliar at first, but they keep programs short enough to read at a glance. Iverson called this “notation as a tool of thought”.</p>
-      <p>Find out more at <a href="https://www.dyalog.com" target="_blank" rel="noopener">dyalog.com</a>, or try more APL in your browser at <a href="https://tryapl.org" target="_blank" rel="noopener">tryapl.org</a>.</p>
+      <p>Each symbol is a <a href="https://aplwiki.com/wiki/Primitive_function" target="_blank" rel="noopener">built-in function</a>, just like <code>+</code> or <code>×</code>. They look unfamiliar at first, but they keep programs short enough to read at a glance. Iverson called this “<a href="https://www.jsoftware.com/papers/tottoc.htm" target="_blank" rel="noopener">notation as a tool of thought</a>”, the title of his Turing Award lecture.</p>
+      <p>Find out more on the <a href="https://aplwiki.com/" target="_blank" rel="noopener">APL Wiki</a>, or try more APL in your browser at <a href="https://tryapl.org" target="_blank" rel="noopener">tryapl.org</a>.</p>
     </section>
     <section id="pHelp" hidden>
       <p class="lede">Write one APL function, <code>Harvest</code>. Every day it’s given today’s field as <code>⍵</code> and gives back 1s and 0s: 1 means harvest that plot, 0 means leave it. Score as much as you can in 100 days.</p>
