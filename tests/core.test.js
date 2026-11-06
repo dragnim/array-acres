@@ -341,18 +341,20 @@ for (const [src, want] of limits) check(`limit: ${src}`, ev(src), want);
   const AROUND = 'Around←{p←0⍪(0,⍵,0)⍪0 ⋄ (8 8↑p)+(8 8↑0 1↓p)+(8 8↑0 2↓p)+(8 8↑1 0↓p)+(8 8↑1 1↓p)+(8 8↑1 2↓p)+(8 8↑2 0↓p)+(8 8↑2 1↓p)+8 8↑2 2↓p}\n';
   const TOP2 = 'Top2←{8 8⍴(⍳64)∊2↑⍒,⍵}\n';
   const SMART = 'Harvest←{(⍵=Rotten)∨(BumperCrops ⍵)∨(⍵=Ripe)∧~Promising ⍵}';
-  const GREEDY_SCARE = AROUND + TOP2 + 'Harvest←{⍵≥Ripe}\nScare←{Top2 Around ⍵=Growing}';
-  const SMART_SCARE = AROUND + TOP2 + SMART + '\nScare←{Top2 Around (⍵≥Growing)∧(⍵≤Ripe)∧Promising ⍵}';
+  // Scarecrows on the plants they mean to protect trample them; scarecrows on seeds, or on plots
+  // harvested today anyway, cost nothing.
+  const NAIVE_SCARE = AROUND + TOP2 + SMART + '\nScare←{Top2 Around (⍵≥Growing)∧(⍵≤Ripe)∧Promising ⍵}';
+  const SMART_SCARE = AROUND + TOP2 + SMART + '\nScare←{v←(⍵≥Growing)∧(⍵≤Ripe)∧Promising ⍵ ⋄ ok←(⍵=Seed)∨Harvest ⍵ ⋄ s←ok×Around v ⋄ (s>0)∧Top2 s}';
   const play = src => {
     const p = AcresCore.compileProgram(src), st = AcresCore.newSeason(crow.seed, crow);
     while (st.day < RULES.days) AcresCore.advance(st, AcresCore.runHarvest(p.harvest, st.field), p.scare ? AcresCore.runScare(p.scare, st.field) : null);
     return st.score;
   };
   check('crows: one flock a night, on Middlebourne Farm’s weather', [crow.crows, crow.sunshine, crow.rainfall], [1, AcresCore.FARMS[0].sunshine, AcresCore.FARMS[0].rainfall]);
-  check('crows: pinned scores for ripe-only, hybrid, and each with scarecrows',
-    [play('Harvest←{⍵≥Ripe}'), play(SMART), play(GREEDY_SCARE), play(SMART_SCARE)], [1074, 1242, 1129, 1330]);
-  check('crows: ripe-only reaches Bronze, hybrid Silver, and hybrid with well-placed scarecrows Gold',
-    ['Harvest←{⍵≥Ripe}', SMART, SMART_SCARE].map(src => AcresCore.tierFor(crow, play(src))), ['bronze', 'silver', 'gold']);
+  check('crows: pinned scores for ripe-only, hybrid, scarecrows on the plants, and scarecrows beside them',
+    [play('Harvest←{⍵≥Ripe}'), play(SMART), play(NAIVE_SCARE), play(SMART_SCARE)], [1068, 1199, 928, 1288]);
+  check('crows: ripe-only reaches Bronze, hybrid Silver, trampling the crop earns nothing, and scarecrows beside it Gold',
+    ['Harvest←{⍵≥Ripe}', SMART, NAIVE_SCARE, SMART_SCARE].map(src => AcresCore.tierFor(crow, play(src))), ['bronze', 'silver', null, 'gold']);
 
   // A controlled night: nothing grows or rots, and the flock lands on row 2, column 3.
   const night = (scare) => {
@@ -360,13 +362,15 @@ for (const [src, want] of limits) check(`limit: ${src}`, ev(src), want);
     st.field = grid(['00000000', '00333000', '00333000', '00333000', '00000000', '00000000', '00000000', '00000000']);
     const rolls = [...Array(N * N).fill(0.99), 2.5 / 8, 3.5 / 8]; let i = 0; st.rng = () => rolls[i++];
     AcresCore.advance(st, grid(Array(N).fill('00000000')), scare ? grid(scare) : null);
-    return [st.eaten, st.crowPatches, st.field.flat().filter(v => v === RULES.ripe).length];
+    return [st.eaten, st.crowPatches, st.field.flat().filter(v => v === RULES.ripe).length, st.history[0].trampled];
   };
-  check('crows: a flock eats every ripe plant in its 3×3 patch, leaving seeds', night(null), [9, [[2, 3]], 0]);
-  check('crows: a scarecrow protects every plot within one step of it',
-    night(['00000000', '00000000', '00000000', '00000000', '00010000', '00000000', '00000000', '00000000']), [6, [[2, 3]], 3]);
+  check('crows: a flock eats every ripe plant in its 3×3 patch, leaving seeds', night(null), [9, [[2, 3]], 0, 0]);
+  check('crows: a scarecrow on a seed protects every plot within one step of it, at no cost',
+    night(['00000000', '00000000', '00000000', '00000000', '00010000', '00000000', '00000000', '00000000']), [6, [[2, 3]], 3, 0]);
   check('crows: a scarecrow two steps away protects nothing',
-    night(['00000000', '00000000', '00000000', '00000000', '00000000', '00010000', '00000000', '00000000']), [9, [[2, 3]], 0]);
+    night(['00000000', '00000000', '00000000', '00000000', '00000000', '00010000', '00000000', '00000000']), [9, [[2, 3]], 0, 0]);
+  check('crows: a scarecrow on a ripe plant tramples it back to a seed, but protects the eight around it',
+    night(['00000000', '00000000', '00010000', '00000000', '00000000', '00000000', '00000000', '00000000']), [0, [[2, 3]], 8, 1]);
   const scareErr = src => { try { AcresCore.runScare(AcresCore.compileProgram(src).scare, AcresCore.newSeason(1).field); return 'ok'; } catch (e) { return e.message; } };
   check('scare: at most two scarecrows', [scareErr('Harvest←{0}\nScare←{⍵≥0}'), scareErr('Harvest←{0}\nScare←{0}')],
     ['Scare placed 64 scarecrows, but you only have 2', 'ok']);
