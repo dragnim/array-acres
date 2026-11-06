@@ -118,25 +118,25 @@ test('medals unlock farms, symbols and helpers, and bests survive a reload', asy
   };
   await page.selectOption('#speed', '30');
 
-  // A new player starts on Manor Farm.
-  await expect(page.locator('#farm')).toHaveValue('manor-farm');
+  // A new player starts on Middlebourne Farm.
+  await expect(page.locator('#farm')).toHaveValue('middlebourne-farm');
   await expect(page.locator('#weather')).toHaveText('Sunshine 55%Rainfall 20%');
-  await expect(page.locator('#farm option[value="bramley-farm"]')).toBeDisabled();
+  await expect(page.locator('#farm option[value="sunnyhill-farm"]')).toBeDisabled();
   await expect(page.locator('#newField')).toBeDisabled();
 
-  // Bronze on Manor Farm.
+  // Bronze on Middlebourne Farm.
   await playSeason('Harvest←{⍵≥3}');
   await expect(page.locator('#cmpThis')).toHaveText('1213');
   await expect(page.locator('#cmpStatus')).toHaveText('Your first result on this farm.');
   await expect(page.locator('#cmpTier')).toHaveText('You reached Bronze. Silver is 1350.');
-  await expect(unlock).toHaveText('Unlocked: ∧ ∨ ~, the BumperCrops helper and Bramley Farm. See the farming guide.');
+  await expect(unlock).toHaveText('Unlocked: ∧ ∨ ~, the BumperCrops helper and Sunnyhill Farm. See the farming guide.');
   // The farming guide button shows New until the guide is opened, here from the report's link.
   await expect(page.locator('#guideNew')).toBeVisible();
   await unlock.getByRole('button', { name: 'See the farming guide' }).click();
   await expect(page.locator('#panelTitle')).toHaveText('Farming guide');
   await expect(page.locator('#guideNew')).toBeHidden();
   await expect(page.locator('.tier[data-tier="bronze"]')).toHaveAttribute('data-earned', 'true');
-  await expect(page.locator('#farm option[value="bramley-farm"]')).toBeEnabled();
+  await expect(page.locator('#farm option[value="sunnyhill-farm"]')).toBeEnabled();
 
   // A run that doesn't improve keeps the best and unlocks nothing new.
   await playSeason('Harvest←{⍵=3}');
@@ -145,17 +145,17 @@ test('medals unlock farms, symbols and helpers, and bests survive a reload', asy
 
   // Bests, unlocks and the chosen farm survive a reload.
   await page.reload();
-  await expect(page.locator('#farm')).toHaveValue('manor-farm');
+  await expect(page.locator('#farm')).toHaveValue('middlebourne-farm');
   await expect(best).toHaveText('1213');
-  await expect(page.locator('#farm option[value="bramley-farm"]')).toBeEnabled();
+  await expect(page.locator('#farm option[value="sunnyhill-farm"]')).toBeEnabled();
 
-  // Silver on Bramley Farm, harvesting only bumper crops.
-  await page.selectOption('#farm', 'bramley-farm');
+  // Silver on Sunnyhill Farm, harvesting only bumper crops.
+  await page.selectOption('#farm', 'sunnyhill-farm');
   await expect(best).toHaveText('–');
   await page.selectOption('#speed', '30');
   await playSeason('Harvest←{(⍵=4)∨BumperCrops ⍵}');
   await expect(page.locator('#cmpTier')).toHaveText('You reached Silver. Gold is 2100.');
-  await expect(unlock).toHaveText('Unlocked: the Promising helper and Nuthanger Farm. See the farming guide.');
+  await expect(unlock).toHaveText('Unlocked: the Promising helper and Marshgate Farm. See the farming guide.');
 
   // Gold with the helpers, which unlocks everything else.
   await playSeason('Harvest←{(⍵=4)∨(BumperCrops ⍵)∨(⍵=3)∧~Promising ⍵}');
@@ -181,7 +181,7 @@ test('locked symbols and helpers say what unlocks them, except on Practice Farm'
   await expect(glyph('≠')).toBeEnabled();
   await code.fill('Harvest←{(⍵=3)∨⍵=4}');
   await expect(status).toHaveAttribute('data-state', 'locked');
-  await expect(diag).toHaveText('∨ unlocks with Bronze on Manor Farm. Practice Farm has every symbol and helper.');
+  await expect(diag).toHaveText('∨ unlocks with Bronze on Middlebourne Farm. Practice Farm has every symbol and helper.');
   await expect(page.locator('.guide-item[data-locked="true"]')).toHaveCount(4);
 
   await page.selectOption('#farm', 'practice');
@@ -249,7 +249,7 @@ test('the rules on the page state the numbers the game actually uses', async ({ 
 
   // The rules follow the chosen farm's weather. Every farm is unlocked for this test.
   await page.addInitScript(() => localStorage.setItem('acres:bests', JSON.stringify({
-    'v2:manor-farm': { score: 9999 }, 'v2:bramley-farm': { score: 9999 }, 'v2:nuthanger-farm': { score: 9999 } })));
+    'v2:middlebourne-farm': { score: 9999 }, 'v2:sunnyhill-farm': { score: 9999 }, 'v2:marshgate-farm': { score: 9999 } })));
   await page.goto(PAGE);
   for (const f of AcresCore.FARMS) {
     await page.selectOption('#farm', f.id);
@@ -298,7 +298,7 @@ test('the field can show its numbers, exactly as Harvest sees them', async ({ pa
 
 test('code saved before Giants was renamed BumperCrops still works', async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem('acres:bests', JSON.stringify({ 'v2:manor-farm': { score: 9999 } }));
+    localStorage.setItem('acres:bests', JSON.stringify({ 'v2:middlebourne-farm': { score: 9999 } }));
     localStorage.setItem('allotment:apl', 'Harvest←{(⍵=4)∨Giants ⍵}');
   });
   await page.goto(PAGE);
