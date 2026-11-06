@@ -2320,7 +2320,8 @@ Harvest←{0}
       } else {
         $('lbMsg').textContent = {
           'initials-not-allowed': 'Please choose different initials.',
-          'not-high-enough': `${initials} already has a score at least this high on this farm.`,
+          'not-high-enough': `${initials} already has a score at least this high on this farm, on the board or being checked.`,
+          'rate-limited': 'That’s a lot of scores in a short time. Please try again in an hour.',
           'busy': 'Lots of scores are waiting to be checked. Please try again in a few minutes.',
           'outdated': 'This farm’s rules have changed since this page loaded. Please refresh and play again.',
         }[body.error] || 'Your score couldn’t be entered. Please try again.';
