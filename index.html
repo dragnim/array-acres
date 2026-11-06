@@ -332,6 +332,7 @@ textarea {
       <button type="button" id="openAbout" aria-controls="panel" aria-expanded="false">What is APL?</button>
       <button type="button" id="openHelp" aria-controls="panel" aria-expanded="false">How to play</button>
       <button type="button" id="openGuide" aria-controls="panel" aria-expanded="false">Farming guide<span class="new-badge" id="guideNew" hidden>New</span></button>
+      <button type="button" id="openBoard" aria-controls="panel" aria-expanded="false">Leaderboard</button>
     </div>
   </header>
 
@@ -416,6 +417,10 @@ textarea {
       <p class="lede">Write one APL function, <code>Harvest</code>. Every day it’s given today’s field as <code>⍵</code> and gives back 1s and 0s: 1 means harvest that plot, 0 means leave it. Score as much as you can in 100 days.</p>
       <h3>Rules</h3>
       <ol class="rules" id="rules"></ol>
+    </section>
+    <section id="pBoard" hidden>
+      <p class="lede">The top 10 on each farm. Finish a season with a score good enough, and you can add your initials. Every score is checked by replaying the code that earned it, so new entries show as “checking” for up to 15 minutes.</p>
+      <div id="boards"></div>
     </section>
     <section id="pGuide" hidden>
       <p class="lede">Each example below is a small piece of code. Press Show me to see which plots it would harvest today, or Use to add it to your code.</p>
@@ -2273,7 +2278,7 @@ Harvest←{0}
       $('lbMsg').textContent = 'The leaderboard can’t be reached right now.';
     }
   }
-  async function loadBoard(farmId) {
+  async function loadBoard(farmId, list = $('lbList')) {
     const res = await fetch(`${LEADERBOARD}/board?farm=${encodeURIComponent(farmId)}`);
     if (!res.ok) throw new Error(res.status);
     const board = await res.json();
@@ -2281,8 +2286,21 @@ Harvest←{0}
     const rows = board.entries.map((e, i) => row([`${i + 1}.`, e.initials, e.score]));
     board.pending.forEach(e => rows.push(row(['', e.initials, `${e.score}, checking`], 'checking')));
     if (!rows.length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = 'No scores yet. Be the first!'; rows.push(li); }
-    $('lbList').replaceChildren(...rows);
+    list.replaceChildren(...rows);
     return board;
+  }
+  // The Leaderboard page: every farm's top 10 at once. Crowhurst has no board while it's experimental.
+  function showBoards() {
+    $('boards').replaceChildren(...AcresCore.FARMS.filter(f => !f.crows).map(f => {
+      const box = document.createElement('div'); box.className = 'leaderboard';
+      const h = document.createElement('h3'); h.textContent = f.name;
+      const list = document.createElement('ol'); list.className = 'lb-list'; list.dataset.farm = f.id;
+      const wait = document.createElement('li'); wait.className = 'empty'; wait.textContent = 'Loading…';
+      list.append(wait);
+      loadBoard(f.id, list).catch(() => { wait.textContent = 'The leaderboard can’t be reached right now.'; });
+      box.append(h, list);
+      return box;
+    }));
   }
   $('lbInitials').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3); });
   $('lbInitials').addEventListener('keydown', e => { if (e.key === 'Enter') $('lbSubmit').click(); });
@@ -2356,6 +2374,7 @@ Harvest←{0}
     about: { el: $('pAbout'), title: 'What is APL?', button: $('openAbout') },
     help: { el: $('pHelp'), title: 'How to play', button: $('openHelp') },
     guide: { el: $('pGuide'), title: 'Farming guide', button: $('openGuide') },
+    board: { el: $('pBoard'), title: 'Leaderboard', button: $('openBoard') },
     report: { el: reportEl, title: 'Season complete', button: null },
   };
   let panelOpen = null, panelReturn = null;
@@ -2371,6 +2390,7 @@ Harvest←{0}
     document.body.classList.add('panel-open');
     panelEl.scrollTop = 0;
     if (name === 'guide') setGuideNew(false);
+    if (name === 'board') showBoards();
     panelTitle.focus({ preventScroll: true });
   }
   function closePanel(restoreFocus = true) {
@@ -2385,6 +2405,7 @@ Harvest←{0}
   $('openAbout').addEventListener('click', () => togglePanel('about'));
   $('openHelp').addEventListener('click', () => togglePanel('help'));
   $('openGuide').addEventListener('click', () => togglePanel('guide'));
+  $('openBoard').addEventListener('click', () => togglePanel('board'));
   $('closePanel').addEventListener('click', () => closePanel());
   // Esc closes the panel, except in the editor, where Esc is how you Tab out of it.
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && panelOpen && e.target !== codeEl) closePanel(); });
