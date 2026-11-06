@@ -30,9 +30,10 @@ Unlocks are worked out from personal bests, so there's nothing extra to save, an
 
 ## Leaderboard
 
-Every farm has a top 10, shown on the Leaderboard page and in each season report. When a season's score makes it, the player enters three initials, arcade style, and the score and the code that earned it go to a small Cloudflare Worker on the free plan (`leaderboard/worker.mjs`). Nothing counts until it's checked: a scheduled GitHub Actions job (`leaderboard/verify.js`) replays each new entry's code with the game's own rules, and only a score the code really earns goes on the board.
+Every farm has a top 10, shown on the Leaderboard page and in each season report. When a season's score makes it, the player enters three initials, arcade style, and the score and the code that earned it go to a small Cloudflare Worker on the free plan (`leaderboard/worker.mjs`), which keeps everything in a D1 database (`leaderboard/schema.sql`). Nothing counts until it's checked: a scheduled GitHub Actions job (`leaderboard/verify.js`) replays each new entry's code with the game's own rules, and only a score the code really earns goes on the board.
 
 - **Timing.** The job is set to run every 15 minutes, though GitHub sometimes runs scheduled jobs later. To check entries straight away, run the Leaderboard workflow from the Actions tab. GitHub pauses scheduled jobs in repositories with no commits for 60 days; if scores stop being checked, re-enable the workflow there.
+- **Limits.** Each player has one entry waiting per farm, which a better score replaces. Entries left unchecked for a day expire. A sender can submit 10 scores an hour, remembered only as a hash of their address, and each board holds 20 waiting entries at most. Each replay stops after 10 seconds, so one slow program can't hold up the rest.
 - **The secret.** The job and the Worker share a secret, `LEADERBOARD_TOKEN`, set in the repository's Actions secrets and in the Worker's settings. It's never stored in the code.
 - **Deploying.** The Worker runs the code in `leaderboard/worker.mjs`, pasted into its editor in the Cloudflare dashboard, so keep the two in step.
 - **Crowhurst.** Its board is marked experimental and starts fresh whenever its rules change: bump `boardVersion` for the farm in the game and `VERSIONS` in the Worker together.
@@ -47,7 +48,7 @@ npm test
 
 They check interpreter results against known Dyalog answers and its limits, exact season totals for two reference strategies over 200 seeded fields, each farm's pinned scores and targets, that every rule stated on the page matches what the simulation actually does, that previewing never changes the game, the unlock journey from first harvest to Gold, Crowhurst's crows and scarecrows including their edge cases, and fixed-field masks for edge cases.
 
-`npm test` also runs the leaderboard tests: replaying entries (including Crowhurst's `Scare`), rejecting faked scores and old experiment versions, the token, and the arcade rules for initials and places.
+`npm test` also runs the leaderboard tests, against a real SQLite database standing in for D1: replaying entries (including Crowhurst's `Scare`), rejecting faked scores and old experiment versions, simultaneous submissions and checks, expiry, rate limits, the token, and the arcade rules for initials and places.
 
 Browser tests use Playwright and are kept separate. They use a stand-in leaderboard, so they never touch the real one:
 
