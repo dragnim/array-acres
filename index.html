@@ -1209,27 +1209,12 @@ Promising←{Squares ⍵∊2 3}
   const STAGE_NAMES = ['seed', 'sprout', 'growing', 'ripe', 'rotten'];
   const STORE_KEY = 'allotment:apl';
 
-  const DEFAULT_CODE = `⍝ Each day, your function Harvest looks at
-⍝ the field and decides what to harvest.
-⍝ ⍵ is today's field: 8×8 numbers, one per plot:
+  const DEFAULT_CODE = `⍝ ⍵ is today's field, one number per plot:
 ⍝   0 seed  1 sprout  2 growing
 ⍝   3 ripe  4 rotten
-⍝ It must give back 8×8 numbers too: 1 means
-⍝ harvest that plot today, 0 means leave it.
-⍝ A single 1 or 0 counts for every plot.
-⍝
-⍝ Example: if one corner of ⍵ is    0 3
-⍝                                   4 2
-⍝ then ⍵=4 gives 1 where it's 4:    0 0
-⍝                                   1 0
-⍝ so only that rotten plant is harvested.
-⍝
-⍝ Ripe plants score 1, or 3 each when four
-⍝ in a 2×2 square are harvested together.
-⍝
-⍝ Below, Harvest gives back 0, which means
-⍝ "leave every plot": nothing is harvested.
-⍝ Change the 0 to start farming.
+⍝ Give back 1 to harvest a plot,
+⍝ or 0 to leave it. A single 0 leaves
+⍝ every plot. Change it to start farming.
 
 Harvest←{0}
 `;
