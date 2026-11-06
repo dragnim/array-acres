@@ -232,6 +232,15 @@ textarea {
 .guide-item[data-locked="true"] { opacity: 0.55; }
 .snippet { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 6px 10px; margin-top: 8px; padding: 6px 8px; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; }
 .snippet code { font-family: var(--mono); font-size: 1rem; }
+.leaderboard { margin-top: 18px; }
+.lb-list { list-style: none; margin: 8px 0; padding: 0; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.lb-list li { display: grid; grid-template-columns: 2.2em 3.5em 1fr; gap: 8px; padding: 4px 8px; border-radius: 6px; }
+.lb-list li:nth-child(odd) { background: var(--code-bg); }
+.lb-list li.checking { color: var(--muted); }
+.lb-list li.empty { display: block; font-family: inherit; color: var(--muted); }
+.lb-form { display: flex; gap: 8px; align-items: center; }
+#lbInitials { font-family: var(--mono); font-size: 1.6rem; letter-spacing: 0.4em; text-transform: uppercase; width: 4.6em; padding: 4px 6px 4px 12px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.lb-note { color: var(--muted); font-size: 0.82rem; }
 .apl-example { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 12px 0 6px; }
 .apl-example canvas { width: 132px; height: 132px; border-radius: 8px; background: var(--soil-2); }
 .apl-example-op { font-family: var(--mono); font-size: 1.05rem; }
@@ -431,6 +440,19 @@ textarea {
       <p id="cmpStatus"></p>
       <p id="cmpTier"></p>
       <p id="cmpUnlock" class="unlock" hidden></p>
+    </div>
+    <div class="leaderboard" id="lbSection" hidden>
+      <h3>Leaderboard</h3>
+      <ol class="lb-list" id="lbList"></ol>
+      <div id="lbEnter" hidden>
+        <p><strong>You made the top 10!</strong> Enter your initials:</p>
+        <div class="lb-form">
+          <input id="lbInitials" maxlength="3" autocomplete="off" spellcheck="false" aria-label="Your initials, three letters">
+          <button type="button" class="small-button" id="lbSubmit">Enter</button>
+        </div>
+        <p class="lb-note">Your initials, score and code are sent to the leaderboard, where your code is replayed to check the score before it counts.</p>
+      </div>
+      <p id="lbMsg" role="status"></p>
     </div>
     <div class="chart-head">
       <h3>Day by day</h3>
@@ -1382,7 +1404,7 @@ Harvest←{0}
   try { godMode = localStorage.getItem('acres:god') === 'on'; } catch (e) {}
   const unlocked = () => godMode ? AcresCore.FULL : prog;
   const access = () => farm ? unlocked() : AcresCore.FULL;
-  let running = false, timer = null, fn = null, scareFn = null, dirty = true;
+  let running = false, timer = null, fn = null, scareFn = null, dirty = true, compiledSrc = '';
   const hasCrows = () => !!(farm && farm.crows);
   const best = {};
 
@@ -1427,7 +1449,7 @@ Harvest←{0}
   const showError = e => setMsg(errorText(kindOf(e), e && e.message), true);
 
   function compile() {
-    try { ({ harvest: fn, scare: scareFn } = AcresCore.compileProgram(codeEl.value, access())); dirty = false; return true; }
+    try { ({ harvest: fn, scare: scareFn } = AcresCore.compileProgram(codeEl.value, access())); compiledSrc = codeEl.value; dirty = false; return true; }
     catch (e) { showError(e); return false; }
   }
 
@@ -1524,6 +1546,7 @@ Harvest←{0}
       stop();
       setMsg(`Season complete. You scored ${state.score}.`);
       showReport(result);
+      showLeaderboard(state.score);
       return false;
     }
     return true;
@@ -2229,6 +2252,63 @@ Harvest←{0}
   let chartView = 'score', hoverDay = null;
   const total = k => state.history.reduce((s, d) => s + d[k], 0);
   const num = v => Math.round(v).toLocaleString('en-GB');
+
+  // Leaderboard: a top 10 for each farm, arcade style. Each entry's code is replayed by a
+  // scheduled check (leaderboard/verify.js) before it counts, so scores can't be faked.
+  const LEADERBOARD = 'https://array-acres-leaderboard.long-tree-e1ed.workers.dev';
+  let lbEntry = null;
+  async function showLeaderboard(score) {
+    const sec = $('lbSection');
+    sec.hidden = !farm || !!farm.crows;
+    $('lbEnter').hidden = true; $('lbMsg').textContent = ''; $('lbList').replaceChildren();
+    if (sec.hidden) return;
+    lbEntry = { farm: farm.id, score, code: compiledSrc };
+    try {
+      const board = await loadBoard(farm.id);
+      const full = board.entries.length >= 10, lowest = full ? Math.min(...board.entries.map(e => e.score)) : -1;
+      const makes = score > 0 && (!full || score > lowest);
+      $('lbEnter').hidden = !makes;
+      if (!makes) $('lbMsg').textContent = `${score} doesn’t make the top 10 this time.`;
+    } catch (e) {
+      $('lbMsg').textContent = 'The leaderboard can’t be reached right now.';
+    }
+  }
+  async function loadBoard(farmId) {
+    const res = await fetch(`${LEADERBOARD}/board?farm=${encodeURIComponent(farmId)}`);
+    if (!res.ok) throw new Error(res.status);
+    const board = await res.json();
+    const row = (cells, cls) => { const li = document.createElement('li'); if (cls) li.className = cls; cells.forEach(t => { const s = document.createElement('span'); s.textContent = t; li.append(s); }); return li; };
+    const rows = board.entries.map((e, i) => row([`${i + 1}.`, e.initials, e.score]));
+    board.pending.forEach(e => rows.push(row(['', e.initials, `${e.score}, checking`], 'checking')));
+    if (!rows.length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = 'No scores yet. Be the first!'; rows.push(li); }
+    $('lbList').replaceChildren(...rows);
+    return board;
+  }
+  $('lbInitials').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3); });
+  $('lbInitials').addEventListener('keydown', e => { if (e.key === 'Enter') $('lbSubmit').click(); });
+  $('lbSubmit').addEventListener('click', async () => {
+    const initials = $('lbInitials').value;
+    if (!/^[A-Z]{3}$/.test(initials)) { $('lbMsg').textContent = 'Initials are three letters, like an arcade high score.'; return; }
+    $('lbSubmit').disabled = true;
+    try {
+      const res = await fetch(`${LEADERBOARD}/submit`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...lbEntry, initials }) });
+      const body = await res.json();
+      if (res.ok) {
+        $('lbEnter').hidden = true;
+        $('lbMsg').textContent = `Thanks, ${initials}! Your score is being checked, and appears on the board within about 15 minutes.`;
+        loadBoard(lbEntry.farm).catch(() => {});
+      } else {
+        $('lbMsg').textContent = {
+          'initials-not-allowed': 'Please choose different initials.',
+          'not-high-enough': `${initials} already has a score at least this high on this farm.`,
+          'busy': 'Lots of scores are waiting to be checked. Please try again in a few minutes.',
+        }[body.error] || 'Your score couldn’t be entered. Please try again.';
+      }
+    } catch (e) {
+      $('lbMsg').textContent = 'The leaderboard can’t be reached right now.';
+    }
+    $('lbSubmit').disabled = false;
+  });
 
   function showReport(result) {
     const cmp = $('compare');
