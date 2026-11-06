@@ -347,27 +347,27 @@ test('field guide snippets can be shown on the field and put in your code', asyn
   await page.click('#openGuide');
 
   // Show me marks what the snippet picks, without touching your code.
-  await page.getByRole('button', { name: 'Show what ⍵≤1 would harvest today' }).click();
+  await page.getByRole('button', { name: 'Show what ⍵≤Sprout would harvest today' }).click();
   await expect(field).toHaveAttribute('data-preview', 'example');
-  await expect(note).toHaveText(/^Showing what ⍵≤1 would harvest today: \d+ plots?\. Back to your code$/);
+  await expect(note).toHaveText(/^Showing what ⍵≤Sprout would harvest today: \d+ plots?\. Back to your code$/);
   await expect(code).toHaveValue('Harvest←{⍵≥3}');
 
   // Back to your code, or pressing Show me again, returns to your own preview.
   await page.getByRole('button', { name: 'Back to your code' }).click();
   await expect(field).toHaveAttribute('data-preview', 'live');
-  await page.getByRole('button', { name: 'Show what ⍵=4 would harvest today' }).click();
-  await page.getByRole('button', { name: 'Show what ⍵=4 would harvest today' }).click();
+  await page.getByRole('button', { name: 'Show what ⍵=Rotten would harvest today' }).click();
+  await page.getByRole('button', { name: 'Show what ⍵=Rotten would harvest today' }).click();
   await expect(note).toBeHidden();
 
   // A new day returns to your preview too.
-  await page.getByRole('button', { name: 'Show what ⍵≠0 would harvest today' }).click();
+  await page.getByRole('button', { name: 'Show what ⍵≠Seed would harvest today' }).click();
   await page.click('#step');
   await expect(field).toHaveAttribute('data-preview', 'live');
 
   // Use puts the snippet in your code at the cursor, selected.
   await code.evaluate(el => { el.setSelectionRange(9, 12); });
-  await page.getByRole('button', { name: 'Add ⍵≠0 to your code' }).click();
-  await expect(code).toHaveValue('Harvest←{⍵≠0}');
-  expect(await code.evaluate(el => el.value.slice(el.selectionStart, el.selectionEnd))).toBe('⍵≠0');
+  await page.getByRole('button', { name: 'Add ⍵≠Seed to your code' }).click();
+  await expect(code).toHaveValue('Harvest←{⍵≠Seed}');
+  expect(await code.evaluate(el => el.value.slice(el.selectionStart, el.selectionEnd))).toBe('⍵≠Seed');
   await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
 });
