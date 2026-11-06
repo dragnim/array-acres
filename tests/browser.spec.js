@@ -129,11 +129,11 @@ test('medals unlock farms, symbols and helpers, and bests survive a reload', asy
   await expect(page.locator('#cmpThis')).toHaveText('1213');
   await expect(page.locator('#cmpStatus')).toHaveText('Your first result on this farm.');
   await expect(page.locator('#cmpTier')).toHaveText('You reached Bronze. Silver is 1350.');
-  await expect(unlock).toHaveText('Unlocked: ∧ ∨ ~, the BumperCrops helper and Bramley Farm. See the field guide.');
-  // The field guide button shows New until the guide is opened, here from the report's link.
+  await expect(unlock).toHaveText('Unlocked: ∧ ∨ ~, the BumperCrops helper and Bramley Farm. See the farming guide.');
+  // The farming guide button shows New until the guide is opened, here from the report's link.
   await expect(page.locator('#guideNew')).toBeVisible();
-  await unlock.getByRole('button', { name: 'See the field guide' }).click();
-  await expect(page.locator('#panelTitle')).toHaveText('Field guide');
+  await unlock.getByRole('button', { name: 'See the farming guide' }).click();
+  await expect(page.locator('#panelTitle')).toHaveText('Farming guide');
   await expect(page.locator('#guideNew')).toBeHidden();
   await expect(page.locator('.tier[data-tier="bronze"]')).toHaveAttribute('data-earned', 'true');
   await expect(page.locator('#farm option[value="bramley-farm"]')).toBeEnabled();
@@ -155,12 +155,12 @@ test('medals unlock farms, symbols and helpers, and bests survive a reload', asy
   await page.selectOption('#speed', '30');
   await playSeason('Harvest←{(⍵=4)∨BumperCrops ⍵}');
   await expect(page.locator('#cmpTier')).toHaveText('You reached Silver. Gold is 2100.');
-  await expect(unlock).toHaveText('Unlocked: the Promising helper and Nuthanger Farm. See the field guide.');
+  await expect(unlock).toHaveText('Unlocked: the Promising helper and Nuthanger Farm. See the farming guide.');
 
   // Gold with the helpers, which unlocks everything else.
   await playSeason('Harvest←{(⍵=4)∨(BumperCrops ⍵)∨(⍵=3)∧~Promising ⍵}');
   await expect(page.locator('#cmpTier')).toHaveText('Gold reached! You’ve found a powerful strategy. Can you do even better?');
-  await expect(unlock).toHaveText('Unlocked: every symbol, the Squares helper and the helpers’ source code. See the field guide.');
+  await expect(unlock).toHaveText('Unlocked: every symbol, the Squares helper and the helpers’ source code. See the farming guide.');
   await expect(page.locator('.tier[data-earned="true"]')).toHaveCount(3);
 
   // Practice Farm keeps no bests.
@@ -322,7 +322,7 @@ test('How to play opens on a first visit, and the side panel switches and closes
   await expect(panel).toBeHidden();
 
   await page.click('#openGuide');
-  await expect(title).toHaveText('Field guide');
+  await expect(title).toHaveText('Farming guide');
   await expect(page.locator('#openGuide')).toHaveAttribute('aria-expanded', 'true');
   await page.click('#openHelp');
   await expect(title).toHaveText('How to play');
@@ -348,7 +348,7 @@ test('How to play opens on a first visit, and the side panel switches and closes
   await page.close();
 });
 
-test('field guide snippets can be shown on the field and put in your code', async ({ page }) => {
+test('farming guide snippets can be shown on the field and put in your code', async ({ page }) => {
   const field = page.locator('#field'), note = page.locator('#exampleNote'), code = page.locator('#code');
   await code.fill('Harvest←{⍵≥3}');
   await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
