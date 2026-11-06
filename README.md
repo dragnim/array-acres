@@ -26,7 +26,7 @@ A season is 100 days. There are three farms, Manor, Bramley and Nuthanger, each 
 
 Medals unlock the game. A new player starts on Manor Farm with only `⍵` and the comparisons `= ≠ < > ≤ ≥`. Bronze on Manor Farm unlocks `∧ ∨ ~`, the `BumperCrops` helper and Bramley Farm. Silver on Bramley Farm unlocks the `Promising` helper and Nuthanger Farm. Gold on any farm unlocks every symbol and the helpers' APL source, so players can see how they work and write better ones. Practice Farm always has everything.
 
-Unlocks are worked out from personal bests, so there's nothing extra to save, and the in-game field guide explains each tool with a small example as it unlocks.
+Unlocks are worked out from personal bests, so there's nothing extra to save, and the in-game farming guide explains each tool with a small example as it unlocks.
 
 ## Tests
 
