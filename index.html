@@ -154,7 +154,7 @@ button.link { font: inherit; font-weight: inherit; background: none; border: 0; 
 .stat strong { font-size: 1.45rem; font-weight: 600; }
 .legend { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: 14px; font-size: 0.9rem; color: var(--muted); }
 .legend div { display: flex; align-items: center; gap: 6px; }
-.legend canvas { width: 28px; height: 28px; border-radius: 5px; background: var(--soil-2); }
+.legend canvas { width: 40px; height: 40px; border-radius: 6px; background: var(--soil-2); }
 .legend code { font-family: var(--mono); color: var(--ink); font-weight: 600; }
 .rules { margin: 0; padding-left: 1.3em; font-size: 0.92rem; color: var(--muted); max-width: 62ch; }
 .rules li { margin: 4px 0; }
@@ -172,7 +172,7 @@ p code, li code { font-family: var(--mono); font-size: 0.95em; color: var(--ink)
 #diag { margin-top: 8px; min-height: 1.4em; font: 0.88rem/1.4 var(--mono); color: var(--error); white-space: pre-wrap; }
 textarea {
   width: 100%;
-  min-height: 580px;
+  min-height: 420px;
   resize: vertical;
   font: 16px/1.5 var(--mono);
   background: var(--code-bg);
@@ -238,7 +238,7 @@ textarea {
 .controls button:hover, .controls select:hover { border-color: var(--muted); }
 .controls button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; min-width: 5.5em; }
 :focus-visible { outline: 3px solid var(--ripe); outline-offset: 2px; }
-.speed { margin-left: auto; display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.9rem; }
+.speed { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.95rem; }
 #msg { margin-top: 12px; min-height: 1.5em; font-size: 0.95rem; }
 #msg.error { color: var(--error); font-family: var(--mono); white-space: pre-wrap; }
 .report-stats { display: flex; flex-wrap: wrap; gap: 8px 32px; font-variant-numeric: tabular-nums; }
@@ -246,6 +246,9 @@ textarea {
 .farm-bar label { font-weight: 600; }
 .farm-bar select { max-width: 15em; font: inherit; font-size: 0.95rem; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 7px 12px; }
 .farm-bar span { color: var(--muted); font-size: 0.9rem; }
+.farm-bar button { font: inherit; font-size: 0.95rem; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 7px 12px; cursor: pointer; }
+.farm-bar button:hover { border-color: var(--muted); }
+.farm-bar button[hidden] { display: none; }
 .weather { display: inline-flex; gap: 6px; }
 .farm-bar .weather span { font-size: 0.85rem; font-variant-numeric: tabular-nums; color: var(--ink); background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; }
 .targets { display: inline-flex; flex-wrap: wrap; gap: 6px; }
@@ -286,6 +289,7 @@ textarea {
       </select>
       <span class="weather" id="weather" aria-label="Weather"></span>
       <span class="targets" id="targets" aria-label="Targets"></span>
+      <button type="button" id="newField" hidden>New field</button>
       <span id="farmInfo"></span>
     </div>
     <div class="panel-buttons">
@@ -309,20 +313,6 @@ textarea {
         <div class="stat"><span>Wasted</span><strong id="sWasted">0</strong></div>
         <div class="stat"><span id="bestLabel">Personal best</span><strong id="sBest">–</strong></div>
       </div>
-      <div class="controls">
-        <button class="primary" id="run">Play season</button>
-        <button id="step">Next day</button>
-        <button id="restart">Restart</button>
-        <button id="newField">New field</button>
-        <label class="speed">Speed
-          <select id="speed">
-            <option value="400">Slow</option>
-            <option value="150" selected>Normal</option>
-            <option value="30">Fast</option>
-          </select>
-        </label>
-      </div>
-      <div id="msg" role="status"></div>
       <div class="legend" id="legend"></div>
     </section>
 
@@ -337,6 +327,19 @@ textarea {
       <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
       <div class="glyphs" id="glyphs" aria-label="APL symbols"></div>
       <div id="diag" aria-live="polite"></div>
+      <div class="controls">
+        <button class="primary" id="run">Play season</button>
+        <button id="step">Next day</button>
+        <button id="restart">Restart</button>
+        <label class="speed">Speed
+          <select id="speed">
+            <option value="400">Slow</option>
+            <option value="150" selected>Normal</option>
+            <option value="30">Fast</option>
+          </select>
+        </label>
+      </div>
+      <div id="msg" role="status"></div>
       <p class="hint">Type symbols with the bar or a backtick prefix, so <kbd>`w</kbd> gives <kbd>⍵</kbd>. Hover a symbol to see its name and key. Dashed outlines preview what <code>Harvest</code> would pick today, without using up a day. Ctrl+Enter or ⌘+Enter moves to the next day. Tab indents; press Esc then Tab to leave the editor.</p>
     </section>
   </main>
@@ -1489,6 +1492,7 @@ Harvest←{0}
     rain.textContent = `Rainfall ${pct(w.rainfall)}`; rain.title = `Each ripe plant left unharvested has a ${pct(w.rainfall)} chance to rot overnight`;
     $('weather').replaceChildren(sun, rain);
     $('newField').disabled = !!farm;
+    $('newField').hidden = !!farm;
     $('bestLabel').textContent = farm ? 'Personal best' : 'Best on this field';
     $('farmInfo').textContent = farm ? '' : 'A new random field each time, with every symbol and helper unlocked.';
     renderRules();
@@ -1848,10 +1852,10 @@ Harvest←{0}
       const item = document.createElement('div');
       const c = document.createElement('canvas');
       const dpr = window.devicePixelRatio || 1;
-      c.width = 28 * dpr; c.height = 28 * dpr;
+      c.width = 40 * dpr; c.height = 40 * dpr;
       c.setAttribute('aria-hidden', 'true');
       const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
-      drawPlot(x, 0, 0, 28, v, marked, previewed, bare);
+      drawPlot(x, 0, 0, 40, v, marked, previewed, bare);
       const label = document.createElement('span');
       label.innerHTML = html;
       item.append(c, label);
@@ -1860,10 +1864,10 @@ Harvest←{0}
     STAGE_NAMES.forEach((name, v) => add(`<code>${name}</code> ${v}`, v, 0, null));
     {
       const item = document.createElement('div'), c = document.createElement('canvas'), dpr = window.devicePixelRatio || 1;
-      c.width = 28 * dpr; c.height = 28 * dpr;
+      c.width = 40 * dpr; c.height = 40 * dpr;
       c.setAttribute('aria-hidden', 'true');
       const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const s = 13, gap = 2, at = i => i * (s + gap);
+      const s = 19, gap = 2, at = i => i * (s + gap);
       for (let r = 0; r < 2; r++) for (let k = 0; k < 2; k++) drawPlot(x, at(k), at(r), s, RIPE, 0, null, true);
       drawGiants(x, [[0, 0]], [[0, 0]], at, s, gap);
       const label = document.createElement('span');
