@@ -6,11 +6,16 @@
 //
 // Storage (Workers KV, bound as LB):
 //   board:<ruleset>:<farm>  { entries: [{ initials, score, date }], pending: [{ id, initials, score, date }] }
-//   pending:<id>            { id, ruleset, farm, initials, score, code, date }
+//   pending:<id>            { id, ruleset, farm, version, initials, score, code, date }
+// Experimental farms' boards have a version on the end of their key, so a new version starts fresh.
 // Secret: LEADERBOARD_TOKEN, shared with the GitHub job, for /pending and /verify.
 
 export const RULESET = 'v2';
-export const FARMS = ['middlebourne-farm', 'sunnyhill-farm', 'marshgate-farm'];
+export const FARMS = ['middlebourne-farm', 'sunnyhill-farm', 'marshgate-farm', 'crowhurst-farm'];
+// Experimental farms have versioned boards. When an experiment's rules change, bump its number
+// here and its boardVersion in the game's farm list, and its board starts fresh.
+export const VERSIONS = { 'crowhurst-farm': 1 };
+const versionOf = farm => VERSIONS[farm] || 0;
 export const SIZE = 10;
 const MAX_PENDING = 20, MAX_CODE = 4000;
 
@@ -34,10 +39,11 @@ export function qualifies(board, initials, score) {
   return others.length < SIZE || score > Math.min(...others.map(e => e.score));
 }
 
+const boardKey = farm => `board:${RULESET}:${farm}${versionOf(farm) ? `:${versionOf(farm)}` : ''}`;
 async function getBoard(env, farm) {
-  return (await env.LB.get(`board:${RULESET}:${farm}`, 'json')) || { entries: [], pending: [] };
+  return (await env.LB.get(boardKey(farm), 'json')) || { entries: [], pending: [] };
 }
-const putBoard = (env, farm, board) => env.LB.put(`board:${RULESET}:${farm}`, JSON.stringify(board));
+const putBoard = (env, farm, board) => env.LB.put(boardKey(farm), JSON.stringify(board));
 
 function authorised(request, env) {
   const got = request.headers.get('authorization') || '', want = `Bearer ${env.LEADERBOARD_TOKEN || ''}`;
@@ -57,7 +63,7 @@ export default {
       const farm = url.searchParams.get('farm');
       if (!FARMS.includes(farm)) return json({ error: 'unknown-farm' }, 400);
       const b = await getBoard(env, farm);
-      return json({ ruleset: RULESET, farm, entries: b.entries, pending: b.pending.map(({ initials, score, date }) => ({ initials, score, date })) });
+      return json({ ruleset: RULESET, farm, version: versionOf(farm), entries: b.entries, pending: b.pending.map(({ initials, score, date }) => ({ initials, score, date })) });
     }
 
     // A player's score and the code that earned it, waiting to be checked.
@@ -70,10 +76,12 @@ export default {
       if (BLOCKED.has(initials)) return json({ error: 'initials-not-allowed' }, 400);
       if (!Number.isInteger(score) || score < 0 || score > 100000) return json({ error: 'bad-score' }, 400);
       if (typeof code !== 'string' || !code.length || code.length > MAX_CODE) return json({ error: 'bad-code' }, 400);
+      const version = Number(body.version || 0);
+      if (version !== versionOf(farm)) return json({ error: 'outdated' }, 409);
       const board = await getBoard(env, farm);
       if (!qualifies(board, initials, score)) return json({ error: 'not-high-enough' }, 409);
       if (board.pending.length >= MAX_PENDING) return json({ error: 'busy' }, 503);
-      const entry = { id: crypto.randomUUID(), ruleset: RULESET, farm, initials, score, code, date: new Date().toISOString() };
+      const entry = { id: crypto.randomUUID(), ruleset: RULESET, farm, version, initials, score, code, date: new Date().toISOString() };
       await env.LB.put(`pending:${entry.id}`, JSON.stringify(entry));
       board.pending.push({ id: entry.id, initials, score, date: entry.date });
       await putBoard(env, farm, board);
@@ -99,7 +107,7 @@ export default {
       if (!entry) return json({ error: 'unknown-entry' }, 404);
       const board = await getBoard(env, entry.farm);
       board.pending = board.pending.filter(p => p.id !== id);
-      const accepted = score === entry.score;
+      const accepted = score === entry.score && (entry.version || 0) === versionOf(entry.farm);
       if (accepted && qualifies(board, entry.initials, entry.score)) {
         board.entries = rank([...board.entries.filter(e => e.initials !== entry.initials), { initials: entry.initials, score: entry.score, date: entry.date }]);
       }
