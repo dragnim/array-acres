@@ -299,7 +299,7 @@ textarea {
     <div class="panel-buttons">
       <button type="button" id="openAbout" aria-controls="panel" aria-expanded="false">What is APL?</button>
       <button type="button" id="openHelp" aria-controls="panel" aria-expanded="false">How to play</button>
-      <button type="button" id="openGuide" aria-controls="panel" aria-expanded="false">Field guide<span class="new-badge" id="guideNew" hidden>New</span></button>
+      <button type="button" id="openGuide" aria-controls="panel" aria-expanded="false">Farming guide<span class="new-badge" id="guideNew" hidden>New</span></button>
     </div>
   </header>
 
@@ -351,7 +351,7 @@ textarea {
     </section>
   </main>
 
-  <!-- How to play, the field guide and the season report share one side panel. -->
+  <!-- How to play, the farming guide and the season report share one side panel. -->
   <aside class="panel" id="panel" hidden aria-labelledby="panelTitle">
     <div class="panel-head">
       <h2 id="panelTitle" tabindex="-1"></h2>
@@ -1370,7 +1370,7 @@ Harvest←{0}
     render();
   }
 
-  // A field guide snippet shown on the field instead of the preview, until the code or field changes.
+  // A farming guide snippet shown on the field instead of the preview, until the code or field changes.
   let example = null;
   function showExample(code) {
     if (example && example.code === code) { clearExample(); return; }
@@ -1512,7 +1512,7 @@ Harvest←{0}
 
   farmEl.addEventListener('change', () => { stop(); chooseFarm(farmEl.value); reset(); setMsg(''); });
 
-  // Progression: locked farms, locked symbols, and the field guide.
+  // Progression: locked farms, locked symbols, and the farming guide.
   function describeUnlock(u) {
     const parts = [];
     if (u.source) parts.push('every symbol');
@@ -2001,7 +2001,7 @@ Harvest←{0}
       $('cmpUnlock').hidden = !un.length;
       if (un.length) {
         const go = document.createElement('button');
-        go.type = 'button'; go.className = 'link'; go.textContent = 'See the field guide';
+        go.type = 'button'; go.className = 'link'; go.textContent = 'See the farming guide';
         go.addEventListener('click', () => openPanel('guide'));
         $('cmpUnlock').replaceChildren(rich(`Unlocked: ${listText(un.flatMap(describeUnlock))}. `), go, '.');
       } else $('cmpUnlock').replaceChildren();
@@ -2020,12 +2020,12 @@ Harvest←{0}
     reportEl.hidden = true;
   }
 
-  // The side panel: How to play, the field guide or the season report, one at a time.
+  // The side panel: How to play, the farming guide or the season report, one at a time.
   const panelEl = $('panel'), panelTitle = $('panelTitle');
   const PANELS = {
     about: { el: $('pAbout'), title: 'What is APL?', button: $('openAbout') },
     help: { el: $('pHelp'), title: 'How to play', button: $('openHelp') },
-    guide: { el: $('pGuide'), title: 'Field guide', button: $('openGuide') },
+    guide: { el: $('pGuide'), title: 'Farming guide', button: $('openGuide') },
     report: { el: reportEl, title: 'Season complete', button: null },
   };
   let panelOpen = null, panelReturn = null;
@@ -2059,7 +2059,7 @@ Harvest←{0}
   // Esc closes the panel, except in the editor, where Esc is how you Tab out of it.
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && panelOpen && e.target !== codeEl) closePanel(); });
 
-  // A "New" badge on the field guide button until the guide is opened after an unlock.
+  // A "New" badge on the farming guide button until the guide is opened after an unlock.
   function setGuideNew(on) {
     $('guideNew').hidden = !on;
     try { localStorage.setItem('acres:guide-new', on ? '1' : '0'); } catch (e) {}
