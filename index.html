@@ -1061,11 +1061,11 @@ const AcresCore = (() => {
   const farm = (id, name, sunshine, rainfall, seed, bronze, silver, gold) =>
     Object.freeze({ id, name, sunshine, rainfall, seed, rules: RULES.id, targets: Object.freeze({ bronze, silver, gold }) });
   const FARMS = Object.freeze([
-    farm('manor-farm', 'Manor Farm', 0.55, 0.20, 16574467, 1200, 1350, 1500),
-    farm('bramley-farm', 'Bramley Farm', 0.65, 0.15, 14879801, 1450, 1750, 2100),
-    farm('nuthanger-farm', 'Nuthanger Farm', 0.50, 0.25, 17057526, 1050, 1150, 1200),
+    farm('middlebourne-farm', 'Middlebourne Farm', 0.55, 0.20, 16574467, 1200, 1350, 1500),
+    farm('sunnyhill-farm', 'Sunnyhill Farm', 0.65, 0.15, 14879801, 1450, 1750, 2100),
+    farm('marshgate-farm', 'Marshgate Farm', 0.50, 0.25, 17057526, 1050, 1150, 1200),
   ]);
-  // Practice Farm: Manor Farm's weather on a new random field each time, with no targets.
+  // Practice Farm: Middlebourne Farm's weather on a new random field each time, with no targets.
   const PRACTICE = Object.freeze({ id: 'practice', name: 'Practice Farm', sunshine: 0.55, rainfall: 0.20 });
   const TIERS = Object.freeze(['bronze', 'silver', 'gold']);
   // The highest target a score reaches, or null.
@@ -1126,9 +1126,9 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   // bests, so there's nothing extra to save. Practice Farm always has everything.
   const ALL_GLYPHS = '+-×÷⌈⌊|*=≠<>≤≥∧∨~⍴⍳,⍪⌽⊖⍉↑↓⊢⊣≢≡⊃∊⍸⍋⍒/⌿\\⍀¨⍨∘.⍺∇';
   const UNLOCKS = Object.freeze([
-    Object.freeze({ id: 'start', farm: null, tier: null, glyphs: '=≠<>≤≥', helpers: [], farms: ['manor-farm'], source: false }),
-    Object.freeze({ id: 'manor-bronze', farm: 'manor-farm', tier: 'bronze', glyphs: '∧∨~', helpers: ['BumperCrops'], farms: ['bramley-farm'], source: false }),
-    Object.freeze({ id: 'bramley-silver', farm: 'bramley-farm', tier: 'silver', glyphs: '', helpers: ['Promising'], farms: ['nuthanger-farm'], source: false }),
+    Object.freeze({ id: 'start', farm: null, tier: null, glyphs: '=≠<>≤≥', helpers: [], farms: ['middlebourne-farm'], source: false }),
+    Object.freeze({ id: 'middlebourne-bronze', farm: 'middlebourne-farm', tier: 'bronze', glyphs: '∧∨~', helpers: ['BumperCrops'], farms: ['sunnyhill-farm'], source: false }),
+    Object.freeze({ id: 'sunnyhill-silver', farm: 'sunnyhill-farm', tier: 'silver', glyphs: '', helpers: ['Promising'], farms: ['marshgate-farm'], source: false }),
     Object.freeze({ id: 'any-gold', farm: '*', tier: 'gold', glyphs: ALL_GLYPHS, helpers: ['Squares'], farms: [], source: true }),
   ]);
   const cap = t => t[0].toUpperCase() + t.slice(1);
@@ -1921,7 +1921,7 @@ Harvest←{0}
       `A harvested ripe plant scores 1. If it’s part of a 2×2 square of ripe plants that are all harvested that day, a bumper crop, it scores ${B} instead and is outlined in gold the next day. A plant in more than one such square still scores ${B}. Squares don’t wrap around the edges of the field.`,
       'Harvesting a sprout or a growing plant wastes it. Harvesting a seed or a rotten plant scores nothing, so clearing rot is free.',
       `Then the field grows overnight, depending on the farm’s weather. Sunshine: every seed, sprout and growing plant, including newly replanted seeds, has a ${pct(w.sunshine)} chance to grow one stage. Rainfall: every ripe plant left unharvested has a ${pct(w.rainfall)} chance to rot. Rotten plants stay until harvested. No plot changes by more than one stage a night.`,
-      'Every night, each plant still has the stated chance to grow or rot, but each farm’s starting field and luck are set: on any given night, each plot’s chance comes out the same way every time you play. So the same code always scores the same, and only a change to your code can change the result. Practice Farm has Manor Farm’s weather: Restart replays the same field and luck, and New field brings a new field with new luck.',
+      'Every night, each plant still has the stated chance to grow or rot, but each farm’s starting field and luck are set: on any given night, each plot’s chance comes out the same way every time you play. So the same code always scores the same, and only a change to your code can change the result. Practice Farm has Middlebourne Farm’s weather: Restart replays the same field and luck, and New field brings a new field with new luck.',
     ];
     $('rules').replaceChildren(...items.map(t => { const li = document.createElement('li'); li.append(rich(t)); return li; }));
   }
