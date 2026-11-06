@@ -401,7 +401,7 @@ test('Crowhurst Farm: scarecrows from Scare, a limit of two, and crows in the re
   await page.goto(PAGE);
   await page.selectOption('#farm', 'crowhurst-farm');
   await expect(page.locator('#weather')).toContainText('Crows 1 flock');
-  await expect(page.locator('#rules')).toContainText('Crows eat nothing within one plot of a scarecrow');
+  await expect(page.locator('#rules')).toContainText('trampling whatever grew there back to a seed, and crows eat nothing within one plot of it');
   const code = page.locator('#code'), status = page.locator('#status'), field = page.locator('#field');
 
   await code.fill('Harvest←{⍵≥Ripe}\nScare←{⍵≥0}');
