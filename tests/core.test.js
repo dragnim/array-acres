@@ -151,10 +151,10 @@ for (const [label, field, want] of fixed) check(`hybrid mask: ${label}`, AcresCo
   check('farms: three farms with unique ids, all on rules v2 and fixed',
     [ids.length, new Set(ids).size, FARMS.every(f => f.rules === RULES.id && Object.isFrozen(f))], [3, 3, true]);
   check('farms: each has its own weather', new Set(FARMS.map(f => `${f.sunshine}/${f.rainfall}`)).size, 3);
-  check('farms: Practice Farm has Manor Farm’s weather', [PRACTICE.sunshine, PRACTICE.rainfall], [FARMS[0].sunshine, FARMS[0].rainfall]);
+  check('farms: Practice Farm has Middlebourne Farm’s weather', [PRACTICE.sunshine, PRACTICE.rainfall], [FARMS[0].sunshine, FARMS[0].rainfall]);
   const onFarm = (src, f) => season(src, f.seed, null, f);
   // Pinned results: if these move, the farms have changed and old personal bests no longer compare.
-  const pinned = { 'manor-farm': [1213, 1533], 'bramley-farm': [1465, 2132], 'nuthanger-farm': [1093, 1238] };
+  const pinned = { 'middlebourne-farm': [1213, 1533], 'sunnyhill-farm': [1465, 2132], 'marshgate-farm': [1093, 1238] };
   for (const f of FARMS)
     check(`farm ${f.id}: greedy and hybrid scores`, [onFarm(GREEDY, f), onFarm(HYBRID, f)], pinned[f.id]);
 
@@ -172,8 +172,8 @@ for (const [label, field, want] of fixed) check(`hybrid mask: ${label}`, AcresCo
   ripe←⍵=3
   (⍵=4)∨(Blocks ripe)∨ripe∧~Blocks ⍵∊2 3
 }`;
-  // Waiting only for bumper crops pays off in Bramley Farm's sunshine, but not on the other farms.
-  const blocksOnly = { 'manor-farm': null, 'bramley-farm': 'silver', 'nuthanger-farm': null };
+  // Waiting only for bumper crops pays off in Sunnyhill Farm's sunshine, but not on the other farms.
+  const blocksOnly = { 'middlebourne-farm': null, 'sunnyhill-farm': 'silver', 'marshgate-farm': null };
   for (const f of FARMS) {
     const t = f.targets, tier = src => AcresCore.tierFor(f, onFarm(src, f));
     check(`targets ${f.id}: fixed and rising`, [Object.isFrozen(t), t.bronze < t.silver && t.silver < t.gold], [true, true]);
@@ -185,15 +185,15 @@ for (const [label, field, want] of fixed) check(`hybrid mask: ${label}`, AcresCo
     [AcresCore.tierFor(mf, mf.targets.bronze - 1), AcresCore.tierFor(mf, mf.targets.bronze), AcresCore.tierFor(mf, mf.targets.gold)], [null, 'bronze', 'gold']);
 
   const e = (farm, score, ruleset = 'v2') => ({ ruleset, farm, seed: 1, score });
-  let r = AcresCore.recordBest({}, e('manor-farm', 1200));
-  check('bests: a first result is recorded', [r.improved, r.previous, r.bests['v2:manor-farm'].score], [true, null, 1200]);
-  const after = AcresCore.recordBest(r.bests, e('manor-farm', 1300));
-  check('bests: a higher score replaces the best', [after.improved, after.previous.score, after.bests['v2:manor-farm'].score], [true, 1200, 1300]);
-  const lower = AcresCore.recordBest(after.bests, e('manor-farm', 1250)), equal = AcresCore.recordBest(after.bests, e('manor-farm', 1300));
+  let r = AcresCore.recordBest({}, e('middlebourne-farm', 1200));
+  check('bests: a first result is recorded', [r.improved, r.previous, r.bests['v2:middlebourne-farm'].score], [true, null, 1200]);
+  const after = AcresCore.recordBest(r.bests, e('middlebourne-farm', 1300));
+  check('bests: a higher score replaces the best', [after.improved, after.previous.score, after.bests['v2:middlebourne-farm'].score], [true, 1200, 1300]);
+  const lower = AcresCore.recordBest(after.bests, e('middlebourne-farm', 1250)), equal = AcresCore.recordBest(after.bests, e('middlebourne-farm', 1300));
   check('bests: a lower or equal score leaves the best alone', [lower.improved, lower.bests === after.bests, equal.improved, equal.bests === after.bests], [false, true, false, true]);
-  const other = AcresCore.recordBest(after.bests, e('bramley-farm', 900)), v3 = AcresCore.recordBest(after.bests, e('manor-farm', 100, 'v3'));
+  const other = AcresCore.recordBest(after.bests, e('sunnyhill-farm', 900)), v3 = AcresCore.recordBest(after.bests, e('middlebourne-farm', 100, 'v3'));
   check('bests: kept separately per farm and per ruleset',
-    [other.improved, other.bests['v2:manor-farm'].score, v3.improved, v3.bests['v2:manor-farm'].score], [true, 1300, true, 1300]);
+    [other.improved, other.bests['v2:middlebourne-farm'].score, v3.improved, v3.bests['v2:middlebourne-farm'].score], [true, 1300, true, 1300]);
 }
 
 // 7. Bumper crops: ripe 2×2 squares for drawing, overlapping squares included
@@ -259,32 +259,32 @@ check('bumper crops: a square with a rotten or growing plant is not a bumper cro
     catch (e) { return e.message; }
   };
   const p0 = AcresCore.progress({});
-  check('progress: a new player has Manor Farm and the comparisons only',
-    [p0.earned, [...p0.glyphs].join(''), [...p0.helpers], [...p0.farms], p0.source], [['start'], '=≠<>≤≥', [], ['manor-farm'], false]);
-  check('locks: a locked symbol says what unlocks it', msg('Harvest←{(⍵=3)∨⍵=4}', p0), 'LOCKED: ∨ unlocks with Bronze on Manor Farm');
-  check('locks: a locked helper says what unlocks it', msg('Harvest←{BumperCrops ⍵}', p0), 'LOCKED: BumperCrops unlocks with Bronze on Manor Farm');
+  check('progress: a new player has Middlebourne Farm and the comparisons only',
+    [p0.earned, [...p0.glyphs].join(''), [...p0.helpers], [...p0.farms], p0.source], [['start'], '=≠<>≤≥', [], ['middlebourne-farm'], false]);
+  check('locks: a locked symbol says what unlocks it', msg('Harvest←{(⍵=3)∨⍵=4}', p0), 'LOCKED: ∨ unlocks with Bronze on Middlebourne Farm');
+  check('locks: a locked helper says what unlocks it', msg('Harvest←{BumperCrops ⍵}', p0), 'LOCKED: BumperCrops unlocks with Bronze on Middlebourne Farm');
   check('locks: symbols in comments don’t count', msg('⍝ try ∨ later\nHarvest←{⍵=3}', p0), 'ok');
   check('locks: players can still define their own names', msg('BumperCrops←{⍵=3}\nHarvest←{BumperCrops ⍵}', p0), 'ok');
 
   // The intended journey, step by step.
-  const s1 = play('Harvest←{⍵=3}', F['manor-farm'], p0);
-  check('journey: harvesting ripe plants on Manor Farm reaches Bronze', [s1, AcresCore.tierFor(F['manor-farm'], s1)], [1213, 'bronze']);
-  const p1 = AcresCore.progress({ 'v2:manor-farm': { score: s1 } });
-  check('journey: Bronze on Manor Farm unlocks ∧ ∨ ~, BumperCrops and Bramley Farm',
-    [p1.earned, [...p1.glyphs].includes('∨'), [...p1.helpers], [...p1.farms]], [['start', 'manor-bronze'], true, ['BumperCrops'], ['manor-farm', 'bramley-farm']]);
-  const s2 = play('Harvest←{(⍵=4)∨BumperCrops ⍵}', F['bramley-farm'], p1);
-  check('journey: harvesting only bumper crops on Bramley Farm reaches Silver', [s2, AcresCore.tierFor(F['bramley-farm'], s2)], [1995, 'silver']);
-  const p2 = AcresCore.progress({ 'v2:manor-farm': { score: s1 }, 'v2:bramley-farm': { score: s2 } });
-  check('journey: Silver on Bramley Farm unlocks Promising and Nuthanger Farm',
-    [p2.earned.includes('bramley-silver'), [...p2.helpers], p2.farms.has('nuthanger-farm')], [true, ['BumperCrops', 'Promising'], true]);
+  const s1 = play('Harvest←{⍵=3}', F['middlebourne-farm'], p0);
+  check('journey: harvesting ripe plants on Middlebourne Farm reaches Bronze', [s1, AcresCore.tierFor(F['middlebourne-farm'], s1)], [1213, 'bronze']);
+  const p1 = AcresCore.progress({ 'v2:middlebourne-farm': { score: s1 } });
+  check('journey: Bronze on Middlebourne Farm unlocks ∧ ∨ ~, BumperCrops and Sunnyhill Farm',
+    [p1.earned, [...p1.glyphs].includes('∨'), [...p1.helpers], [...p1.farms]], [['start', 'middlebourne-bronze'], true, ['BumperCrops'], ['middlebourne-farm', 'sunnyhill-farm']]);
+  const s2 = play('Harvest←{(⍵=4)∨BumperCrops ⍵}', F['sunnyhill-farm'], p1);
+  check('journey: harvesting only bumper crops on Sunnyhill Farm reaches Silver', [s2, AcresCore.tierFor(F['sunnyhill-farm'], s2)], [1995, 'silver']);
+  const p2 = AcresCore.progress({ 'v2:middlebourne-farm': { score: s1 }, 'v2:sunnyhill-farm': { score: s2 } });
+  check('journey: Silver on Sunnyhill Farm unlocks Promising and Marshgate Farm',
+    [p2.earned.includes('sunnyhill-silver'), [...p2.helpers], p2.farms.has('marshgate-farm')], [true, ['BumperCrops', 'Promising'], true]);
   const smart = 'Harvest←{(⍵=4)∨(BumperCrops ⍵)∨(⍵=3)∧~Promising ⍵}';
   check('journey: the helpers reproduce the reference strategy and reach Gold on every farm',
     AcresCore.FARMS.map(f => { const sc = play(smart, f, p2); return [sc, AcresCore.tierFor(f, sc)]; }), [[1533, 'gold'], [2132, 'gold'], [1238, 'gold']]);
-  const p3 = AcresCore.progress({ 'v2:nuthanger-farm': { score: 1200 } });
+  const p3 = AcresCore.progress({ 'v2:marshgate-farm': { score: 1200 } });
   check('journey: Gold on any farm unlocks every symbol and the helpers’ source',
     [p3.earned.includes('any-gold'), p3.glyphs.has('↑'), p3.helpers.has('Squares'), p3.source], [true, true, true, true]);
 
-  const day1 = AcresCore.newSeason(F['manor-farm'].seed, F['manor-farm']).field;
+  const day1 = AcresCore.newSeason(F['middlebourne-farm'].seed, F['middlebourne-farm']).field;
   check('names: the stage names work from the start and mean their numbers',
     [msg('Harvest←{⍵≥Growing}', p0),
      JSON.stringify(AcresCore.evaluate('Harvest←{⍵=Ripe}', day1, p0).mask) === JSON.stringify(AcresCore.evaluate('Harvest←{⍵=3}', day1, p0).mask)], ['ok', true]);
