@@ -12,6 +12,7 @@ The images the game uses to draw the field: six for the plants, and two for Crow
 | `bumper-crop.webp` | A bumper crop, spanning a ripe 2×2 square of plots |
 | `crows.webp` | Crowhurst Farm: a plot the crows ate from last night |
 | `scarecrow.webp` | Crowhurst Farm: where `Scare` will stand a scarecrow tonight |
+| `share.jpg` | Not used in the game: the 1200×630 image shown when a link to it is shared |
 
 ## How they were made
 
