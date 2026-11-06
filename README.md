@@ -28,6 +28,10 @@ Medals unlock the game. A new player starts on Middlebourne Farm with only `⍵`
 
 Unlocks are worked out from personal bests, so there's nothing extra to save, and the in-game farming guide explains each tool with a small example as it unlocks.
 
+## Leaderboard
+
+Middlebourne, Sunnyhill and Marshgate each have a top 10. When a season's score makes it, the player enters three initials, arcade style, and the score and the code that earned it go to a small Cloudflare Worker (`leaderboard/worker.mjs`). Nothing counts until it's checked: every 15 minutes a GitHub Actions job (`leaderboard/verify.js`) replays each new entry's code with the game's own rules, and only a score the code really earns goes on the board. The job and the Worker share a secret, `LEADERBOARD_TOKEN`, set in the repository's Actions secrets and in the Worker's settings. Crowhurst has no board while its rules are still changing.
+
 ## Tests
 
 Core tests need only Node:
