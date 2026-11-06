@@ -1351,16 +1351,15 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   const STAGE_NAMES = AcresCore.STAGE_NAMES;
   const STORE_KEY = 'allotment:apl';
 
-  const DEFAULT_CODE = `⍝ ⍵ is today's field, one number per plot:
+  const DEFAULT_CODE = `⍝ Lines starting with ⍝ are notes:
+⍝ APL ignores them.
+
+⍝ ⍵ is today's field, one number per plot:
 ⍝   0 Seed  1 Sprout  2 Growing
 ⍝   3 Ripe  4 Rotten
-⍝ Use the names or the numbers:
-⍝ ⍵=Rotten means the same as ⍵=4.
-⍝ Give back 1 to harvest a plot,
-⍝ or 0 to leave it. These mean yes
-⍝ and no, not Sprout and Seed.
-⍝ A single 0 leaves every plot.
-⍝ Change it to start farming.
+⍝ Give back 1 to harvest a plot, or 0 to
+⍝ leave it: yes and no, not stages.
+⍝ Change the 0 below to start farming.
 
 Harvest←{0}
 `;
