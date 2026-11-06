@@ -13,7 +13,12 @@ const returning = async page => {
   await page.goto(PAGE);
   await page.evaluate(() => localStorage.setItem('acres:help-seen', '1'));
 };
-test.beforeEach(async ({ page }) => { await returning(page); });
+// The leaderboard is a real server; tests use a stand-in board instead.
+const LEADERBOARD = 'https://array-acres-leaderboard.long-tree-e1ed.workers.dev';
+test.beforeEach(async ({ page }) => {
+  await page.route(`${LEADERBOARD}/**`, route => route.fulfill({ json: { entries: [], pending: [] } }));
+  await returning(page);
+});
 
 test('preview and diagnostics follow the code and the field', async ({ page }) => {
   const errors = [];
@@ -450,4 +455,27 @@ test('G turns god mode on and off, unlocking every farm for testing', async ({ p
   await expect(badge).toBeHidden();
   await expect(crowhurst).toBeDisabled();
   await expect(page.locator('#farm')).toHaveValue('middlebourne-farm');
+});
+
+test('the leaderboard takes three initials from a top-10 score, and sends the code to be checked', async ({ page }) => {
+  let sent = null;
+  await page.route(`${LEADERBOARD}/**`, async route => {
+    const req = route.request();
+    if (req.method() === 'POST') { sent = req.postDataJSON(); return route.fulfill({ json: { status: 'checking' } }); }
+    return route.fulfill({ json: { entries: [{ initials: 'ACE', score: 1600, date: '2026-11-01' }], pending: [] } });
+  });
+  await page.goto(PAGE);
+  await page.selectOption('#speed', '30');
+  await page.locator('#code').fill('Harvest←{⍵≥Ripe}');
+  await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
+  await page.click('#run');
+  await expect(page.locator('#msg')).toHaveText(/^Season complete\./, { timeout: 30000 });
+  await expect(page.locator('#lbList li')).toHaveCount(1);
+  await expect(page.locator('#lbList')).toContainText('ACE');
+  await expect(page.locator('#lbEnter')).toBeVisible();
+  await page.locator('#lbInitials').pressSequentially('m1kx');
+  await expect(page.locator('#lbInitials')).toHaveValue('MKX');
+  await page.click('#lbSubmit');
+  await expect(page.locator('#lbMsg')).toContainText('Thanks, MKX!');
+  expect(sent).toEqual({ farm: 'middlebourne-farm', score: 1213, code: 'Harvest←{⍵≥Ripe}', initials: 'MKX' });
 });
