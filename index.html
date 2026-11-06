@@ -355,9 +355,9 @@ textarea {
   <section class="report" id="report" hidden>
     <div class="report-stats">
       <div class="stat"><span>Final score</span><strong id="rScore">0</strong></div>
-      <div class="stat"><span>Ripe plots lost to rot</span><strong id="rRot">0</strong></div>
-      <div class="stat"><span>Wasted plots</span><strong id="rWasted">0</strong></div>
-      <div class="stat"><span>Bonus plots</span><strong id="rBonus">0</strong></div>
+      <div class="stat"><span>Ripe plants lost to rot</span><strong id="rRot">0</strong></div>
+      <div class="stat"><span>Wasted plants</span><strong id="rWasted">0</strong></div>
+      <div class="stat"><span>Bumper crop plants</span><strong id="rBonus">0</strong></div>
     </div>
     <div class="compare" id="compare" hidden>
       <h3 id="cmpTitle"></h3>
@@ -1379,7 +1379,7 @@ Harvest←{0}
   }
 
   function step() {
-    if (state.day >= TICKS) { stop(); setMsg('Season over. Restart to play this field again.'); return false; }
+    if (state.day >= TICKS) { stop(); setMsg('Season complete. Restart to play this field again.'); return false; }
     if (dirty && !compile()) { stop(); return false; }
 
     let mask;
@@ -1407,7 +1407,7 @@ Harvest←{0}
       }
       updateStats();
       stop();
-      setMsg(`Season over. You scored ${state.score}.`);
+      setMsg(`Season complete. You scored ${state.score}.`);
       showReport(result);
       return false;
     }
@@ -1872,7 +1872,7 @@ Harvest←{0}
     cmp.hidden = !result;
     if (result) {
       const prev = result.previous, diff = prev ? state.score - prev.score : 0;
-      $('cmpTitle').textContent = `${farm.name}, rules ${RULES.id}`;
+      $('cmpTitle').textContent = farm.name;
       $('cmpPrev').textContent = prev ? prev.score : '–';
       $('cmpThis').textContent = state.score;
       $('cmpChange').textContent = !prev ? '–' : diff > 0 ? `+${diff}` : diff < 0 ? `−${-diff}` : '0';
@@ -2017,7 +2017,7 @@ Harvest←{0}
     const worst = h.reduce((a, d) => d.rotted > a.rotted ? d : a, h[0]);
     chartEl.setAttribute('aria-label', chartView === 'score'
       ? `Score so far by day, reaching ${num(state.score)} on day ${n}`
-      : `Ripe plots lost to rot each day: ${num(total('rotted'))} in total, most on day ${worst.day} with ${worst.rotted}`);
+      : `Ripe plants lost to rot each day: ${num(total('rotted'))} in total, most on day ${worst.day} with ${worst.rotted}`);
     readoutEl.textContent = describeDay();
   }
 
@@ -2026,7 +2026,7 @@ Harvest←{0}
     const d = state.history[hoverDay - 1];
     return chartView === 'score'
       ? `Day ${d.day}: ${num(d.points)} points that day, ${num(d.cumulative)} so far`
-      : `Day ${d.day}: ${d.rotted} ripe plot${d.rotted === 1 ? '' : 's'} lost to rot`;
+      : `Day ${d.day}: ${d.rotted} ripe plant${d.rotted === 1 ? '' : 's'} lost to rot`;
   }
 
   document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
