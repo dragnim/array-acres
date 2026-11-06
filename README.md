@@ -14,9 +14,9 @@ Open `index.html` in a browser. There's no build step and nothing to install.
 
 The game is in `index.html`, in three scripts:
 
-- `apl-interpreter`: the APL subset. Glyphs outside it report `NONCE ERROR`, which is where future unlocks will slot in.
+- `apl-interpreter`: the APL subset, with limits on size, recursion and work so no expression can freeze the page. Glyphs outside the subset report `NONCE ERROR`; symbols a player hasn't unlocked yet say what unlocks them.
 - `acres-core`: the rules and simulation, with no access to the page, so the browser and the tests share one implementation.
-- The page script: drawing, the editor, the live harvest preview and diagnostics.
+- The page script: drawing and effects, the editor, the live preview and diagnostics, progression, and the side panel for What is APL?, How to play, the farming guide and the season report.
 
 The plant art is separate, in `assets/plants`, with notes on how it was made and how to replace it in [its own README](assets/plants/README.md). If the images can't load, the page draws simple plants in code instead, so the game never depends on them.
 
@@ -36,7 +36,7 @@ Core tests need only Node:
 npm test
 ```
 
-They check interpreter results against known Dyalog answers, exact season totals for two reference strategies over 200 seeded fields, each farm's pinned scores and targets, that every rule stated on the page matches what the simulation actually does, that previewing never changes the game, and fixed-field masks for edge cases.
+They check interpreter results against known Dyalog answers and its limits, exact season totals for two reference strategies over 200 seeded fields, each farm's pinned scores and targets, that every rule stated on the page matches what the simulation actually does, that previewing never changes the game, the unlock journey from first harvest to Gold, Crowhurst's crows and scarecrows including their edge cases, and fixed-field masks for edge cases.
 
 Browser tests use Playwright and are kept separate:
 
