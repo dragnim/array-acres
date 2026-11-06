@@ -386,6 +386,7 @@ textarea {
       <div class="stat"><span>Wasted plants</span><strong id="rWasted">0</strong></div>
       <div class="stat"><span>Bumper crop plants</span><strong id="rBonus">0</strong></div>
       <div class="stat" id="rEatenStat" hidden><span>Ripe plants eaten by crows</span><strong id="rEaten">0</strong></div>
+      <div class="stat" id="rTrampledStat" hidden><span>Plants trampled by scarecrows</span><strong id="rTrampled">0</strong></div>
     </div>
     <div class="compare" id="compare" hidden>
       <h3 id="cmpTitle"></h3>
@@ -1557,6 +1558,7 @@ Harvest←{0}
     }
     $('weather').replaceChildren(...chips);
     $('rEatenStat').hidden = !w.crows;
+    $('rTrampledStat').hidden = !w.crows;
     $('newField').disabled = !!farm;
     $('newField').hidden = !!farm;
     $('bestLabel').textContent = farm ? 'Personal best' : 'Best on this field';
@@ -1679,7 +1681,12 @@ Harvest←{0}
     let loaded = 0;
     for (const [key, name] of entries) {
       const img = new Image();
-      img.onload = () => { ART[key] = img; if (++loaded === entries.length) { artReady = true; refreshTheme(); } };
+      // Each image is used as soon as it loads; any that fails is drawn in code instead.
+      img.onload = () => {
+        ART[key] = img;
+        artReady = ['0', '1', '2', '3', '4', 'giant'].every(k => ART[k]);
+        refreshTheme();
+      };
       img.src = `assets/plants/${name}.webp`;
     }
   }
@@ -1704,7 +1711,7 @@ Harvest←{0}
 
     if (bare) {
       // The plant is drawn as part of a bumper crop instead.
-    } else if (artReady) {
+    } else if (ART[v]) {
       c.imageSmoothingQuality = 'high';
       c.drawImage(ART[v], x, y, s, s);
     } else if (v === 0) {
@@ -2014,7 +2021,7 @@ Harvest←{0}
     c.globalAlpha = 1;
     c.imageSmoothingQuality = 'high';
     for (const [r, k] of tiling) {
-      if (artReady) c.drawImage(ART.giant, at(k), at(r), size, size);
+      if (ART.giant) c.drawImage(ART.giant, at(k), at(r), size, size);
       else drawSheaf(c, at(k), at(r), size);
     }
     c.restore();
@@ -2055,7 +2062,7 @@ Harvest←{0}
       `Then the field grows overnight, depending on the farm’s weather. Sunshine: every seed, sprout and growing plant, including newly replanted seeds, has a ${pct(w.sunshine)} chance to grow one stage. Rainfall: every ripe plant left unharvested has a ${pct(w.rainfall)} chance to rot. Rotten plants stay until harvested. No plot changes by more than one stage a night${w.crows ? ', except where crows eat' : ''}.`,
       'Every night, each plant still has the stated chance to grow or rot, but each farm’s starting field and luck are set: on any given night, each plot’s chance comes out the same way every time you play. So the same code always scores the same, and only a change to your code can change the result. Practice Farm has Middlebourne Farm’s weather: Restart replays the same field and luck, and New field brings a new field with new luck.',
     ];
-    if (w.crows) items.push(`Crows: after the field grows, ${w.crows === 1 ? 'a flock of crows lands' : `${w.crows} flocks of crows land`} on a 3×3 patch of plots each night and eats every ripe plant there, leaving seeds. Where they land is part of the farm’s set luck. You can stand up to ${RULES.scarecrows} scarecrows each night by writing a second function, \`Scare\`: it’s given today’s field as ⍵ and gives back 1s where scarecrows should stand. A scarecrow stands on its plot for the night, trampling whatever grew there back to a seed, and crows eat nothing within one plot of it.`);
+    if (w.crows) items.push(`Crows: after the field grows, ${w.crows === 1 ? 'a flock of crows lands' : `${w.crows} flocks of crows land`} on a 3×3 patch of plots each night and eats every ripe plant there, leaving seeds. A flock landing at the edge of the field only reaches the plots inside it, so edges are safer. Where they land is part of the farm’s set luck, and your code can’t see it in advance: scarecrows guard against the risk, not a known attack. You can stand up to ${RULES.scarecrows} scarecrows each night by writing a second function, \`Scare\`: it’s given today’s field as ⍵ and gives back 1s where scarecrows should stand. A scarecrow stands on its plot for the night, trampling whatever grew there back to a seed (which can still sprout that night), and crows eat nothing within one plot of it.`);
     $('rules').replaceChildren(...items.map(t => { const li = document.createElement('li'); li.append(rich(t)); return li; }));
   }
 
@@ -2067,7 +2074,7 @@ Harvest←{0}
     // The plant here will be trampled tonight, so it's covered over.
     c.fillStyle = COL.soil; c.globalAlpha *= 0.7; rrect(c, x, y, s, s, s * 0.12); c.fill();
     c.globalAlpha = faded ? 0.45 : 1;
-    if (artReady) { c.drawImage(ART.scarecrow, x, y, s, s); c.restore(); return; }
+    if (ART.scarecrow) { c.drawImage(ART.scarecrow, x, y, s, s); c.restore(); return; }
     c.lineCap = 'round';
     c.strokeStyle = '#5b3d1e'; c.lineWidth = 2.2 * u;
     c.beginPath(); c.moveTo(cx, top + 5 * u); c.lineTo(cx, y + s * 0.9); c.stroke();
@@ -2085,7 +2092,7 @@ Harvest←{0}
   // Crows on a plot they ate from last night, so it shows at any speed.
   function drawEaten(c, x, y, s) {
     c.save();
-    if (artReady) c.drawImage(ART.crows, x + s * 0.08, y + s * 0.08, s * 0.84, s * 0.84);
+    if (ART.crows) c.drawImage(ART.crows, x + s * 0.08, y + s * 0.08, s * 0.84, s * 0.84);
     else {
       c.strokeStyle = '#1d1d1d'; c.lineWidth = Math.max(2, s * 0.05); c.lineCap = 'round';
       for (const [dx, dy] of [[0.3, 0.35], [0.62, 0.3], [0.48, 0.6]]) {
@@ -2194,6 +2201,7 @@ Harvest←{0}
     $('rWasted').textContent = total('wasted');
     $('rBonus').textContent = total('bonusPlots');
     $('rEaten').textContent = total('eaten');
+    $('rTrampled').textContent = total('trampled');
     hoverDay = null;
     openPanel('report');
     drawChart();
