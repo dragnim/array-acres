@@ -418,3 +418,27 @@ test('Crowhurst Farm: scarecrows from Scare, a limit of two, and crows in the re
   await expect(page.locator('#rEatenStat')).toBeVisible();
   expect(Number(await page.locator('#rEaten').textContent())).toBeGreaterThan(0);
 });
+
+test('G turns god mode on and off, unlocking every farm for testing', async ({ page }) => {
+  const crowhurst = page.locator('#farm option[value="crowhurst-farm"]'), badge = page.locator('#godBadge');
+  await expect(crowhurst).toBeDisabled();
+  await page.locator('h1').click();
+  await page.keyboard.press('g');
+  await expect(badge).toBeVisible();
+  await expect(crowhurst).toBeEnabled();
+  await page.selectOption('#farm', 'crowhurst-farm');
+  await expect(page.locator('#weather')).toContainText('Crows 1 flock');
+
+  // Typing g in the editor is just typing.
+  await page.locator('#code').press('g');
+  await expect(badge).toBeVisible();
+
+  // It stays on after a reload, and G again turns it off, back to a farm you have unlocked.
+  await page.reload();
+  await expect(badge).toBeVisible();
+  await page.locator('h1').click();
+  await page.keyboard.press('g');
+  await expect(badge).toBeHidden();
+  await expect(crowhurst).toBeDisabled();
+  await expect(page.locator('#farm')).toHaveValue('middlebourne-farm');
+});
