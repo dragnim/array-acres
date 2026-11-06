@@ -20,7 +20,7 @@ The game is in `index.html`, in three scripts:
 
 The plant art is separate, in `assets/plants`, with notes on how it was made and how to replace it in [its own README](assets/plants/README.md). If the images can't load, the page draws simple plants in code instead, so the game never depends on them.
 
-A season is 100 days. There are three farms, Middlebourne, Sunnyhill and Marshgate, each with its own weather under ruleset `v2`: sunshine sets how likely an unripe plant is to grow overnight, and rainfall how likely a ripe plant left in the ground is to rot. Each farm also has its own starting field and fixed luck, so the same farm and the same code always give the same score, and its own Bronze, Silver and Gold targets. Personal bests are kept in the browser, and Practice Farm plays random fields with Middlebourne Farm's weather. At the end of a season, a report shows what happened day by day, without suggesting what to change.
+A season is 100 days. There are four farms under ruleset `v2`. Middlebourne, Sunnyhill and Marshgate each have their own weather: sunshine sets how likely an unripe plant is to grow overnight, and rainfall how likely a ripe plant left in the ground is to rot. Crowhurst has Middlebourne's weather plus crows, which eat ripe plants at night unless a second function, `Scare`, stands scarecrows nearby. Each farm also has its own starting field and fixed luck, so the same farm and the same code always give the same score, and its own Bronze, Silver and Gold targets. Personal bests are kept in the browser, and Practice Farm plays random fields with Middlebourne Farm's weather. At the end of a season, a report shows what happened day by day, without suggesting what to change.
 
 ## Progression
 
@@ -62,7 +62,7 @@ Every new mechanic should answer: what's the obvious solution, why does it work 
 
 ## Next
 
-Human playtesting of the three farms and the unlock ladder, before adding another crop. A gentler Starter Farm, to come before Middlebourne Farm, is a candidate for later.
+Human playtesting of the four farms and the unlock ladder, before adding another crop. A gentler Starter Farm, to come before Middlebourne Farm, is a candidate for later.
 
 ## Credits
 
