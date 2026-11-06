@@ -50,7 +50,7 @@ npm run test:browser
 
 ## Reference solution
 
-`reference/hybrid.apl` clears rot, harvests complete ripe 2×2 blocks, and takes any ripe plot that can't become part of a block. Over the 200 test fields, with Manor Farm's weather, it averages 1,535 against 1,216 for `Harvest←{⍵≥3}`, winning on every field. It uses only the current subset and is part of the regression tests.
+`reference/hybrid.apl` clears rot, harvests every bumper crop, and takes any ripe plant that can't become part of one. Over the 200 test fields, with Manor Farm's weather, it averages 1,535 against 1,216 for `Harvest←{⍵≥Ripe}`, winning on every field. It uses only the current subset and is part of the regression tests.
 
 ## Design principles
 
