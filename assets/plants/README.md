@@ -1,6 +1,6 @@
 # Plant art
 
-The six images the game uses to draw the field.
+The images the game uses to draw the field: six for the plants, and two for Crowhurst Farm.
 
 | File | Shown for |
 |---|---|
@@ -10,6 +10,8 @@ The six images the game uses to draw the field.
 | `3-ripe.webp` | Stage 3, ripe |
 | `4-rotten.webp` | Stage 4, rotten |
 | `giant.webp` | A bumper crop, spanning a ripe 2×2 square of plots |
+| `crows.webp` | Crowhurst Farm: a plot the crows ate from last night |
+| `scarecrow.webp` | Crowhurst Farm: where `Scare` will stand a scarecrow tonight |
 
 ## How they were made
 
@@ -24,7 +26,7 @@ They were then prepared for the game: ripe was moved down onto the shared baseli
 
 ## How the game uses them
 
-Each plant image fills its plot, and the bumper crop covers the four plots of a ripe 2×2 square. The images load when the page opens. Until all six have loaded, or if any fails, the game draws simpler plants in code instead, so it never depends on these files.
+Each plant image fills its plot, and the bumper crop covers the four plots of a ripe 2×2 square. The images load when the page opens, and each is used as soon as it arrives. Any image that hasn't loaded, or fails, is drawn more simply in code instead, so the game never depends on these files. The crow and scarecrow images were added later at 512 px, in the same painted style.
 
 ## Replacing them
 
