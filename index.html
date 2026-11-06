@@ -1878,12 +1878,18 @@ Harvest←{0}
   }
   // Bad moments are the opposite of good ones: a dull red flash, particles falling like dropped
   // leaves, and a word that sinks and fades, rather than numbers rising in bright colours.
-  const SAD = '#e0705e';
+  // Each kind of loss has its own colours: red for waste, a sickly green-brown for rot, crow-black for eaten.
+  const SAD = {
+    wasted: { text: '#ff5446', flash: '#a3170c', drop: '#7a1f15' },
+    rotted: { text: '#a7ad3c', flash: '#3f4b12', drop: '#5c5322' },
+    eaten: { text: '#d9d3c9', flash: '#141414', drop: '#2a2a2a' },
+  };
   function sorrow(x, y, s, word, now, life) {
-    fxItems.push({ kind: 'flash', x: x - s / 2, y: y - s / 2, size: s, color: '#7a2318', t0: now, life: life * 0.8 });
-    for (let k = 0; k < 5; k++)
-      fxItems.push({ kind: 'drop', x: x + (Math.random() - 0.5) * s * 0.6, y: y - s * 0.1, fall: s * (0.45 + Math.random() * 0.35), color: '#6b4a32', t0: now, life: life * (0.8 + Math.random() * 0.2) });
-    fxItems.push({ kind: 'text', x, y: y - s * 0.15, text: word, size: s * 0.26, color: SAD, sink: true, t0: now, life });
+    const k = SAD[word];
+    fxItems.push({ kind: 'flash', x: x - s / 2, y: y - s / 2, size: s, color: k.flash, t0: now, life: life * 0.8 });
+    for (let i = 0; i < 5; i++)
+      fxItems.push({ kind: 'drop', x: x + (Math.random() - 0.5) * s * 0.6, y: y - s * 0.1, fall: s * (0.45 + Math.random() * 0.35), color: k.drop, t0: now, life: life * (0.8 + Math.random() * 0.2) });
+    fxItems.push({ kind: 'text', x, y: y - s * 0.15, text: word, size: s * 0.26, color: k.text, sink: true, t0: now, life });
   }
   function lament(before, mask, rottedAt) {
     const wasted = [];
