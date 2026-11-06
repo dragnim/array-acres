@@ -1069,7 +1069,7 @@ const AcresCore = (() => {
     farm('middlebourne-farm', 'Middlebourne Farm', 0.55, 0.20, 16574467, 1200, 1350, 1500),
     farm('sunnyhill-farm', 'Sunnyhill Farm', 0.65, 0.15, 14879801, 1450, 1750, 2100),
     farm('marshgate-farm', 'Marshgate Farm', 0.50, 0.25, 17057526, 1050, 1150, 1200),
-    farm('crowhurst-farm', 'Crowhurst Farm', 0.55, 0.20, 175218, 1050, 1200, 1300, 1),
+    farm('crowhurst-farm', 'Crowhurst Farm', 0.55, 0.20, 413813, 1050, 1150, 1250, 1),
   ]);
   // Practice Farm: Middlebourne Farm's weather on a new random field each time, with no targets.
   const PRACTICE = Object.freeze({ id: 'practice', name: 'Practice Farm', sunshine: 0.55, rainfall: 0.20 });
@@ -1223,7 +1223,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     }
 
     // Daily statistics are recorded as the rules run, never recalculated separately.
-    const rec = { day: st.day + 1, points: 0, ripeHarvested: 0, bonusPlots: 0, wasted: 0, rotted: 0, eaten: 0, cumulative: 0 };
+    const rec = { day: st.day + 1, points: 0, ripeHarvested: 0, bonusPlots: 0, wasted: 0, rotted: 0, eaten: 0, trampled: 0, cumulative: 0 };
 
     for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
       if (!mask[r][c]) continue;
@@ -1235,6 +1235,11 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
       } else if (v === 1 || v === 2) { st.wasted++; rec.wasted++; }
       f[r][c] = 0;
     }
+
+    // Scarecrows stand on their plots for the night: whatever grew there is trampled back to a
+    // seed. Protection costs a plot, unless it was a seed or harvested today anyway.
+    if (scare) for (let r = 0; r < N; r++) for (let c = 0; c < N; c++)
+      if (scare[r][c]) { if (f[r][c] > 0) rec.trampled++; f[r][c] = 0; }
 
     // One roll per plot per day, whatever the player did, so randomness is fixed by the seed.
     for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
@@ -1556,6 +1561,7 @@ Harvest←{0}
     $('farmInfo').textContent = farm ? '' : 'A new random field each time, with every symbol and helper unlocked.';
     renderRules();
     refreshProgress();
+    if (COL) drawLegend();
     try { localStorage.setItem(FARM_KEY, farmEl.value); } catch (e) {}
   }
 
@@ -1606,7 +1612,7 @@ Harvest←{0}
     { title: '∧ ∨ ~', glyph: '∧', text: 'Combine answers. ∧ means “and”: 1 only where both answers are 1. ∨ means “or”: 1 where either is. ~ means “not”: it turns 1s into 0s and 0s into 1s.', snippets: [['(⍵=Sprout)∨⍵=Growing', 'everything still growing'], ['(⍵≥Growing)∧⍵≤Ripe', 'growing or ripe plants'], ['~⍵=Rotten', 'everything except rotten plants']] },
     { title: 'BumperCrops ⍵', helper: 'BumperCrops', text: 'A ready-made helper. It gives 1 on every ripe plant that’s part of a bumper crop today (four ripe plants in a 2×2 square), and 0 everywhere else.', snippets: [['BumperCrops ⍵', 'today’s bumper crops']] },
     { title: 'Promising ⍵', helper: 'Promising', text: 'A ready-made helper. It gives 1 on every plant that’s part of a 2×2 square of growing or ripe plants: places where a bumper crop could form if you wait.', snippets: [['Promising ⍵', 'where a bumper crop could form']] },
-    { title: 'Scare ⍵', farm: 'crowhurst-farm', text: 'A second function you can write for Crowhurst Farm, beside `Harvest`. It’s given today’s field as ⍵ and gives back 1s where up to two scarecrows should stand tonight. Crows eat nothing within one plot of a scarecrow, so stand them where the ripe plants you’re waiting for are.' },
+    { title: 'Scare ⍵', farm: 'crowhurst-farm', text: 'A second function you can write for Crowhurst Farm, beside `Harvest`. It’s given today’s field as ⍵ and gives back 1s where up to two scarecrows should stand tonight. Crows eat nothing within one plot of a scarecrow, but the scarecrow tramples the plant on its own plot back to a seed. So stand them beside the plants you’re waiting for, on plots worth little.' },
     { title: 'Every symbol, and how the helpers work', source: true, text: 'You can now use every symbol. `BumperCrops` and `Promising` are ordinary APL functions, both built on a third helper, `Squares`, which finds 2×2 squares of 1s, and the stage names are ordinary variables. Here’s their code, and you can now use `Squares` yourself. Can you write better helpers?', snippets: [['Squares ⍵=Growing', '2×2 squares of growing plants']], code: AcresCore.HELPER_SOURCE },
   ];
   function renderGuide() {
@@ -1663,7 +1669,7 @@ Harvest←{0}
 
   // Painted plant art from assets/plants. Until all of it has loaded, or if it can't load,
   // the plants are drawn in code instead, so the game never depends on the images.
-  const ART_FILES = { 0: '0-seed', 1: '1-sprout', 2: '2-growing', 3: '3-ripe', 4: '4-rotten', giant: 'giant' };
+  const ART_FILES = { 0: '0-seed', 1: '1-sprout', 2: '2-growing', 3: '3-ripe', 4: '4-rotten', giant: 'giant', crows: 'crows', scarecrow: 'scarecrow' };
   const ART = {};
   let artReady = false;
   {
@@ -1781,6 +1787,7 @@ Harvest←{0}
     const gap = Math.max(2, w * 0.008);
     const s = (w - gap * (SIZE + 1)) / SIZE, at = i => gap + i * (s + gap);
     const inSheaf = state.field.map(row => row.map(() => false));
+    const eatenNow = new Set((state.eatenAt || []).map(([r, c]) => r * SIZE + c));
     tiling.forEach(([r, c]) => { inSheaf[r][c] = inSheaf[r + 1][c] = inSheaf[r][c + 1] = inSheaf[r + 1][c + 1] = true; });
     for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) drawPlot(fctx, at(c), at(r), s, state.field[r][c], 0, null, inSheaf[r][c]);
     drawGiants(fctx, squares, tiling, at, s, gap);
@@ -1789,6 +1796,7 @@ Harvest←{0}
         : preview.mask && preview.mask[r][c] ? (preview.stale ? 'stale' : 'live') : null;
       drawOverlay(fctx, at(c), at(r), s, state.marks && state.marks[r][c], p);
       if (showNumbers) drawNumber(fctx, at(c), at(r), s, state.field[r][c]);
+      if (hasCrows() && eatenNow.has(r * SIZE + c)) drawEaten(fctx, at(c), at(r), s);
       if (hasCrows() && preview.scare && preview.scare[r][c]) drawScarecrow(fctx, at(c), at(r), s, preview.stale);
     }
     cv.dataset.scarecrows = hasCrows() && preview.scare ? preview.scare.flat().filter(Boolean).length : 0;
@@ -2014,7 +2022,7 @@ Harvest←{0}
       `Then the field grows overnight, depending on the farm’s weather. Sunshine: every seed, sprout and growing plant, including newly replanted seeds, has a ${pct(w.sunshine)} chance to grow one stage. Rainfall: every ripe plant left unharvested has a ${pct(w.rainfall)} chance to rot. Rotten plants stay until harvested. No plot changes by more than one stage a night${w.crows ? ', except where crows eat' : ''}.`,
       'Every night, each plant still has the stated chance to grow or rot, but each farm’s starting field and luck are set: on any given night, each plot’s chance comes out the same way every time you play. So the same code always scores the same, and only a change to your code can change the result. Practice Farm has Middlebourne Farm’s weather: Restart replays the same field and luck, and New field brings a new field with new luck.',
     ];
-    if (w.crows) items.push(`Crows: after the field grows, ${w.crows === 1 ? 'a flock of crows lands' : `${w.crows} flocks of crows land`} on a 3×3 patch of plots each night and eats every ripe plant there, leaving seeds. Where they land is part of the farm’s set luck. You can stand up to ${RULES.scarecrows} scarecrows each night by writing a second function, \`Scare\`: it’s given today’s field as ⍵ and gives back 1s where scarecrows should stand. Crows eat nothing within one plot of a scarecrow.`);
+    if (w.crows) items.push(`Crows: after the field grows, ${w.crows === 1 ? 'a flock of crows lands' : `${w.crows} flocks of crows land`} on a 3×3 patch of plots each night and eats every ripe plant there, leaving seeds. Where they land is part of the farm’s set luck. You can stand up to ${RULES.scarecrows} scarecrows each night by writing a second function, \`Scare\`: it’s given today’s field as ⍵ and gives back 1s where scarecrows should stand. A scarecrow stands on its plot for the night, trampling whatever grew there back to a seed, and crows eat nothing within one plot of it.`);
     $('rules').replaceChildren(...items.map(t => { const li = document.createElement('li'); li.append(rich(t)); return li; }));
   }
 
@@ -2023,6 +2031,10 @@ Harvest←{0}
     const cx = x + s / 2, top = y + s * 0.14, u = s / 20;
     c.save();
     c.globalAlpha = faded ? 0.45 : 1;
+    // The plant here will be trampled tonight, so it's covered over.
+    c.fillStyle = COL.soil; c.globalAlpha *= 0.7; rrect(c, x, y, s, s, s * 0.12); c.fill();
+    c.globalAlpha = faded ? 0.45 : 1;
+    if (artReady) { c.drawImage(ART.scarecrow, x, y, s, s); c.restore(); return; }
     c.lineCap = 'round';
     c.strokeStyle = '#5b3d1e'; c.lineWidth = 2.2 * u;
     c.beginPath(); c.moveTo(cx, top + 5 * u); c.lineTo(cx, y + s * 0.9); c.stroke();
@@ -2034,6 +2046,21 @@ Harvest←{0}
     c.fillStyle = '#3b2a1a';
     c.fillRect(cx - 4 * u, top + 0.8 * u, 8 * u, 1.2 * u);
     c.fillRect(cx - 2.2 * u, top - 1.8 * u, 4.4 * u, 2.8 * u);
+    c.restore();
+  }
+
+  // Crows on a plot they ate from last night, so it shows at any speed.
+  function drawEaten(c, x, y, s) {
+    c.save();
+    if (artReady) c.drawImage(ART.crows, x + s * 0.08, y + s * 0.08, s * 0.84, s * 0.84);
+    else {
+      c.strokeStyle = '#1d1d1d'; c.lineWidth = Math.max(2, s * 0.05); c.lineCap = 'round';
+      for (const [dx, dy] of [[0.3, 0.35], [0.62, 0.3], [0.48, 0.6]]) {
+        const cx = x + s * dx, cy = y + s * dy, w = s * 0.14;
+        c.beginPath(); c.moveTo(cx - w, cy - w * 0.5); c.quadraticCurveTo(cx - w * 0.4, cy - w * 0.3, cx, cy);
+        c.quadraticCurveTo(cx + w * 0.4, cy - w * 0.3, cx + w, cy - w * 0.5); c.stroke();
+      }
+    }
     c.restore();
   }
 
@@ -2083,6 +2110,18 @@ Harvest←{0}
     // Outlines alone, on bare soil, so they read as plot states rather than plants.
     add('just harvested', 0, 1, null, true);
     add('<code>Harvest</code> would pick', 0, 0, 'live', true);
+    if (hasCrows()) {
+      const icon = (label, draw) => {
+        const item = document.createElement('div'), c = document.createElement('canvas'), dpr = window.devicePixelRatio || 1;
+        c.width = 40 * dpr; c.height = 40 * dpr; c.setAttribute('aria-hidden', 'true');
+        const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
+        drawPlot(x, 0, 0, 40, 0, 0, null, true); draw(x);
+        const span = document.createElement('span'); span.innerHTML = label;
+        item.append(c, span); el.append(item);
+      };
+      icon('eaten by crows', x => drawEaten(x, 0, 0, 40));
+      icon('<code>Scare</code> places a scarecrow', x => drawScarecrow(x, 0, 0, 40, false));
+    }
   }
 
   function refreshTheme() { readColors(); render(); drawLegend(); drawChart(); }
