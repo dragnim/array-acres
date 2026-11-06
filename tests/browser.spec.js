@@ -335,7 +335,12 @@ test('How to play opens on a first visit, and the side panel switches and closes
   await page.click('#openAbout');
   await expect(title).toHaveText('What is APL?');
   await expect(page.locator('#pAbout')).toContainText('Why it suits farming');
-  await page.click('#closePanel');
+  // Its example shows ⍵=Ripe on a tiny field, and Show me runs it on today's field.
+  await expect(page.locator('.apl-example-result span.on')).toHaveCount(4);
+  await page.click('#aplExampleShow');
+  await expect(page.locator('#field')).toHaveAttribute('data-preview', 'example');
+  await expect(page.locator('#exampleCode')).toHaveText('⍵=Ripe');
+  if (await panel.isVisible()) await page.click('#closePanel');
 
   // Esc in the editor leaves it for Tab, and doesn't close the panel.
   await page.click('#openGuide');
