@@ -238,6 +238,13 @@ test('painted plant art is used, and the game still works without it', async ({ 
   await page.click('#step');
   await expect(page.locator('#sTick')).toHaveText('1/100');
   await expect(page.locator('#field')).toHaveAttribute('data-art', 'drawn');
+
+  // Images load one by one: with the crow and scarecrow art missing, the plants are still painted.
+  fs.mkdirSync(path.join(dir, 'assets', 'plants'), { recursive: true });
+  for (const f of ['0-seed', '1-sprout', '2-growing', '3-ripe', '4-rotten', 'giant'])
+    fs.copyFileSync(path.join(__dirname, '..', 'assets', 'plants', `${f}.webp`), path.join(dir, 'assets', 'plants', `${f}.webp`));
+  await page.goto(pathToFileURL(path.join(dir, 'index.html')).href);
+  await expect(page.locator('#field')).toHaveAttribute('data-art', 'images');
   expect(errors).toEqual([]);
 });
 
@@ -407,7 +414,7 @@ test('Crowhurst Farm: scarecrows from Scare, a limit of two, and crows in the re
   await page.goto(PAGE);
   await page.selectOption('#farm', 'crowhurst-farm');
   await expect(page.locator('#weather')).toContainText('Crows 1 flock');
-  await expect(page.locator('#rules')).toContainText('trampling whatever grew there back to a seed, and crows eat nothing within one plot of it');
+  await expect(page.locator('#rules')).toContainText('trampling whatever grew there back to a seed (which can still sprout that night), and crows eat nothing within one plot of it');
   const code = page.locator('#code'), status = page.locator('#status'), field = page.locator('#field');
 
   await code.fill('Harvest←{⍵≥Ripe}\nScare←{⍵≥0}');
@@ -422,6 +429,7 @@ test('Crowhurst Farm: scarecrows from Scare, a limit of two, and crows in the re
   await page.click('#run');
   await expect(page.locator('#msg')).toHaveText(/^Season complete\./, { timeout: 30000 });
   await expect(page.locator('#rEatenStat')).toBeVisible();
+  await expect(page.locator('#rTrampledStat')).toBeVisible();
   expect(Number(await page.locator('#rEaten').textContent())).toBeGreaterThan(0);
 });
 
