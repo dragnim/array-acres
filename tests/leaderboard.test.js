@@ -30,9 +30,12 @@ function check(name, got, want) {
 
   // Replay: the score the game gives, and -1 for anything that isn't a valid entry.
   check('replay: the Gold strategy scores what the game gives', replay(core, { ruleset: 'v2', farm: 'middlebourne-farm', code: GOLD }), 1533);
-  check('replay: broken code, unknown farms, Crowhurst and old rulesets are invalid',
+  check('replay: broken code, unknown farms, old rulesets and old experiment versions are invalid',
     [replay(core, { ruleset: 'v2', farm: 'middlebourne-farm', code: 'Harvest←{⍵=}' }), replay(core, { ruleset: 'v2', farm: 'nowhere', code: GOLD }),
-     replay(core, { ruleset: 'v2', farm: 'crowhurst-farm', code: GOLD }), replay(core, { ruleset: 'v1', farm: 'middlebourne-farm', code: GOLD })], [-1, -1, -1, -1]);
+     replay(core, { ruleset: 'v2', farm: 'crowhurst-farm', version: 0, code: GOLD }), replay(core, { ruleset: 'v1', farm: 'middlebourne-farm', code: GOLD })], [-1, -1, -1, -1]);
+  const SCARE = 'Around←{p←0⍪(0,⍵,0)⍪0 ⋄ (8 8↑p)+(8 8↑0 1↓p)+(8 8↑0 2↓p)+(8 8↑1 0↓p)+(8 8↑1 1↓p)+(8 8↑1 2↓p)+(8 8↑2 0↓p)+(8 8↑2 1↓p)+8 8↑2 2↓p}\n'
+    + 'Top2←{8 8⍴(⍳64)∊2↑⍒,⍵}\n' + GOLD + '\nScare←{v←(⍵≥Growing)∧(⍵≤Ripe)∧Promising ⍵ ⋄ ok←(⍵=Seed)∨Harvest ⍵ ⋄ s←ok×Around v ⋄ (s>0)∧Top2 s}';
+  check('replay: Crowhurst replays Scare too, scoring what the game gives', replay(core, { ruleset: 'v2', farm: 'crowhurst-farm', version: 1, code: SCARE }), 1288);
 
   // Submitting puts a score in "checking"; nothing reaches the board until it's verified.
   let r = await call('POST', '/submit', { farm: 'middlebourne-farm', initials: 'abc', score: 1533, code: GOLD });
@@ -61,7 +64,14 @@ function check(name, got, want) {
   // Arcade rules: three letters, nothing rude, a new best for those initials, top 10 only.
   check('submit: initials must be three letters', (await call('POST', '/submit', { farm: 'middlebourne-farm', initials: 'AB1', score: 2000, code: GOLD })).body.error, 'initials');
   check('submit: rude initials are refused', (await call('POST', '/submit', { farm: 'middlebourne-farm', initials: 'wtf', score: 2000, code: GOLD })).body.error, 'initials-not-allowed');
-  check('submit: Crowhurst Farm has no board yet', (await call('POST', '/submit', { farm: 'crowhurst-farm', initials: 'ABC', score: 2000, code: GOLD })).body.error, 'unknown-farm');
+  check('submit: an unknown farm is refused', (await call('POST', '/submit', { farm: 'nowhere', initials: 'ABC', score: 2000, code: GOLD })).body.error, 'unknown-farm');
+  check('submit: a score from an experiment\'s earlier rules is refused', (await call('POST', '/submit', { farm: 'crowhurst-farm', version: 0, initials: 'ABC', score: 1288, code: SCARE })).body.error, 'outdated');
+  r = await call('POST', '/submit', { farm: 'crowhurst-farm', version: 1, initials: 'CRW', score: 1288, code: SCARE });
+  const crow = (await call('GET', '/pending', null, 'test-token')).body.pending.find(p => p.farm === 'crowhurst-farm');
+  await call('POST', '/verify', { id: crow.id, score: replay(core, crow) }, 'test-token');
+  r = await call('GET', '/board?farm=crowhurst-farm');
+  check('crowhurst: an experimental board takes verified scores, and says its version', [r.body.version, r.body.entries.map(e => [e.initials, e.score])], [1, [['CRW', 1288]]]);
+  check('crowhurst: its board is stored under its version, so a new version starts fresh', store.has('board:v2:crowhurst-farm:1'), true);
   check('submit: no worse than your own best', (await call('POST', '/submit', { farm: 'middlebourne-farm', initials: 'ABC', score: 1500, code: GOLD })).body.error, 'not-high-enough');
   const full = { entries: Array.from({ length: SIZE }, (_, i) => ({ initials: `A${String.fromCharCode(65 + i)}A`, score: 1000 + i * 10, date: '2026-01-01' })), pending: [] };
   check('qualifies: a full board needs more than its lowest score', [qualifies(full, 'NEW', 1000), qualifies(full, 'NEW', 1001)], [false, true]);
