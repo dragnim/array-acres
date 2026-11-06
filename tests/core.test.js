@@ -146,16 +146,18 @@ for (const [label, field, want] of fixed) check(`hybrid mask: ${label}`, AcresCo
 // 6. Rulesets, farms and personal bests
 {
   const FARMS = AcresCore.FARMS, PRACTICE = AcresCore.PRACTICE;
+  // Crowhurst Farm adds crows; its own checks are in section 12.
+  const PLAIN = FARMS.filter(f => !f.crows);
   check('rules: the ruleset is v2 and cannot be changed', [RULES.id, Object.isFrozen(RULES)], ['v2', true]);
   const ids = FARMS.map(f => f.id);
-  check('farms: three farms with unique ids, all on rules v2 and fixed',
-    [ids.length, new Set(ids).size, FARMS.every(f => f.rules === RULES.id && Object.isFrozen(f))], [3, 3, true]);
-  check('farms: each has its own weather', new Set(FARMS.map(f => `${f.sunshine}/${f.rainfall}`)).size, 3);
+  check('farms: four farms with unique ids, all on rules v2 and fixed',
+    [ids.length, new Set(ids).size, FARMS.every(f => f.rules === RULES.id && Object.isFrozen(f))], [4, 4, true]);
+  check('farms: each farm without crows has its own weather', new Set(PLAIN.map(f => `${f.sunshine}/${f.rainfall}`)).size, 3);
   check('farms: Practice Farm has Middlebourne Farm’s weather', [PRACTICE.sunshine, PRACTICE.rainfall], [FARMS[0].sunshine, FARMS[0].rainfall]);
   const onFarm = (src, f) => season(src, f.seed, null, f);
   // Pinned results: if these move, the farms have changed and old personal bests no longer compare.
   const pinned = { 'middlebourne-farm': [1213, 1533], 'sunnyhill-farm': [1465, 2132], 'marshgate-farm': [1093, 1238] };
-  for (const f of FARMS)
+  for (const f of PLAIN)
     check(`farm ${f.id}: greedy and hybrid scores`, [onFarm(GREEDY, f), onFarm(HYBRID, f)], pinned[f.id]);
 
   // Targets: a ladder of strategies must land in the intended tiers on every farm.
@@ -174,7 +176,7 @@ for (const [label, field, want] of fixed) check(`hybrid mask: ${label}`, AcresCo
 }`;
   // Waiting only for bumper crops pays off in Sunnyhill Farm's sunshine, but not on the other farms.
   const blocksOnly = { 'middlebourne-farm': null, 'sunnyhill-farm': 'silver', 'marshgate-farm': null };
-  for (const f of FARMS) {
+  for (const f of PLAIN) {
     const t = f.targets, tier = src => AcresCore.tierFor(f, onFarm(src, f));
     check(`targets ${f.id}: fixed and rising`, [Object.isFrozen(t), t.bronze < t.silver && t.silver < t.gold], [true, true]);
     check(`targets ${f.id}: ripe-only, blocks-only, wrap-around and hybrid land in their tiers`,
@@ -208,7 +210,7 @@ check('bumper crops: a square with a rotten or growing plant is not a bumper cro
 {
   const N = RULES.size, ripe = RULES.ripe, rot = RULES.rot;
   let starts = true, steps = true, waste = true, rates = true;
-  for (const f of AcresCore.FARMS) {
+  for (const f of AcresCore.FARMS.filter(f => !f.crows)) {
   let grew = 0, couldGrow = 0, rotted = 0, couldRot = 0;
   for (const src of [GREEDY, HYBRID, 'Harvest←{0}']) {
     const fn = AcresCore.compileHarvest(src);
@@ -279,7 +281,7 @@ check('bumper crops: a square with a rotten or growing plant is not a bumper cro
     [p2.earned.includes('sunnyhill-silver'), [...p2.helpers], p2.farms.has('marshgate-farm')], [true, ['BumperCrops', 'Promising'], true]);
   const smart = 'Harvest←{(⍵=4)∨(BumperCrops ⍵)∨(⍵=3)∧~Promising ⍵}';
   check('journey: the helpers reproduce the reference strategy and reach Gold on every farm',
-    AcresCore.FARMS.map(f => { const sc = play(smart, f, p2); return [sc, AcresCore.tierFor(f, sc)]; }), [[1533, 'gold'], [2132, 'gold'], [1238, 'gold']]);
+    AcresCore.FARMS.filter(f => !f.crows).map(f => { const sc = play(smart, f, p2); return [sc, AcresCore.tierFor(f, sc)]; }), [[1533, 'gold'], [2132, 'gold'], [1238, 'gold']]);
   const p3 = AcresCore.progress({ 'v2:marshgate-farm': { score: 1200 } });
   check('journey: Gold on any farm unlocks every symbol and the helpers’ source',
     [p3.earned.includes('any-gold'), p3.glyphs.has('↑'), p3.helpers.has('Squares'), p3.source], [true, true, true, true]);
@@ -331,6 +333,44 @@ for (const [src, want] of limits) check(`limit: ${src}`, ev(src), want);
   check('work: a scan of 3000 items still runs', ev('⊃⌽+\\⍳3000'), '4501500');
   check('work: a 100×100 matrix product still runs', ev('⊃,(100 100⍴1)+.×100 100⍴1'), '100');
   check('work: the limit resets for each run', ev('≢,(⍳1000)∘.+⍳1000'), '1000000');
+}
+
+// 12. Crowhurst Farm: crows eat ripe plants left standing at night, except near scarecrows
+{
+  const crow = AcresCore.FARMS.find(f => f.crows), N = RULES.size;
+  const AROUND = 'Around←{p←0⍪(0,⍵,0)⍪0 ⋄ (8 8↑p)+(8 8↑0 1↓p)+(8 8↑0 2↓p)+(8 8↑1 0↓p)+(8 8↑1 1↓p)+(8 8↑1 2↓p)+(8 8↑2 0↓p)+(8 8↑2 1↓p)+8 8↑2 2↓p}\n';
+  const TOP2 = 'Top2←{8 8⍴(⍳64)∊2↑⍒,⍵}\n';
+  const SMART = 'Harvest←{(⍵=Rotten)∨(BumperCrops ⍵)∨(⍵=Ripe)∧~Promising ⍵}';
+  const GREEDY_SCARE = AROUND + TOP2 + 'Harvest←{⍵≥Ripe}\nScare←{Top2 Around ⍵=Growing}';
+  const SMART_SCARE = AROUND + TOP2 + SMART + '\nScare←{Top2 Around (⍵≥Growing)∧(⍵≤Ripe)∧Promising ⍵}';
+  const play = src => {
+    const p = AcresCore.compileProgram(src), st = AcresCore.newSeason(crow.seed, crow);
+    while (st.day < RULES.days) AcresCore.advance(st, AcresCore.runHarvest(p.harvest, st.field), p.scare ? AcresCore.runScare(p.scare, st.field) : null);
+    return st.score;
+  };
+  check('crows: one flock a night, on Middlebourne Farm’s weather', [crow.crows, crow.sunshine, crow.rainfall], [1, AcresCore.FARMS[0].sunshine, AcresCore.FARMS[0].rainfall]);
+  check('crows: pinned scores for ripe-only, hybrid, and each with scarecrows',
+    [play('Harvest←{⍵≥Ripe}'), play(SMART), play(GREEDY_SCARE), play(SMART_SCARE)], [1074, 1242, 1129, 1330]);
+  check('crows: ripe-only reaches Bronze, hybrid Silver, and hybrid with well-placed scarecrows Gold',
+    ['Harvest←{⍵≥Ripe}', SMART, SMART_SCARE].map(src => AcresCore.tierFor(crow, play(src))), ['bronze', 'silver', 'gold']);
+
+  // A controlled night: nothing grows or rots, and the flock lands on row 2, column 3.
+  const night = (scare) => {
+    const st = AcresCore.newSeason(1, crow);
+    st.field = grid(['00000000', '00333000', '00333000', '00333000', '00000000', '00000000', '00000000', '00000000']);
+    const rolls = [...Array(N * N).fill(0.99), 2.5 / 8, 3.5 / 8]; let i = 0; st.rng = () => rolls[i++];
+    AcresCore.advance(st, grid(Array(N).fill('00000000')), scare ? grid(scare) : null);
+    return [st.eaten, st.crowPatches, st.field.flat().filter(v => v === RULES.ripe).length];
+  };
+  check('crows: a flock eats every ripe plant in its 3×3 patch, leaving seeds', night(null), [9, [[2, 3]], 0]);
+  check('crows: a scarecrow protects every plot within one step of it',
+    night(['00000000', '00000000', '00000000', '00000000', '00010000', '00000000', '00000000', '00000000']), [6, [[2, 3]], 3]);
+  check('crows: a scarecrow two steps away protects nothing',
+    night(['00000000', '00000000', '00000000', '00000000', '00000000', '00010000', '00000000', '00000000']), [9, [[2, 3]], 0]);
+  const scareErr = src => { try { AcresCore.runScare(AcresCore.compileProgram(src).scare, AcresCore.newSeason(1).field); return 'ok'; } catch (e) { return e.message; } };
+  check('scare: at most two scarecrows', [scareErr('Harvest←{0}\nScare←{⍵≥0}'), scareErr('Harvest←{0}\nScare←{0}')],
+    ['Scare placed 64 scarecrows, but you only have 2', 'ok']);
+  check('scare: Gold on any farm unlocks Crowhurst Farm', AcresCore.progress({ 'v2:marshgate-farm': { score: 1200 } }).farms.has('crowhurst-farm'), true);
 }
 
 console.log(failures ? `${failures} of ${checks} checks failed` : `All ${checks} checks passed`);
