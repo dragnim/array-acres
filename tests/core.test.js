@@ -288,6 +288,9 @@ check('bumper crops: a square with a rotten or growing plant is not a bumper cro
   check('names: the stage names work from the start and mean their numbers',
     [msg('Harvest←{⍵≥Growing}', p0),
      JSON.stringify(AcresCore.evaluate('Harvest←{⍵=Ripe}', day1, p0).mask) === JSON.stringify(AcresCore.evaluate('Harvest←{⍵=3}', day1, p0).mask)], ['ok', true]);
+  check('names: a name that differs only in capitals gets a suggestion',
+    [msg('Harvest←{⍵=ripe}', p0), msg('Harvest←{⍵=ROTTEN}', p0), msg('Harvest←{⍵=Rip}', p0)],
+    ['VALUE ERROR: undefined name ripe. Did you mean Ripe?', 'VALUE ERROR: undefined name ROTTEN. Did you mean Rotten?', 'VALUE ERROR: undefined name Rip']);
   check('names: players can still use a stage name for their own value', msg('Ripe←4\nHarvest←{⍵=Ripe}', p0), 'ok');
   check('helpers: BumperCrops marks exactly the plants in ripe 2×2 squares',
     AcresCore.evaluate('Harvest←BumperCrops', grid(['33000003', '33000000', '00000000', '00000000', '00000000', '00000000', '30000033', '00000033'])).mask,
