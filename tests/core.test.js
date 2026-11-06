@@ -371,6 +371,33 @@ for (const [src, want] of limits) check(`limit: ${src}`, ev(src), want);
     night(['00000000', '00000000', '00000000', '00000000', '00000000', '00010000', '00000000', '00000000']), [9, [[2, 3]], 0, 0]);
   check('crows: a scarecrow on a ripe plant tramples it back to a seed, but protects the eight around it',
     night(['00000000', '00000000', '00010000', '00000000', '00000000', '00000000', '00000000', '00000000']), [0, [[2, 3]], 8, 1]);
+  // The flock lands where the next two rolls say: row ⌊8×a⌋, column ⌊8×b⌋.
+  const nightAt = (field, a, b, scare = null, mask = null) => {
+    const st = AcresCore.newSeason(1, crow);
+    st.field = grid(field);
+    const rolls = [...Array(N * N).fill(0.99), a, b]; let i = 0; st.rng = () => rolls[i++];
+    AcresCore.advance(st, mask ? grid(mask) : grid(Array(N).fill('00000000')), scare ? grid(scare) : null);
+    return { eaten: st.eaten, trampled: st.history[0].trampled, field: st.field.map(r => r.join('')) };
+  };
+  const RIPE_ALL = Array(N).fill('33333333'), NONE = Array(N).fill('00000000');
+  check('crows: a flock landing in a corner reaches only the 4 plots inside the field', nightAt(RIPE_ALL, 0.01, 0.01).eaten, 4);
+  check('crows: a flock landing on an edge reaches only 6 plots', nightAt(RIPE_ALL, 0.01, 0.5).eaten, 6);
+  check('crows: two scarecrows with overlapping guards protect their combined area',
+    nightAt(['00000000', '03330000', '00000000', '03330000', '00000000', '00000000', '00000000', '00000000'], 2.5 / 8, 2.5 / 8,
+      ['00000000', '00000000', '01010000', '00000000', '00000000', '00000000', '00000000', '00000000']).eaten, 0);
+  check('crows: a scarecrow on a plot harvested today costs nothing',
+    nightAt(['00000000', '00333000', '00333000', '00333000', '00000000', '00000000', '00000000', '00000000'], 2.5 / 8, 3.5 / 8,
+      ['00000000', '00000000', '00010000', '00000000', '00000000', '00000000', '00000000', '00000000'],
+      ['00000000', '00000000', '00010000', '00000000', '00000000', '00000000', '00000000', '00000000']), { eaten: 0, trampled: 0, field: ['00000000', '00333000', '00303000', '00333000', '00000000', '00000000', '00000000', '00000000'] });
+  check('crows: a scarecrow on a rotten plant tramples it back to a seed',
+    nightAt(['00000000', '00000000', '00040000', '00000000', '00000000', '00000000', '00000000', '00000000'], 6.5 / 8, 6.5 / 8,
+      ['00000000', '00000000', '00010000', '00000000', '00000000', '00000000', '00000000', '00000000']), { eaten: 0, trampled: 1, field: NONE });
+  check('crows: the report totals match the season, over 100 days with and without scarecrows',
+    [null, SMART_SCARE].map(src => {
+      const p = AcresCore.compileProgram(src || SMART), st = AcresCore.newSeason(crow.seed, crow);
+      while (st.day < RULES.days) AcresCore.advance(st, AcresCore.runHarvest(p.harvest, st.field), src ? AcresCore.runScare(p.scare, st.field) : null);
+      return st.history.reduce((t, d) => t + d.eaten, 0) === st.eaten && st.history.length === RULES.days;
+    }), [true, true]);
   const scareErr = src => { try { AcresCore.runScare(AcresCore.compileProgram(src).scare, AcresCore.newSeason(1).field); return 'ok'; } catch (e) { return e.message; } };
   check('scare: at most two scarecrows', [scareErr('Harvest←{0}\nScare←{⍵≥0}'), scareErr('Harvest←{0}\nScare←{0}')],
     ['Scare placed 64 scarecrows, but you only have 2', 'ok']);
