@@ -146,12 +146,12 @@ for (const [label, field, want] of fixed) check(`hybrid mask: ${label}`, AcresCo
 // 6. Rulesets, farms and personal bests
 {
   const FARMS = AcresCore.FARMS, PRACTICE = AcresCore.PRACTICE;
-  // Crowhurst Farm adds crows; its own checks are in section 12.
-  const PLAIN = FARMS.filter(f => !f.crows);
+  // Crowhurst Farm adds crows and Blightwick Farm adds blight; their own checks are in sections 12 and 13.
+  const PLAIN = FARMS.filter(f => !f.crows && !f.blight);
   check('rules: the ruleset is v2 and cannot be changed', [RULES.id, Object.isFrozen(RULES)], ['v2', true]);
   const ids = FARMS.map(f => f.id);
-  check('farms: four farms with unique ids, all on rules v2 and fixed',
-    [ids.length, new Set(ids).size, FARMS.every(f => f.rules === RULES.id && Object.isFrozen(f))], [4, 4, true]);
+  check('farms: five farms with unique ids, all on rules v2 and fixed',
+    [ids.length, new Set(ids).size, FARMS.every(f => f.rules === RULES.id && Object.isFrozen(f))], [5, 5, true]);
   check('farms: each farm without crows has its own weather', new Set(PLAIN.map(f => `${f.sunshine}/${f.rainfall}`)).size, 3);
   check('farms: Practice Farm has Middlebourne Farm’s weather', [PRACTICE.sunshine, PRACTICE.rainfall], [FARMS[0].sunshine, FARMS[0].rainfall]);
   const onFarm = (src, f) => season(src, f.seed, null, f);
@@ -210,7 +210,7 @@ check('bumper crops: a square with a rotten or growing plant is not a bumper cro
 {
   const N = RULES.size, ripe = RULES.ripe, rot = RULES.rot;
   let starts = true, steps = true, waste = true, rates = true;
-  for (const f of AcresCore.FARMS.filter(f => !f.crows)) {
+  for (const f of AcresCore.FARMS.filter(f => !f.crows && !f.blight)) {
   let grew = 0, couldGrow = 0, rotted = 0, couldRot = 0;
   for (const src of [GREEDY, HYBRID, 'Harvest←{0}']) {
     const fn = AcresCore.compileHarvest(src);
@@ -281,7 +281,7 @@ check('bumper crops: a square with a rotten or growing plant is not a bumper cro
     [p2.earned.includes('sunnyhill-silver'), [...p2.helpers], p2.farms.has('marshgate-farm')], [true, ['BumperCrops', 'Promising'], true]);
   const smart = 'Harvest←{(⍵=4)∨(BumperCrops ⍵)∨(⍵=3)∧~Promising ⍵}';
   check('journey: the helpers reproduce the reference strategy and reach Gold on every farm',
-    AcresCore.FARMS.filter(f => !f.crows).map(f => { const sc = play(smart, f, p2); return [sc, AcresCore.tierFor(f, sc)]; }), [[1533, 'gold'], [2132, 'gold'], [1238, 'gold']]);
+    AcresCore.FARMS.filter(f => !f.crows && !f.blight).map(f => { const sc = play(smart, f, p2); return [sc, AcresCore.tierFor(f, sc)]; }), [[1533, 'gold'], [2132, 'gold'], [1238, 'gold']]);
   const p3 = AcresCore.progress({ 'v2:marshgate-farm': { score: 1200 } });
   check('journey: Gold on any farm unlocks every symbol and the helpers’ source',
     [p3.earned.includes('any-gold'), p3.glyphs.has('↑'), p3.helpers.has('Squares'), p3.source], [true, true, true, true]);
@@ -428,6 +428,47 @@ for (const [src, want] of limits) check(`limit: ${src}`, ev(src), want);
   };
   const greedy = season('Harvest←{⍵≥Ripe}'), hybrid = season(fs.readFileSync(path.join(__dirname, '..', 'reference', 'hybrid.apl'), 'utf8'));
   check('missed: over a season, harvesting at once misses far more bumper crops than waiting for them', greedy > hybrid * 3, true);
+}
+
+// 13. Blightwick Farm: blight spreads to living neighbours, even from plants cleared that day, but never
+// into seeds or rotten plants, so a freshly harvested plot is a firebreak.
+{
+  const BL = AcresCore.FARMS.find(f => f.blight), B = RULES.blighted;
+  check('blight: Blightwick Farm has 50% spread, is experimental, and unlocks with Gold like Crowhurst',
+    [BL.name, BL.blight.spread, BL.boardVersion, AcresCore.unlockFor('farm', BL.id).id], ['Blightwick Farm', 0.5, 1, 'any-gold']);
+  const start = AcresCore.newSeason(BL.seed, BL).field.flat();
+  check('blight: a season starts with a few blighted plants', start.filter(v => v === B).length >= 1 && start.filter(v => v === B).length <= 3, true);
+  // A night where every roll is 0.45: below 50%, so blight always spreads; growth happens; no rot, no outbreak.
+  const night = (field, mask) => {
+    const st = AcresCore.newSeason(1, BL);
+    st.field = grid(field); st.rng = () => 0.45;
+    AcresCore.advance(st, grid(mask || Array(8).fill('00000000')));
+    return st;
+  };
+  const centre = ['00000000', '00000000', '00020000', '00253000', '00010000', '00000000', '00000000', '00000000'];
+  let st = night(centre);
+  check('blight: it spreads to living plants above, below, left and right', [st.field[2][3], st.field[3][2], st.field[3][4], st.field[4][3]], [B, B, B, B]);
+  check('blight: but not diagonally, and a blighted plant never grows or ripens', [st.field[2][2], st.field[4][4], st.field[3][3]], [1, 1, B]);
+  check('blight: plants it reaches are counted as lost', [st.history[0].blighted, st.blighted], [4, 4]);
+  st = night(['00000000', '00000000', '00040000', '00050000', '00000000', '00000000', '00000000', '00000000']);
+  check('blight: seeds and rotten plants can’t catch it, even if a seed sprouts that night', [st.field[2][3], st.field[4][3], st.field[3][2]], [4, 1, 1]);
+  st = night(centre, ['00000000', '00000000', '00000000', '00010000', '00000000', '00000000', '00000000', '00000000']);
+  check('blight: clearing it is free, not wasted, but its spores still spread that night', [st.score, st.wasted, st.field[3][3] !== B, st.field[2][3], st.field[3][4]], [0, 0, true, B, B]);
+  st = night(centre, ['00000000', '00000000', '00010000', '00101000', '00010000', '00000000', '00000000', '00000000']);
+  check('blight: harvesting its neighbours first makes a firebreak it can’t cross', st.field.flat().filter(v => v === B).length, 1);
+  const play = src => { const fn = AcresCore.compileHarvest(src), s2 = AcresCore.newSeason(BL.seed, BL); while (s2.day < RULES.days) AcresCore.advance(s2, AcresCore.runHarvest(fn, s2.field)); return s2.score; };
+  const NEAR = 'Near←{(1↓⍵⍪0)∨(¯1↓0⍪⍵)∨(0 1↓⍵,0)∨0 ¯1↓0,⍵}\n';
+  const scores = [
+    play('Harvest←{⍵=Ripe}'),
+    play('Harvest←{⍵≥Ripe}'),
+    play('Harvest←{(⍵≥Rotten)∨(BumperCrops ⍵)∨(⍵=Ripe)∧~Promising ⍵}'),
+    play(NEAR + 'Harvest←{n←Near ⍵=Blighted ⋄ (⍵≥Rotten)∨(BumperCrops ⍵)∨n∨(⍵=Ripe)∧~Promising ⍵}'),
+  ];
+  check('blight: never clearing collapses; clearing is Bronze, the usual Gold strategy Silver, firebreaks Gold',
+    scores.map(sc => AcresCore.tierFor(BL, sc)), [null, 'bronze', 'silver', 'gold']);
+  check('blight: the farm’s pinned scores', scores, [78, 1083, 1356, 1484]);
+  const others = AcresCore.FARMS.filter(f => !f.blight).map(f => AcresCore.newSeason(f.seed, f).field.flat().includes(B));
+  check('blight: no other farm ever has blight', others.every(x => !x), true);
 }
 
 console.log(failures ? `${failures} of ${checks} checks failed` : `All ${checks} checks passed`);
