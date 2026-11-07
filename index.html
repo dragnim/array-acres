@@ -173,8 +173,9 @@ button.link { font: inherit; font-weight: inherit; background: none; border: 0; 
 .stat { display: flex; flex-direction: column; }
 .stat span { font-size: 0.85rem; color: var(--muted); }
 .stat strong { font-size: 1.45rem; font-weight: 600; }
-.legend { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: 14px; font-size: 0.9rem; color: var(--muted); }
-.legend div { display: flex; align-items: center; gap: 6px; }
+.legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 16px; margin-top: 14px; font-size: 0.9rem; color: var(--muted); }
+.legend div { display: flex; align-items: center; gap: 8px; }
+.legend canvas { flex: none; }
 .legend canvas { width: 40px; height: 40px; border-radius: 6px; background: var(--soil-2); }
 .legend code { font-family: var(--mono); color: var(--ink); font-weight: 600; }
 .rules { margin: 0; padding-left: 1.3em; font-size: 0.92rem; color: var(--muted); max-width: 62ch; }
@@ -381,7 +382,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
         <label class="title" for="code" id="codeLabel">Your code</label>
         <span class="label-tools">
           <span class="status" id="status" aria-live="polite"></span>
-          <button type="button" class="small-button" id="viewToggle">Advanced view</button>
+          <button type="button" class="small-button" id="viewToggle">Code view</button>
           <button type="button" class="small-button" id="resetCode">Reset code</button>
         </span>
       </div>
@@ -2625,12 +2626,12 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     $('framed').hidden = view !== 'simple';
     codeEl.hidden = view !== 'full';
     $('scareFrame').hidden = !hasCrows();
-    $('viewToggle').textContent = view === 'simple' ? 'Advanced view' : 'Simple view';
+    $('viewToggle').textContent = view === 'simple' ? 'Code view' : 'Simple view';
     $('codeLabel').htmlFor = view === 'simple' ? 'hBody' : 'code';
   }
   function setView(next) {
     if (next === 'simple' && !fillFrames()) {
-      setMsg('This program has more than Harvest and Scare in it, so it can only be edited in the advanced view.');
+      setMsg('This program has more than Harvest and Scare in it, so it can only be edited in the code view.');
       return;
     }
     view = next;
