@@ -498,7 +498,7 @@ test('the Leaderboard page shows every farm’s top 10, without playing a season
   await expect(page.locator('#boards ol[data-farm="middlebourne-farm"]')).toContainText('No scores yet');
 });
 
-test('the simple view frames Harvest, taps in names, and switches to the full program and back', async ({ page }) => {
+test('the simple view frames Harvest, taps in names, and switches to the advanced view and back', async ({ page }) => {
   await page.evaluate(() => localStorage.removeItem('acres:editor'));
   await page.goto(PAGE);
   const body = page.locator('#hBody'), code = page.locator('#code'), status = page.locator('#status');
@@ -508,8 +508,8 @@ test('the simple view frames Harvest, taps in names, and switches to the full pr
   await expect(page.locator('.frame-edge').first()).toHaveText('Harvest←{');
 
   // Typing and tapping names edit the inside; the full program is what's run and saved.
-  await body.fill('⍵=');
-  await page.locator('#words button', { hasText: 'Ripe' }).click();
+  await body.fill('');
+  for (const w of ['⍵', '=', 'Ripe']) await page.locator('#words button', { hasText: new RegExp(`^${w}$`) }).click();
   await expect(body).toHaveValue('⍵=Ripe');
   await expect(status).toHaveAttribute('data-state', 'ready');
   expect(await page.evaluate(() => localStorage.getItem('allotment:apl'))).toBe('Harvest←{⍵=Ripe}\n');
@@ -527,7 +527,7 @@ test('the simple view frames Harvest, taps in names, and switches to the full pr
   await code.fill('Ripe2←{⍵=Ripe}\nHarvest←{Ripe2 ⍵}\n');
   await page.click('#viewToggle');
   await expect(code).toBeVisible();
-  await expect(page.locator('#msg')).toContainText('can only be edited in the full view');
+  await expect(page.locator('#msg')).toContainText('can only be edited in the advanced view');
   await page.reload();
   await expect(code).toBeVisible();
   await expect(code).toHaveValue('Ripe2←{⍵=Ripe}\nHarvest←{Ripe2 ⍵}\n');
