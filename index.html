@@ -647,6 +647,9 @@ const APL = (() => {
     if (isFn(r) || r.data.length !== 1) err('NONCE ERROR', `${f.name} must return a single number here (nested arrays aren't supported yet)`);
     return r.data[0];
   }
+  // Tolerant equality, as in Dyalog with its default comparison tolerance ⎕CT←1E¯14.
+  const CT = 1e-14;
+  const teq = (a, w) => a === w || Math.abs(a - w) <= CT * Math.max(Math.abs(a), Math.abs(w));
   const IDENTITY = { '+': 0, '-': 0, '|': 0, '∨': 0, '≠': 0, '<': 0, '>': 0, '×': 1, '÷': 1, '∧': 1, '=': 1, '≤': 1, '≥': 1, '⌈': -Number.MAX_VALUE, '⌊': Number.MAX_VALUE };
   const identity = f => f.name in IDENTITY ? IDENTITY[f.name] : err('DOMAIN ERROR', `${f.name} has no identity element for an empty reduction`);
 
@@ -802,7 +805,7 @@ const APL = (() => {
     return arr(sel.flatMap(s => s.shape), offs.map(o => w.data[o]));
   }
 
-  const cmp = (a, w) => a.shape.length === w.shape.length && a.shape.every((n, i) => n === w.shape[i]) && a.data.every((x, i) => x === w.data[i]);
+  const cmp = (a, w) => a.shape.length === w.shape.length && a.shape.every((n, i) => n === w.shape[i]) && a.data.every((x, i) => teq(x, w.data[i]));
 
   const grade = down => mkfn(down ? '⍒' : '⍋', w => {
     if (w.shape.length !== 1) err('NONCE ERROR', `${down ? '⍒' : '⍋'} only works on vectors here`);
@@ -820,12 +823,13 @@ const APL = (() => {
     '⌊': scalar('⌊', Math.floor, Math.min),
     '|': scalar('|', Math.abs, residue),
     '*': scalar('*', Math.exp, Math.pow),
-    '=': scalar('=', null, (a, w) => +(a === w)),
-    '≠': scalar('≠', null, (a, w) => +(a !== w)),
-    '<': scalar('<', null, (a, w) => +(a < w)),
-    '>': scalar('>', null, (a, w) => +(a > w)),
-    '≤': scalar('≤', null, (a, w) => +(a <= w)),
-    '≥': scalar('≥', null, (a, w) => +(a >= w)),
+    // Comparisons are tolerant, like Dyalog's default ⎕CT of 1E¯14, so (0.1+0.2)=0.3 is 1.
+    '=': scalar('=', null, (a, w) => +teq(a, w)),
+    '≠': scalar('≠', null, (a, w) => +!teq(a, w)),
+    '<': scalar('<', null, (a, w) => +(a < w && !teq(a, w))),
+    '>': scalar('>', null, (a, w) => +(a > w && !teq(a, w))),
+    '≤': scalar('≤', null, (a, w) => +(a < w || teq(a, w))),
+    '≥': scalar('≥', null, (a, w) => +(a > w || teq(a, w))),
     '∧': scalar('∧', null, (a, w) => isBool(a) && isBool(w) ? a & w : lcm(a, w)),
     '∨': scalar('∨', null, (a, w) => isBool(a) && isBool(w) ? a | w : gcd(a, w)),
     '~': mkfn('~',
@@ -845,7 +849,7 @@ const APL = (() => {
     }, (a, w) => {
       if (a.shape.length > 1) err('RANK ERROR', 'left argument of ⍳ must be a vector');
       spend(a.data.length * w.data.length);
-      return arr(w.shape, w.data.map(x => { const i = a.data.indexOf(x); return i < 0 ? a.data.length + 1 : i + 1; }));
+      return arr(w.shape, w.data.map(x => { const i = a.data.findIndex(y => teq(x, y)); return i < 0 ? a.data.length + 1 : i + 1; }));
     }),
     ',': mkfn(',', w => V(w.data.slice()), (a, w) => catenate(a, w, false)),
     '⍪': mkfn('⍪', w => arr([w.shape.length ? w.shape[0] : 1, prod(w.shape.slice(1))], w.data.slice()), (a, w) => catenate(a, w, true)),
@@ -859,7 +863,7 @@ const APL = (() => {
     '≢': mkfn('≢', w => S(w.shape.length ? w.shape[0] : 1), (a, w) => S(+!cmp(a, w))),
     '≡': mkfn('≡', w => S(w.shape.length ? 1 : 0), (a, w) => S(+cmp(a, w))),
     '⊃': mkfn('⊃', w => S(w.data.length ? w.data[0] : 0), () => err('NONCE ERROR', 'dyadic ⊃ isn\'t available yet')),
-    '∊': mkfn('∊', w => V(w.data.slice()), (a, w) => { spend(a.data.length * w.data.length); return arr(a.shape, a.data.map(x => +w.data.includes(x))); }),
+    '∊': mkfn('∊', w => V(w.data.slice()), (a, w) => { spend(a.data.length * w.data.length); return arr(a.shape, a.data.map(x => +w.data.some(y => teq(x, y)))); }),
     '⍸': mkfn('⍸', w => {
       if (w.shape.length > 1) err('NONCE ERROR', '⍸ on a matrix needs nested arrays, which aren\'t supported yet');
       const counts = w.shape.length ? w.data : [w.data[0]];
@@ -952,7 +956,7 @@ const APL = (() => {
   const FN_GLYPHS = '+-×÷⌈⌊|*=≠<>≤≥∧∨~⍴⍳,⍪⌽⊖⍉↑↓⊢⊣≢≡⊃∊⍸⍋⍒';
   const MOP_GLYPHS = '/⌿\\⍀¨⍨';
   const DOP_GLYPHS = '∘.';
-  const LATER = '⍤⍣⍥@⌺⌸⊂⊆⍕⍎⎕?○⍟!∩∪⊥⊤⌹⍷⌷⍬⍞⍠⌶⍱⍲→';
+  const LATER = '⍤⍣⍥@⌺⌸⊂⊆⍕⍎⎕?○⍟!∩∪⊥⊤⌹⍷⌷⍞⍠⌶⍱⍲→';
 
   // lockGlyph(ch) returns a message for a symbol the player hasn't unlocked yet, or null.
   function tokenize(src, lockGlyph) {
@@ -968,7 +972,7 @@ const APL = (() => {
       if (num) {
         const v = Number(num[0].replace(/¯/g, '-'));
         const prev = toks[toks.length - 1];
-        if (prev && prev.t === 'NUM') prev.vals.push(v); else toks.push({ t: 'NUM', vals: [v] });
+        if (prev && prev.t === 'NUM' && !prev.zilde) prev.vals.push(v); else toks.push({ t: 'NUM', vals: [v] });
         i += num[0].length; continue;
       }
       const name = /^[A-Za-z_∆⍙][A-Za-z_0-9∆⍙]*/.exec(rest);
@@ -980,6 +984,7 @@ const APL = (() => {
       }
       if (ch === '∘' && src[i + 1] === '.') { toks.push({ t: 'OUTER' }); i += 2; continue; }
       if (ch === '¯') err('SYNTAX ERROR', '¯ must be followed by a number');
+      if (ch === '⍬') { toks.push({ t: 'NUM', vals: [], zilde: true }); i++; continue; } // zilde, the empty numeric vector
       i++;
       if (FN_GLYPHS.includes(ch)) toks.push({ t: 'FN', v: ch });
       else if (MOP_GLYPHS.includes(ch)) toks.push({ t: 'MOP', v: ch });
@@ -1185,7 +1190,13 @@ const APL = (() => {
 
   function format(v) {
     if (isFn(v)) return '(function)';
-    const n = x => (Number.isInteger(x) ? String(x) : String(+x.toFixed(10))).replace('-', '¯');
+    // Like Dyalog's default ⎕PP←10: ten significant digits, E notation for very large or small numbers.
+    const n = x => {
+      if (Number.isInteger(x) && Math.abs(x) < 2 ** 53) return String(x).replace('-', '¯');
+      let [m, e] = x.toPrecision(10).split('e');
+      if (m.includes('.')) m = m.replace(/0+$/, '').replace(/\.$/, '');
+      return (e ? `${m}E${+e}` : m).replace(/-/g, '¯');
+    };
     if (v.shape.length < 2) return v.data.map(n).join(' ');
     const cols = v.shape[v.shape.length - 1], rows = v.data.length / cols;
     const cells = v.data.map(n), wd = Math.max(...cells.map(c => c.length));
