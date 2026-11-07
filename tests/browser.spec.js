@@ -295,9 +295,13 @@ test('Reset code restores the starter code, and undo brings the player’s code 
   await expect(code).toHaveValue('Harvest←{⍵≥3}');
 });
 
-test('the field can show its numbers, exactly as Harvest sees them', async ({ page }) => {
+test('the field can show its numbers, exactly as Harvest sees them, once Gold unlocks them', async ({ page }) => {
   await page.goto(PAGE);
   const field = page.locator('#field'), btn = page.locator('#showNumbers');
+  // A new player meets stages by name only: the button appears at Gold, and on Practice Farm.
+  await expect(btn).toBeHidden();
+  await page.selectOption('#farm', 'practice');
+  await expect(btn).toBeVisible();
   await expect(page.locator('.field-title')).toHaveText('Today’s field, ⍵');
   await expect(field).toHaveAttribute('data-numbers', 'off');
   await btn.click();
@@ -306,6 +310,9 @@ test('the field can show its numbers, exactly as Harvest sees them', async ({ pa
   await expect(btn).toHaveAttribute('aria-pressed', 'true');
   await page.reload();
   await expect(field).toHaveAttribute('data-numbers', 'on');
+  await page.selectOption('#farm', 'middlebourne-farm'); // locked again here, so no numbers
+  await expect(field).toHaveAttribute('data-numbers', 'off');
+  await page.selectOption('#farm', 'practice');
   await page.locator('#showNumbers').click();
   await expect(field).toHaveAttribute('data-numbers', 'off');
 });
