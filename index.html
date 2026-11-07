@@ -2710,7 +2710,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   {
     const key = (label, aria, act) => {
       const b = document.createElement('button');
-      b.type = 'button'; b.textContent = label; b.setAttribute('aria-label', aria);
+      b.type = 'button'; b.textContent = label; b.setAttribute('aria-label', aria); b.title = aria;
       b.addEventListener('mousedown', e => e.preventDefault());
       b.addEventListener('click', () => { editorEl().focus(); act(); });
       return b;
@@ -2723,7 +2723,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
       el.selectionStart = el.selectionEnd = from;
       el.dispatchEvent(new Event('input'));
     };
-    const kbd = key('⌨', 'Keyboard', () => setKeyboard(!keyboard));
+    const kbd = key('⌨', 'Keyboard: show or hide the on-screen keyboard', () => setKeyboard(!keyboard));
     kbd.id = 'kbdKey';
     $('keys').append(...'0123456789'.split('').map(d => key(d, d, () => insertText(d))),
       key('+', 'plus', () => insertText('+')), key('-', 'minus', () => insertText('-')), key(',', 'comma', () => insertText(',')),
@@ -2732,11 +2732,28 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
 
   // Name buttons: tap ⍵, the comparisons and brackets every first strategy needs, the stages and helpers
   // into the code, handy on touch screens where these keys are hidden. Helpers appear as they unlock.
+  // What each name button means, shown when you hover over it.
+  const WORD_TIPS = {
+    '⍵': '⍵: today’s field, the stage of every plot',
+    '=': 'Equals: 1 where both sides match. ⍵=Ripe finds the ripe plants',
+    '<': 'Less than: ⍵<Ripe finds plants that aren’t ripe yet',
+    '>': 'Greater than: ⍵>Growing finds ripe and rotten plants',
+    '(': 'Brackets: work this part out first, as in (⍵=Rotten)∨⍵=Ripe',
+    ')': 'Brackets: work this part out first, as in (⍵=Rotten)∨⍵=Ripe',
+    Seed: 'Seed: a newly planted plot. Stages go Seed, Sprout, Growing, Ripe, Rotten',
+    Sprout: 'Sprout: just come up. Harvesting it wastes it',
+    Growing: 'Growing: one step from ripe. Harvesting it wastes it',
+    Ripe: 'Ripe: ready to harvest for 1 point, or 3 in a bumper crop',
+    Rotten: 'Rotten: gone off. Harvesting it is free and replants the plot',
+    BumperCrops: 'BumperCrops ⍵: 1 on every ripe plant in a 2×2 square of ripe plants',
+    Promising: 'Promising ⍵: 1 where a bumper crop could form, in 2×2 squares of growing or ripe plants',
+    Squares: 'Squares: 1 on every plot in a 2×2 square of 1s, as in Squares ⍵=Growing',
+  };
   function renderWords() {
     const acc = access(), helpers = ['BumperCrops', 'Promising', 'Squares'].filter(h => acc.helpers.has(h));
     $('words').replaceChildren(...['⍵', '=', '<', '>', '(', ')', ...AcresCore.STAGE_NAMES, ...helpers].map(w => {
       const b = document.createElement('button');
-      b.type = 'button'; b.textContent = w;
+      b.type = 'button'; b.textContent = w; b.title = WORD_TIPS[w];
       const text = w === 'Squares' ? 'Squares ' : helpers.includes(w) ? `${w} ⍵` : w;
       b.addEventListener('mousedown', e => e.preventDefault());
       b.addEventListener('click', () => { editorEl().focus(); insertText(text); });
