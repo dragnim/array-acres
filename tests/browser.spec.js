@@ -479,6 +479,9 @@ test('the leaderboard takes three initials from a top-10 score, and sends the co
   await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
   await page.click('#run');
   await expect(page.locator('#msg')).toHaveText(/^Season complete\./, { timeout: 30000 });
+  await expect(page.locator('#rMissed')).toHaveText('384'); // harvesting at once: ripe plants taken alone where a bumper crop could form
+  await expect(page.locator('#rEatenStat')).toBeHidden(); // no crows on Middlebourne
+  await expect(page.locator('#rTrampledStat')).toBeHidden();
   await expect(page.locator('#lbList li')).toHaveCount(1);
   await expect(page.locator('#lbList')).toContainText('ACE');
   await expect(page.locator('#lbEnter')).toBeVisible();
