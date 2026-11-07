@@ -198,6 +198,7 @@ button.link { font: inherit; font-weight: inherit; background: none; border: 0; 
 @keyframes bump { 30% { transform: scale(1.015); } }
 .stats { display: flex; flex-wrap: wrap; gap: 6px 24px; margin-top: 12px; font-variant-numeric: tabular-nums; }
 .stat { display: flex; flex-direction: column; }
+.stat[hidden] { display: none; }
 .stat span { font-size: 0.85rem; color: var(--muted); }
 .stat strong { font-size: 1.45rem; font-weight: 600; }
 .legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 16px; margin-top: 14px; font-size: 0.9rem; color: var(--muted); }
@@ -496,6 +497,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
       <div class="stat"><span>Ripe plants lost to rot</span><strong id="rRot">0</strong></div>
       <div class="stat"><span>Wasted plants</span><strong id="rWasted">0</strong></div>
       <div class="stat"><span>Bumper crop plants</span><strong id="rBonus">0</strong></div>
+      <div class="stat"><span>Ripe plants taken alone where a bumper crop could form</span><strong id="rMissed">0</strong></div>
       <div class="stat" id="rEatenStat" hidden><span>Ripe plants eaten by crows</span><strong id="rEaten">0</strong></div>
       <div class="stat" id="rTrampledStat" hidden><span>Plants trampled by scarecrows</span><strong id="rTrampled">0</strong></div>
     </div>
@@ -1353,8 +1355,16 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
         marks[r][c] = marks[r + 1][c] = marks[r][c + 1] = marks[r + 1][c + 1] = 2;
     }
 
-    // Daily statistics are recorded as the rules run, never recalculated separately.
-    const rec = { day: st.day + 1, points: 0, ripeHarvested: 0, bonusPlots: 0, wasted: 0, rotted: 0, eaten: 0, trampled: 0, cumulative: 0 };
+    // Where a bumper crop could still form: 2×2 squares of growing or ripe plants, before today's harvest.
+    const couldForm = f.map(row => row.map(() => false)), maturing = v => v === 2 || v === RIPE;
+    for (let r = 0; r < N - 1; r++) for (let c = 0; c < N - 1; c++) {
+      if (maturing(f[r][c]) && maturing(f[r + 1][c]) && maturing(f[r][c + 1]) && maturing(f[r + 1][c + 1]))
+        couldForm[r][c] = couldForm[r + 1][c] = couldForm[r][c + 1] = couldForm[r + 1][c + 1] = true;
+    }
+
+    // Daily statistics are recorded as the rules run, never recalculated separately. missed: ripe plants
+    // harvested alone, for 1 point, from a square where a bumper crop could have formed.
+    const rec = { day: st.day + 1, points: 0, ripeHarvested: 0, bonusPlots: 0, missed: 0, wasted: 0, rotted: 0, eaten: 0, trampled: 0, cumulative: 0 };
 
     for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
       if (!mask[r][c]) continue;
@@ -1363,6 +1373,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
         const isBonus = marks[r][c] === 2, pts = isBonus ? bonus : 1;
         st.score += pts; rec.points += pts; rec.ripeHarvested++;
         if (isBonus) rec.bonusPlots++;
+        else if (couldForm[r][c]) rec.missed++;
       } else if (v === 1 || v === 2) { st.wasted++; rec.wasted++; }
       f[r][c] = 0;
     }
@@ -2446,6 +2457,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     $('rRot').textContent = total('rotted');
     $('rWasted').textContent = total('wasted');
     $('rBonus').textContent = total('bonusPlots');
+    $('rMissed').textContent = total('missed');
     $('rEaten').textContent = total('eaten');
     $('rTrampled').textContent = total('trampled');
     hoverDay = null;
