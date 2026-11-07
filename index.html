@@ -105,7 +105,9 @@ body {
   font-family: "Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   line-height: 1.45;
 }
-.wrap { max-width: 1120px; margin: 0 auto; padding: clamp(16px, 4vw, 40px); }
+/* The page uses wide screens, so the field can be the biggest thing on them. */
+:root { --page-w: 1560px; }
+.wrap { max-width: var(--page-w); margin: 0 auto; padding: clamp(16px, 4vw, 40px); }
 .topbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px 24px; }
 .topbar .farm-bar { grid-column: 1 / -1; }
 .topbar .intro { grid-column: 1 / -1; margin: -4px 0 0; max-width: 62ch; color: var(--muted); font-size: 1.05rem; }
@@ -141,7 +143,7 @@ body {
    left only as far as it must, and narrows only when it has to. */
 @media (min-width: 1100px) {
   body.panel-open .wrap {
-    margin-left: max(0px, min(calc((100% - 1120px) / 2), calc(100% - var(--panel-w) - 1120px)));
+    margin-left: max(0px, min(calc((100% - var(--page-w)) / 2), calc(100% - var(--panel-w) - var(--page-w))));
     margin-right: var(--panel-w);
   }
 }
@@ -157,7 +159,8 @@ body {
 button.link { font: inherit; font-weight: inherit; background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; }
 .game {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  /* The field gets the larger share; the code keeps enough room to read comfortably. */
+  grid-template-columns: minmax(0, 1.4fr) minmax(340px, 1fr);
   gap: clamp(16px, 3vw, 32px);
   margin-top: clamp(20px, 3vw, 32px);
   align-items: start;
@@ -165,7 +168,8 @@ button.link { font: inherit; font-weight: inherit; background: none; border: 0; 
 @media (max-width: 820px) { .game { grid-template-columns: 1fr; } }
 .plot { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
 #field { display: block; width: 100%; aspect-ratio: 1; border-radius: 8px; background: var(--soil-2); }
-.field-stage { position: relative; }
+/* As big as the column allows, but short enough that the whole field is in view when the page opens. */
+.field-stage { position: relative; width: min(100%, calc(100svh - 290px)); min-width: min(100%, 320px); margin: 0 auto; }
 #fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .field-stage.bump { animation: bump 260ms ease-out; }
 @keyframes bump { 30% { transform: scale(1.015); } }
@@ -2653,11 +2657,11 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   // simple view keeps the on-screen keyboard away, so tapping builds the code; ⌨ brings the keyboard back.
   const touch = matchMedia('(pointer: coarse)').matches;
   let keyboard = !touch;
-  function setKeyboard(on) {
+  function setKeyboard(on, focus = true) {
     keyboard = on;
     [hBody, sBody].forEach(el => el.setAttribute('inputmode', on ? 'text' : 'none'));
     $('kbdKey').setAttribute('aria-pressed', String(on));
-    if (on) { const el = editorEl(); el.blur(); el.focus(); }
+    if (on && focus) { const el = editorEl(); el.blur(); el.focus(); }
   }
   {
     const key = (label, aria, act) => {
@@ -2716,7 +2720,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   codeEl.value = saved || DEFAULT_CODE;
   // Code that doesn't fit the simple view opens in the full view.
   if (view === 'simple' && !fillFrames()) view = 'full';
-  setKeyboard(keyboard);
+  setKeyboard(keyboard, false); // on load, without moving the cursor (or the page) to the code
 
   // Back to the starter code. Done as an edit, so Ctrl+Z or ⌘+Z brings the player's code back.
   $('resetCode').addEventListener('click', () => {
