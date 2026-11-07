@@ -752,7 +752,7 @@ test('Blightwick Farm: blight in the field, the key, the name buttons, the guide
   await page.click('#openHelp');
   await expect(page.locator('#rules')).toContainText('even if you cleared it that day');
   await page.click('#openGuide');
-  await page.getByRole('button', { name: 'Show me what b←⍵=Blighted ⋄ (1↓b⍪0)∨(¯1↓0⍪b)∨(0 1↓b,0)∨0 ¯1↓0,b would harvest today' }).click();
+  await page.getByRole('button', { name: 'Show me what b←⍵=Blighted ⋄ 1↓b⍪0 would harvest today' }).click();
   await expect(page.locator('#field')).toHaveAttribute('data-preview', 'example');
   expect(Number(await page.locator('#field').getAttribute('data-picked'))).toBeGreaterThan(0);
   await page.click('#closePanel');
