@@ -372,7 +372,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
         <label class="title" for="code" id="codeLabel">Your code</label>
         <span class="label-tools">
           <span class="status" id="status" aria-live="polite"></span>
-          <button type="button" class="small-button" id="viewToggle">Edit full program</button>
+          <button type="button" class="small-button" id="viewToggle">Advanced view</button>
           <button type="button" class="small-button" id="resetCode">Reset code</button>
         </span>
       </div>
@@ -2593,12 +2593,12 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     $('framed').hidden = view !== 'simple';
     codeEl.hidden = view !== 'full';
     $('scareFrame').hidden = !hasCrows();
-    $('viewToggle').textContent = view === 'simple' ? 'Edit full program' : 'Simple view';
+    $('viewToggle').textContent = view === 'simple' ? 'Advanced view' : 'Simple view';
     $('codeLabel').htmlFor = view === 'simple' ? 'hBody' : 'code';
   }
   function setView(next) {
     if (next === 'simple' && !fillFrames()) {
-      setMsg('This program has more than Harvest and Scare in it, so it can only be edited in the full view.');
+      setMsg('This program has more than Harvest and Scare in it, so it can only be edited in the advanced view.');
       return;
     }
     view = next;
@@ -2616,10 +2616,11 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     el.dispatchEvent(new Event('input'));
   }
 
-  // Name buttons: tap a stage or helper into the code, handy on touch screens. Helpers appear as they unlock.
+  // Name buttons: tap ⍵, the comparisons and brackets every first strategy needs, the stages and helpers
+  // into the code, handy on touch screens where these keys are hidden. Helpers appear as they unlock.
   function renderWords() {
     const acc = access(), helpers = ['BumperCrops', 'Promising', 'Squares'].filter(h => acc.helpers.has(h));
-    $('words').replaceChildren(...['⍵', ...AcresCore.STAGE_NAMES, ...helpers].map(w => {
+    $('words').replaceChildren(...['⍵', '=', '<', '>', '(', ')', ...AcresCore.STAGE_NAMES, ...helpers].map(w => {
       const b = document.createElement('button');
       b.type = 'button'; b.textContent = w;
       const text = w === 'Squares' ? 'Squares ' : helpers.includes(w) ? `${w} ⍵` : w;
