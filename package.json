@@ -10,6 +10,7 @@
     "test:all": "npm test && npm run test:browser"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
     "@playwright/test": "^1.63.0"
   }
 }

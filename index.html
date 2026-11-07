@@ -133,7 +133,7 @@ body {
 .panel-buttons button[aria-expanded="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .new-badge { margin-left: 7px; font-size: 0.72rem; font-weight: 700; background: var(--ripe); color: var(--medal-ink); border-radius: 999px; padding: 1px 7px; vertical-align: 1px; }
 .new-badge[hidden] { display: none; }
-.god-badge { align-self: center; font-size: 0.78rem; font-weight: 700; background: var(--error); color: #fff; border-radius: 999px; padding: 3px 9px; }
+.god-badge { align-self: center; font-size: 0.78rem; font-weight: 700; background: var(--error); color: var(--bg); border-radius: 999px; padding: 3px 9px; }
 .god-badge[hidden] { display: none; }
 /* The side panel slides in from the right. On wide screens the game moves aside to make room. */
 :root { --panel-w: min(440px, 100vw); }
@@ -274,11 +274,13 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
 .glyphs button:disabled { opacity: 0.3; cursor: not-allowed; }
 .glyphs button:disabled:hover { background: transparent; border-color: transparent; }
 .guide-item { margin: 0 0 12px; }
-.guide-item h4 { margin: 0; font-size: 1.05rem; font-weight: 600; font-family: var(--mono); }
-.guide-item h4.prose { font-family: inherit; font-size: 0.95rem; }
+.guide-item h3 { margin: 0; font-size: 1.05rem; font-weight: 600; font-family: var(--mono); }
+.guide-item h3.prose { font-family: inherit; font-size: 0.95rem; }
 .guide-item p { margin: 3px 0 0; color: var(--muted); font-size: 0.9rem; }
 .guide-item pre { margin: 6px 0 0; padding: 8px 10px; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; font: 0.85rem/1.45 var(--mono); overflow-x: auto; }
-.guide-item[data-locked="true"] { opacity: 0.55; }
+/* Locked entries are set apart by a dashed edge and muted text, not by fading, so they stay readable. */
+.guide-item[data-locked="true"] { border-style: dashed; }
+.guide-item[data-locked="true"] h3, .guide-item[data-locked="true"] p { color: var(--muted); }
 .snippet { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 6px 10px; margin-top: 8px; padding: 6px 8px; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; }
 .snippet code { font-family: var(--mono); font-size: 1rem; }
 .leaderboard { margin-top: 18px; }
@@ -322,6 +324,13 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
 .controls button:hover, .controls select:hover { border-color: var(--muted); }
 .controls button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; min-width: 5.5em; }
 :focus-visible { outline: 3px solid var(--ripe); outline-offset: 2px; }
+/* Read by screen readers, not shown. */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+/* Shown only when reached with the keyboard: the first Tab jumps straight to the code. */
+.skip-link { position: absolute; left: 12px; top: -60px; z-index: 60; padding: 8px 14px; border-radius: 8px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); text-decoration: none; }
+.skip-link:focus { top: 12px; }
+/* Explanations for name, key and symbol buttons, shown on keyboard focus or a long press. */
+.tip { position: fixed; z-index: 70; max-width: 300px; padding: 6px 10px; border-radius: 8px; background: var(--ink); color: var(--bg); font-size: 0.85rem; line-height: 1.35; pointer-events: none; box-shadow: 0 4px 14px rgb(0 0 0 / 25%); }
 .speed { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.95rem; }
 #msg { margin-top: 12px; min-height: 1.5em; font-size: 0.95rem; }
 #msg.error { color: var(--error); font-family: var(--mono); white-space: pre-wrap; }
@@ -362,6 +371,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
 </style>
 </head>
 <body>
+<a class="skip-link" href="#codeLabel">Skip to your code</a>
 <div class="wrap">
   <header class="topbar">
     <h1>Array Acres</h1>
@@ -393,9 +403,11 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
       </div>
       <p class="example-note" id="exampleNote" hidden>Showing what <code id="exampleCode"></code> would harvest today: <span id="exampleCount"></span>. <button type="button" class="link" id="exampleBack">Back to your code</button></p>
       <div class="field-stage">
-        <canvas id="field" role="img" aria-label="The field"></canvas>
+        <canvas id="field" role="img" aria-label="The field" aria-describedby="fieldText"></canvas>
         <canvas id="fx" aria-hidden="true"></canvas>
       </div>
+      <p id="fieldText" class="sr-only"></p>
+      <p id="announce" class="sr-only" aria-live="polite"></p>
       <div class="stats">
         <div class="stat"><span>Day</span><strong id="sTick">0/100</strong></div>
         <div class="stat"><span>Score</span><strong id="sScore">0</strong></div>
@@ -445,7 +457,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
         </label>
       </div>
       <div id="msg" role="status"></div>
-      <p class="hint">Tap names, symbols and keys to build your code (on a tablet, ⌨ brings up the keyboard), or type symbols with a backtick prefix, so <kbd>`w</kbd> gives <kbd>⍵</kbd>. Hover a symbol to see its name and key. Dashed outlines preview what <code>Harvest</code> would pick today, without using up a day. Ctrl+Enter or ⌘+Enter moves to the next day. Tab indents; press Esc then Tab to leave the editor.</p>
+      <p class="hint">Tap names, symbols and keys to build your code (on a tablet, ⌨ brings up the keyboard), or type symbols with a backtick prefix, so <kbd>`w</kbd> gives <kbd>⍵</kbd>. Hover a symbol, focus it with the keyboard or press and hold it to see what it does. Dashed outlines preview what <code>Harvest</code> would pick today, without using up a day. Ctrl+Enter or ⌘+Enter moves to the next day. Tab indents; press Esc then Tab to leave the editor.</p>
     </section>
   </main>
 
@@ -1598,6 +1610,27 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     else runPreview();
   }
 
+  // A text version of the field for screen readers: every plot's stage, row by row, with what Harvest
+  // would pick and where scarecrows will stand. The field points to it with aria-describedby.
+  const fieldTextEl = $('fieldText');
+  function describeField(picks, scare) {
+    const rows = state.field.map((row, r) => `Row ${r + 1}: ${row.map((v, c) =>
+      STAGE_NAMES[v] + (picks && picks[r][c] ? ', picked' : '') + (scare && scare[r][c] ? ', scarecrow' : '')).join('; ')}.`);
+    const text = `Day ${state.day} of ${TICKS}. ${rows.join(' ')}`;
+    if (fieldTextEl.textContent !== text) fieldTextEl.textContent = text;
+  }
+  // After Next day, screen readers hear what happened: points, waste, rot and crows, and the score.
+  function announceDay() {
+    const d = state.history[state.history.length - 1];
+    if (!d) return;
+    const parts = [`${d.points} point${d.points === 1 ? '' : 's'}`];
+    if (d.wasted) parts.push(`${d.wasted} wasted`);
+    if (d.rotted) parts.push(`${d.rotted} rotted`);
+    if (d.eaten) parts.push(`${d.eaten} eaten by crows`);
+    $('announce').textContent = `Day ${d.day}: ${parts.join(', ')}. Score ${state.score}.`;
+  }
+  function nextDay() { stop(); const before = state.history.length; step(); if (state.history.length > before) announceDay(); }
+
   function step() {
     if (state.day >= TICKS) { stop(); setMsg('Season complete. Restart to play this field again.'); return false; }
     if (dirty && !compile()) { stop(); return false; }
@@ -1780,11 +1813,12 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
       const open = !u || (g.glyph ? !acc.glyphs || acc.glyphs.has(g.glyph) : g.helper ? acc.helpers.has(g.helper) : g.farm ? acc.farms.has(g.farm) : acc.source);
       const item = document.createElement('div');
       item.className = 'guide-item'; item.dataset.locked = String(!open);
-      const h = document.createElement('h4'); h.textContent = g.title; if (g.source) h.className = 'prose';
+      const h = document.createElement('h3'); h.textContent = g.title; if (g.source) h.className = 'prose';
       const p = document.createElement('p'); p.append(rich(open ? g.text : `Unlocks with ${AcresCore.needText(u)}.`));
       item.append(h, p);
       if (open && g.snippets) item.append(...g.snippets.map(([code, note]) => snippetRow(code, note)));
-      if (open && g.code) { const pre = document.createElement('pre'); pre.textContent = g.code; item.append(pre); }
+      // The code can scroll sideways, so it can be focused and scrolled with the keyboard too.
+      if (open && g.code) { const pre = document.createElement('pre'); pre.textContent = g.code; pre.tabIndex = 0; pre.setAttribute('aria-label', 'The helpers’ APL code'); item.append(pre); }
       return item;
     }));
   }
@@ -1795,10 +1829,10 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     const c = document.createElement('code'); c.textContent = code;
     const n = document.createElement('span'); n.className = 'snippet-note'; n.textContent = note;
     const show = document.createElement('button'); show.type = 'button'; show.className = 'small-button'; show.textContent = 'Show me';
-    show.setAttribute('aria-label', `Show what ${code} would harvest today`);
+    show.setAttribute('aria-label', `Show me what ${code} would harvest today`);
     show.addEventListener('click', () => showExample(code));
     const use = document.createElement('button'); use.type = 'button'; use.className = 'small-button'; use.textContent = 'Use';
-    use.setAttribute('aria-label', `Add ${code} to your code`);
+    use.setAttribute('aria-label', `Use ${code} in your code`);
     use.addEventListener('click', () => useSnippet(code));
     row.append(c, n, show, use);
     return row;
@@ -1949,6 +1983,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     cv.dataset.bumpers = squares.length;
     cv.dataset.art = artReady ? 'images' : 'drawn';
     cv.setAttribute('aria-label', tiling.length ? `The field, with ${tiling.length} bumper crop${tiling.length === 1 ? '' : 's'}` : 'The field');
+    describeField(example ? example.mask : !preview.stale && preview.mask, hasCrows() && !preview.stale ? preview.scare : null);
     const w = cv.clientWidth;
     if (!w) return;
     fctx.clearRect(0, 0, w, w);
@@ -2493,6 +2528,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     panelEl.scrollTop = 0;
     if (name === 'guide') setGuideNew(false);
     if (name === 'board') showBoards();
+    syncInert();
     panelTitle.focus({ preventScroll: true });
   }
   function closePanel(restoreFocus = true) {
@@ -2500,9 +2536,18 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     panelOpen = null;
     panelEl.hidden = true;
     document.body.classList.remove('panel-open');
+    syncInert();
     for (const p of Object.values(PANELS)) if (p.button) p.button.setAttribute('aria-expanded', 'false');
     if (restoreFocus && panelReturn && document.contains(panelReturn)) panelReturn.focus();
   }
+  // Where the panel covers the game (narrow screens), the game behind it is inert, so Tab and screen
+  // readers stay inside the panel until it closes. Beside the game on wide screens, both stay usable.
+  const widePanel = matchMedia('(min-width: 1100px)');
+  function syncInert() {
+    const cover = !!panelOpen && !widePanel.matches;
+    document.querySelectorAll('.topbar, .game, .skip-link').forEach(el => { el.inert = cover; });
+  }
+  widePanel.addEventListener('change', syncInert);
   const togglePanel = name => panelOpen === name ? closePanel() : openPanel(name);
   $('openAbout').addEventListener('click', () => togglePanel('about'));
   $('openHelp').addEventListener('click', () => togglePanel('help'));
@@ -2688,6 +2733,8 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     editorEl().focus();
   }
   $('viewToggle').addEventListener('click', () => setView(view === 'simple' ? 'full' : 'simple'));
+  // The skip link goes to whichever code box is showing.
+  document.querySelector('.skip-link').addEventListener('click', e => { e.preventDefault(); editorEl().focus(); });
 
   function insertText(text) {
     const el = editorEl();
@@ -2728,6 +2775,35 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     $('keys').append(...'0123456789'.split('').map(d => key(d, d, () => insertText(d))),
       key('+', 'plus', () => insertText('+')), key('-', 'minus', () => insertText('-')), key(',', 'comma', () => insertText(',')),
       key('space', 'space', () => insertText(' ')), key('↵', 'new line', () => insertText('\n')), key('⌫', 'delete', backspace), kbd);
+  }
+
+  // Explanations on keyboard focus or a long press (hover already shows the title). Esc hides them.
+  {
+    const tip = document.createElement('div');
+    tip.className = 'tip'; tip.setAttribute('role', 'tooltip'); tip.hidden = true;
+    document.body.append(tip);
+    const TIPPED = '.words button, .glyphs button';
+    const show = b => {
+      tip.textContent = b.title; tip.hidden = false;
+      const r = b.getBoundingClientRect(), t = tip.getBoundingClientRect();
+      tip.style.left = `${Math.max(8, Math.min(innerWidth - t.width - 8, r.left + r.width / 2 - t.width / 2))}px`;
+      tip.style.top = `${r.top - t.height - 8 < 8 ? r.bottom + 8 : r.top - t.height - 8}px`;
+    };
+    const hide = () => { tip.hidden = true; };
+    document.addEventListener('focusin', e => { const b = e.target.closest(TIPPED); if (b && b.title && b.matches(':focus-visible')) show(b); else hide(); });
+    document.addEventListener('focusout', hide);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') hide(); });
+    let press = null, longPressed = false;
+    document.addEventListener('pointerdown', e => {
+      const b = e.target.closest(TIPPED);
+      longPressed = false;
+      if (!b || e.pointerType === 'mouse') return;
+      press = setTimeout(() => { longPressed = true; show(b); }, 450);
+    });
+    document.addEventListener('pointerup', () => { clearTimeout(press); if (longPressed) setTimeout(hide, 1800); });
+    document.addEventListener('pointercancel', () => { clearTimeout(press); hide(); });
+    // A long press only explains; it doesn't also add the symbol.
+    document.addEventListener('click', e => { if (longPressed && e.target.closest(TIPPED)) { e.stopImmediatePropagation(); e.preventDefault(); longPressed = false; } }, true);
   }
 
   // Name buttons: tap ⍵, the comparisons and brackets every first strategy needs, the stages and helpers
@@ -2820,7 +2896,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     });
     el.addEventListener('keydown', e => {
       if (e.key === 'Escape') { escaped = true; return; }
-      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); stop(); step(); return; }
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); nextDay(); return; }
       if (e.key === 'Tab' && !escaped && !e.shiftKey) { e.preventDefault(); insertText('  '); }
       escaped = false;
     });
@@ -2828,7 +2904,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
 
   // Controls
   runBtn.addEventListener('click', () => running ? stop() : start());
-  $('step').addEventListener('click', () => { stop(); step(); });
+  $('step').addEventListener('click', nextDay);
   $('restart').addEventListener('click', () => { stop(); reset(); setMsg(''); });
   $('newField').addEventListener('click', () => { stop(); seed = newSeed(); reset(); setMsg('New field planted.'); });
 
