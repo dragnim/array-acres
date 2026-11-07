@@ -401,6 +401,8 @@ for (const [src, want] of limits) check(`limit: ${src}`, ev(src), want);
   const scareErr = src => { try { AcresCore.runScare(AcresCore.compileProgram(src).scare, AcresCore.newSeason(1).field); return 'ok'; } catch (e) { return e.message; } };
   check('scare: at most two scarecrows', [scareErr('Harvest←{0}\nScare←{⍵≥0}'), scareErr('Harvest←{0}\nScare←{0}')],
     ['Scare placed 64 scarecrows, but you only have 2', 'ok']);
+  check('bests: an experimental farm keeps its bests under its board version, so new rules start them fresh',
+    [AcresCore.bestKey('v2', 'crowhurst-farm'), AcresCore.bestKey('v2', 'middlebourne-farm')], ['v2:crowhurst-farm:1', 'v2:middlebourne-farm']);
   check('scare: Gold on any farm unlocks Crowhurst Farm', AcresCore.progress({ 'v2:marshgate-farm': { score: 1200 } }).farms.has('crowhurst-farm'), true);
 }
 
