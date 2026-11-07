@@ -406,5 +406,29 @@ for (const [src, want] of limits) check(`limit: ${src}`, ev(src), want);
   check('scare: Gold on any farm unlocks Crowhurst Farm', AcresCore.progress({ 'v2:marshgate-farm': { score: 1200 } }).farms.has('crowhurst-farm'), true);
 }
 
+// Missed bumper crops: ripe plants harvested alone, for 1 point, from a square where one could have formed.
+{
+  const day = (field, mask) => {
+    const st = AcresCore.newSeason(1);
+    st.field = grid(field); st.rng = () => 0.99; // nothing grows or rots
+    AcresCore.advance(st, grid(mask));
+    return st.history[0].missed;
+  };
+  const SQUARE = ['32000000', '22000000', '00000000', '00000000', '00000000', '00000000', '00000300', '00000000'];
+  const RIPE_SQUARE = ['33000000', '33000000', '00000000', '00000000', '00000000', '00000000', '00000000', '00000000'];
+  const NONE = Array(8).fill('00000000');
+  check('missed: a ripe plant taken from a square of growing and ripe plants counts', day(SQUARE, ['10000000', ...NONE.slice(1)]), 1);
+  check('missed: a ripe plant with no such square around it does not', day(SQUARE, [...NONE.slice(0, 6), '00000100', '00000000']), 0);
+  check('missed: harvesting a whole bumper crop misses nothing', day(RIPE_SQUARE, ['11000000', '11000000', ...NONE.slice(2)]), 0);
+  check('missed: taking part of a ripe square counts each plant taken', day(RIPE_SQUARE, ['11000000', ...NONE.slice(1)]), 2);
+  const season = src => {
+    const fn = AcresCore.compileHarvest(src), st = AcresCore.newSeason(AcresCore.FARMS[0].seed, AcresCore.FARMS[0]);
+    while (st.day < RULES.days) AcresCore.advance(st, AcresCore.runHarvest(fn, st.field));
+    return st.history.reduce((a, d) => a + d.missed, 0);
+  };
+  const greedy = season('Harvest←{⍵≥Ripe}'), hybrid = season(fs.readFileSync(path.join(__dirname, '..', 'reference', 'hybrid.apl'), 'utf8'));
+  check('missed: over a season, harvesting at once misses far more bumper crops than waiting for them', greedy > hybrid * 3, true);
+}
+
 console.log(failures ? `${failures} of ${checks} checks failed` : `All ${checks} checks passed`);
 process.exit(failures ? 1 : 0);
