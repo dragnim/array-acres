@@ -168,7 +168,7 @@ test('medals unlock farms, symbols and helpers, and bests survive a reload', asy
   // Gold with the helpers, which unlocks everything else.
   await playSeason('Harvest←{(⍵=4)∨(BumperCrops ⍵)∨(⍵=3)∧~Promising ⍵}');
   await expect(page.locator('#cmpTier')).toHaveText('Gold reached! You’ve found a powerful strategy. Can you do even better?');
-  await expect(unlock).toHaveText('Unlocked: every symbol, the Squares helper, the helpers’ source code and Crowhurst Farm. See the farming guide.');
+  await expect(unlock).toHaveText(/^Unlocked: every symbol, the Squares helper, the helpers’ source code, Crowhurst Farm and Blightwick Farm\. See the farming guide\.$/);
   await expect(page.locator('.tier[data-earned="true"]')).toHaveCount(3);
 
   // Practice Farm keeps no bests.
@@ -190,7 +190,7 @@ test('locked symbols and helpers say what unlocks them, except on Practice Farm'
   await code.fill('Harvest←{(⍵=3)∨⍵=4}');
   await expect(status).toHaveAttribute('data-state', 'locked');
   await expect(diag).toHaveText('∨ unlocks with Bronze on Middlebourne Farm. Practice Farm has every symbol and helper.');
-  await expect(page.locator('.guide-item[data-locked="true"]')).toHaveCount(7);
+  await expect(page.locator('.guide-item[data-locked="true"]')).toHaveCount(8);
 
   await page.selectOption('#farm', 'practice');
   await expect(glyph('∨')).toBeEnabled();
@@ -503,7 +503,7 @@ test('the Leaderboard page shows every farm’s top 10, without playing a season
   await page.goto(PAGE);
   await page.click('#openBoard');
   await expect(page.locator('#panelTitle')).toHaveText('Leaderboard');
-  await expect(page.locator('#boards h3')).toHaveText(['Middlebourne Farm', 'Sunnyhill Farm', 'Marshgate Farm', 'Crowhurst Farm (experimental)']);
+  await expect(page.locator('#boards h3')).toHaveText(['Middlebourne Farm', 'Sunnyhill Farm', 'Marshgate Farm', 'Crowhurst Farm (experimental)', 'Blightwick Farm (experimental)']);
   await expect(page.locator('#boards ol[data-farm="sunnyhill-farm"]')).toContainText('SUN');
   await expect(page.locator('#boards ol[data-farm="sunnyhill-farm"] li.checking')).toHaveText('2 scores being checked');
   await expect(page.locator('#boards ol[data-farm="middlebourne-farm"]')).toContainText('No scores yet');
@@ -737,4 +737,53 @@ test('keyboard and touch: a skip link to the code, explanations on focus and lon
   await page.click('#closePanel');
   expect(await page.evaluate(() => document.querySelector('.game').inert)).toBe(false);
   await context.close();
+});
+
+test('Blightwick Farm: blight in the field, the key, the name buttons, the guide, the rules and the report', async ({ page }) => {
+  await page.goto(`${PAGE}?god`);
+  const blighted = page.locator('#words button', { hasText: /^Blighted$/ });
+  await expect(blighted).toHaveCount(0); // only on Blightwick
+  await page.selectOption('#farm', 'blightwick-farm');
+  await expect(page.locator('#weather')).toContainText('Blight 50%');
+  await expect(page.locator('#legend')).toContainText('Blighted');
+  await expect(blighted).toHaveCount(1);
+  await expect(page.locator('#fieldText')).toContainText('Blighted');
+  expect(await page.locator('#rBlightStat').getAttribute('hidden')).toBeNull(); // shown in the report on Blightwick
+  await page.click('#openHelp');
+  await expect(page.locator('#rules')).toContainText('even if you cleared it that day');
+  await page.click('#openGuide');
+  await page.getByRole('button', { name: 'Show me what b←⍵=Blighted ⋄ (1↓b⍪0)∨(¯1↓0⍪b)∨(0 1↓b,0)∨0 ¯1↓0,b would harvest today' }).click();
+  await expect(page.locator('#field')).toHaveAttribute('data-preview', 'example');
+  expect(Number(await page.locator('#field').getAttribute('data-picked'))).toBeGreaterThan(0);
+  await page.click('#closePanel');
+  await page.selectOption('#farm', 'middlebourne-farm');
+  expect(await page.locator('#rBlightStat').getAttribute('hidden')).not.toBeNull();
+});
+
+test('switching from Practice Farm to a farm doesn’t shift the page, on desktop, tablet or phone', async ({ browser }) => {
+  const parts = ['.farm-bar', 'section.plot', '#field', '#legend', 'section.editor', '#words', '#run'];
+  for (const [width, height] of [[1561, 877], [820, 1180], [390, 844]]) {
+    const page = await browser.newPage({ viewport: { width, height } });
+    await page.goto(PAGE);
+    await page.evaluate(() => localStorage.setItem('acres:help-seen', '1'));
+    await page.reload();
+    const where = () => page.evaluate(sel => sel.map(s => { const b = document.querySelector(s).getBoundingClientRect(); return [Math.round(b.y), Math.round(b.height)]; }), parts);
+    await page.selectOption('#farm', 'practice');
+    const before = await where();
+    await page.selectOption('#farm', 'middlebourne-farm');
+    const after = await where();
+    after.forEach(([y, h], i) => {
+      expect(Math.abs(y - before[i][0]), `${parts[i]} moved at ${width}px`).toBeLessThanOrEqual(1);
+      expect(Math.abs(h - before[i][1]), `${parts[i]} changed size at ${width}px`).toBeLessThanOrEqual(1);
+    });
+    await page.close();
+  }
+});
+
+test('helpers are always there to see, greyed out until unlocked', async ({ page }) => {
+  const promising = page.locator('#words button', { hasText: /^Promising$/ });
+  await expect(promising).toBeDisabled();
+  await expect(promising).toHaveAttribute('title', /unlocks with Silver on Sunnyhill Farm/);
+  await page.selectOption('#farm', 'practice');
+  await expect(promising).toBeEnabled();
 });
