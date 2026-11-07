@@ -189,7 +189,7 @@ test('locked symbols and helpers say what unlocks them, except on Practice Farm'
   await code.fill('Harvest←{(⍵=3)∨⍵=4}');
   await expect(status).toHaveAttribute('data-state', 'locked');
   await expect(diag).toHaveText('∨ unlocks with Bronze on Middlebourne Farm. Practice Farm has every symbol and helper.');
-  await expect(page.locator('.guide-item[data-locked="true"]')).toHaveCount(5);
+  await expect(page.locator('.guide-item[data-locked="true"]')).toHaveCount(7);
 
   await page.selectOption('#farm', 'practice');
   await expect(glyph('∨')).toBeEnabled();
@@ -579,4 +579,18 @@ test('errors show once, under the code, and a helper used like a stage gets a pl
   await expect(diag).toHaveText('BumperCrops is a helper, not a stage: give it the field, as in BumperCrops ⍵');
   await code.fill('Harvest←{(⍵=Rotten)∨BumperCrops ⍵}');
   await expect(diag).toHaveText('');
+});
+
+test('the farming guide shows why brackets matter, reading right to left', async ({ page }) => {
+  await page.selectOption('#farm', 'practice');
+  await page.click('#openGuide');
+  const field = page.locator('#field');
+  await page.getByRole('button', { name: 'Show what (⍵=Rotten)∨⍵=Ripe would harvest today' }).click();
+  await expect(field).toHaveAttribute('data-preview', 'example');
+  const withBrackets = Number(await field.getAttribute('data-picked'));
+  await page.getByRole('button', { name: 'Show what ⍵=Rotten∨⍵=Ripe would harvest today' }).click();
+  const without = Number(await field.getAttribute('data-picked'));
+  expect(withBrackets).toBeGreaterThan(without);
+  await page.getByRole('button', { name: 'Show what ripe←⍵=Ripe ⋄ ripe∨⍵=Rotten would harvest today' }).click();
+  expect(Number(await field.getAttribute('data-picked'))).toBe(withBrackets);
 });
