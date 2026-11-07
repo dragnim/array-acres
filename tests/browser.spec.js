@@ -568,3 +568,15 @@ test('on a touch screen the simple view builds code by tapping, without the keyb
   await expect(body).toHaveAttribute('inputmode', 'text');
   await context.close();
 });
+
+test('errors show once, under the code, and a helper used like a stage gets a plain explanation', async ({ page }) => {
+  await page.selectOption('#farm', 'practice');
+  const code = page.locator('#code'), diag = page.locator('#diag'), msg = page.locator('#msg');
+  await code.fill('Harvest←{(⍵=Rotten)∧⍵=BumperCrops}');
+  await expect(diag).toHaveText('BumperCrops is a helper, not a stage: give it the field, as in BumperCrops ⍵');
+  await page.click('#step');
+  await expect(msg).toHaveText('Fix the error shown under your code to play.');
+  await expect(diag).toHaveText('BumperCrops is a helper, not a stage: give it the field, as in BumperCrops ⍵');
+  await code.fill('Harvest←{(⍵=Rotten)∨BumperCrops ⍵}');
+  await expect(diag).toHaveText('');
+});
