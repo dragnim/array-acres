@@ -66,8 +66,8 @@ function fakeD1() {
   let r = await call('POST', '/submit', { farm: 'middlebourne-farm', initials: 'abc', score: 1533, code: GOLD });
   check('submit: a qualifying score waits to be checked', [r.status, r.body.status], [200, 'checking']);
   let b = await board('middlebourne-farm');
-  check('board: the new score shows as checking, not on the board', [b.entries.length, b.pending.map(p => p.initials)], [0, ['ABC']]);
-  check('board: pending entries never reveal code', 'code' in b.pending[0], false);
+  check('board: the new score is counted as being checked, not on the board', [b.entries.length, b.checking], [0, 1]);
+  check('board: scores being checked are never listed, so no initials, score or code show', b.pending, []);
 
   // Only the GitHub job, with the token, sees pending code and verifies.
   check('pending: refused without the token', (await call('GET', '/pending')).status, 401);
@@ -76,13 +76,13 @@ function fakeD1() {
   check('verify: a malformed request is refused', (await call('POST', '/verify', { id: 7 }, 'test-token')).status, 400);
   await verifyAll();
   b = await board('middlebourne-farm');
-  check('verify: a score the code really earns goes on the board', [b.entries.map(e => [e.initials, e.score]), b.pending.length], [[['ABC', 1533]], 0]);
+  check('verify: a score the code really earns goes on the board', [b.entries.map(e => [e.initials, e.score]), b.checking], [[['ABC', 1533]], 0]);
 
   // A faked score is rejected and never appears.
   await call('POST', '/submit', { farm: 'middlebourne-farm', initials: 'CHT', score: 9999, code: RIPE });
   await verifyAll();
   b = await board('middlebourne-farm');
-  check('verify: a faked score is rejected and removed', [b.entries.map(e => e.initials), b.pending.length], [['ABC'], 0]);
+  check('verify: a faked score is rejected and removed', [b.entries.map(e => e.initials), b.checking], [['ABC'], 0]);
 
   // One entry waiting per initials: a better score replaces it, a worse one is refused.
   await call('POST', '/submit', { farm: 'sunnyhill-farm', initials: 'DUP', score: 1465, code: RIPE });
@@ -94,7 +94,7 @@ function fakeD1() {
 
   // Simultaneous submissions and checks don't overwrite each other.
   await Promise.all(['SIA', 'SIB', 'SIC'].map((initials, i) => { ip = `198.51.100.${i}`; return call('POST', '/submit', { farm: 'marshgate-farm', initials, score: 1093, code: RIPE }); }));
-  check('simultaneous: three submissions at once all wait to be checked', (await board('marshgate-farm')).pending.map(p => p.initials).sort(), ['SIA', 'SIB', 'SIC']);
+  check('simultaneous: three submissions at once all wait to be checked', [(await board('marshgate-farm')).checking, (await pending()).map(p => p.initials).sort()], [3, ['SIA', 'SIB', 'SIC']]);
   const three = await pending();
   await Promise.all(three.map(p => call('POST', '/verify', { id: p.id, score: replay(core, p) }, 'test-token')));
   check('simultaneous: three checks at once all reach the board', (await board('marshgate-farm')).entries.map(e => e.initials).sort(), ['SIA', 'SIB', 'SIC']);
@@ -114,7 +114,7 @@ function fakeD1() {
   // Unchecked entries expire, so a stalled checker can't jam the queue for good.
   await call('POST', '/submit', { farm: 'middlebourne-farm', initials: 'OLD', score: 1213, code: RIPE });
   clock += 25 * 3600e3;
-  check('expiry: an entry left unchecked for over a day disappears', [(await board('middlebourne-farm')).pending.length, (await pending()).length], [0, 0]);
+  check('expiry: an entry left unchecked for over a day disappears', [(await board('middlebourne-farm')).checking, (await pending()).length], [0, 0]);
   await call('POST', '/submit', { farm: 'middlebourne-farm', initials: 'NEW', score: 1213, code: RIPE });
   check('expiry: and is cleared out when the next score arrives', DB.prepare("SELECT COUNT(*) AS n FROM pending WHERE initials = 'OLD'").get().n, 0);
   await verifyAll();
