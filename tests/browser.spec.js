@@ -594,3 +594,12 @@ test('the farming guide shows why brackets matter, reading right to left', async
   await page.getByRole('button', { name: 'Show what ripe←⍵=Ripe ⋄ ripe∨⍵=Rotten would harvest today' }).click();
   expect(Number(await field.getAttribute('data-picked'))).toBe(withBrackets);
 });
+
+test('the game loads nothing from other sites, apart from the leaderboard', async ({ page }) => {
+  const elsewhere = [];
+  page.on('request', r => { const u = r.url(); if (!u.startsWith('file:') && !u.startsWith('data:') && !u.startsWith(LEADERBOARD)) elsewhere.push(u); });
+  await page.goto(PAGE);
+  await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
+  expect(await page.evaluate(() => document.fonts.check('800 40px "Bricolage Grotesque"'))).toBe(true);
+  expect(elsewhere).toEqual([]);
+});
