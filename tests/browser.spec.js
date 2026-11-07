@@ -498,7 +498,7 @@ test('the Leaderboard page shows every farm’s top 10, without playing a season
   await expect(page.locator('#boards ol[data-farm="middlebourne-farm"]')).toContainText('No scores yet');
 });
 
-test('the simple view frames Harvest, taps in names, and switches to the advanced view and back', async ({ page }) => {
+test('the simple view frames Harvest, taps in names, and switches to the code view and back', async ({ page }) => {
   await page.evaluate(() => localStorage.removeItem('acres:editor'));
   await page.goto(PAGE);
   const body = page.locator('#hBody'), code = page.locator('#code'), status = page.locator('#status');
@@ -527,7 +527,7 @@ test('the simple view frames Harvest, taps in names, and switches to the advance
   await code.fill('Ripe2←{⍵=Ripe}\nHarvest←{Ripe2 ⍵}\n');
   await page.click('#viewToggle');
   await expect(code).toBeVisible();
-  await expect(page.locator('#msg')).toContainText('can only be edited in the advanced view');
+  await expect(page.locator('#msg')).toContainText('can only be edited in the code view');
   await page.reload();
   await expect(code).toBeVisible();
   await expect(code).toHaveValue('Ripe2←{⍵=Ripe}\nHarvest←{Ripe2 ⍵}\n');
