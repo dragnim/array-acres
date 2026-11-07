@@ -62,14 +62,16 @@ export default {
     const url = new URL(request.url), db = env.DB, now = env.now ? env.now() : Date.now();
     if (request.method === 'OPTIONS') return json({});
 
-    // The board for one farm: the top 10 verified scores, plus scores still being checked.
+    // The board for one farm: the top 10 verified scores, and how many are still being checked. Unchecked
+    // scores are only counted, never listed, so nobody can post a fake score even briefly. (pending stays,
+    // empty, for pages loaded before this change.)
     if (request.method === 'GET' && url.pathname === '/board') {
       const farm = url.searchParams.get('farm');
       if (!FARMS.includes(farm)) return json({ error: 'unknown-farm' }, 400);
       const board = boardOf(farm);
       const entries = (await db.prepare('SELECT initials, score, date FROM entries WHERE board = ? ORDER BY score DESC, date ASC LIMIT ?').bind(board, SIZE).all()).results;
-      const pending = (await db.prepare('SELECT initials, score, date FROM pending WHERE board = ? AND date >= ? ORDER BY date').bind(board, ago(now, PENDING_HOURS)).all()).results;
-      return json({ ruleset: RULESET, farm, version: versionOf(farm), entries, pending });
+      const { n: checking } = await db.prepare('SELECT COUNT(*) AS n FROM pending WHERE board = ? AND date >= ?').bind(board, ago(now, PENDING_HOURS)).first();
+      return json({ ruleset: RULESET, farm, version: versionOf(farm), entries, checking, pending: [] });
     }
 
     // A player's score and the code that earned it, waiting to be checked.
