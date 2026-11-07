@@ -1177,7 +1177,11 @@ const AcresCore = (() => {
   const tierFor = (farm, score) => [...TIERS].reverse().find(t => score >= farm.targets[t]) || null;
 
   // Personal bests belong to a ruleset and a farm together, never just a seed.
-  const bestKey = (ruleset, farm) => `${ruleset}:${farm}`;
+  // An experimental farm's bests carry its board version, so changing its rules starts them fresh, as its leaderboard does.
+  const bestKey = (ruleset, farm) => {
+    const f = FARMS.find(x => x.id === farm);
+    return `${ruleset}:${farm}${f && f.boardVersion ? `:${f.boardVersion}` : ''}`;
+  };
   function recordBest(bests, entry) {
     const key = bestKey(entry.ruleset, entry.farm), previous = bests[key] || null;
     const improved = !previous || entry.score > previous.score;
@@ -2327,7 +2331,9 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     const board = await res.json();
     const row = (cells, cls) => { const li = document.createElement('li'); if (cls) li.className = cls; cells.forEach(t => { const s = document.createElement('span'); s.textContent = t; li.append(s); }); return li; };
     const rows = board.entries.map((e, i) => row([`${i + 1}.`, e.initials, e.score]));
-    board.pending.forEach(e => rows.push(row(['', e.initials, `${e.score}, checking`], 'checking')));
+    // Scores still being checked are only counted, never shown, so an unchecked score can't appear on the board.
+    const checking = board.checking ?? board.pending.length;
+    if (checking) { const li = document.createElement('li'); li.className = 'empty checking'; li.textContent = `${checking} ${checking === 1 ? 'score' : 'scores'} being checked`; rows.push(li); }
     if (!rows.length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = 'No scores yet. Be the first!'; rows.push(li); }
     list.replaceChildren(...rows);
     return board;
