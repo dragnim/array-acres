@@ -647,3 +647,12 @@ test('on a phone nothing runs off the side of the page', async ({ browser }) => 
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await page.close();
 });
+
+test('every name and key button explains itself when you hover over it', async ({ page }) => {
+  await page.selectOption('#farm', 'practice');
+  const buttons = page.locator('#words button, #keys button');
+  const titles = await buttons.evaluateAll(bs => bs.map(b => b.title));
+  expect(titles.length).toBeGreaterThan(20);
+  expect(titles.every(t => t && t.length > 0)).toBe(true);
+  await expect(page.locator('#words button', { hasText: /^Promising$/ })).toHaveAttribute('title', /bumper crop could form/);
+});
