@@ -6,6 +6,7 @@ const path = require('path');
 const { pathToFileURL } = require('url');
 
 const PAGE = pathToFileURL(path.join(__dirname, '..', 'index.html')).href;
+const AxeBuilder = require('@axe-core/playwright').default;
 
 // How to play opens by itself on a first visit. Most tests start as a returning player, editing the
 // full program; the simple view has its own test.
@@ -371,7 +372,7 @@ test('farming guide snippets can be shown on the field and put in your code', as
   await page.click('#openGuide');
 
   // Show me marks what the snippet picks, without touching your code.
-  await page.getByRole('button', { name: 'Show what ⍵≤Sprout would harvest today' }).click();
+  await page.getByRole('button', { name: 'Show me what ⍵≤Sprout would harvest today' }).click();
   await expect(field).toHaveAttribute('data-preview', 'example');
   await expect(note).toHaveText(/^Showing what ⍵≤Sprout would harvest today: \d+ plots?\. Back to your code$/);
   await expect(code).toHaveValue('Harvest←{⍵≥3}');
@@ -379,18 +380,18 @@ test('farming guide snippets can be shown on the field and put in your code', as
   // Back to your code, or pressing Show me again, returns to your own preview.
   await page.getByRole('button', { name: 'Back to your code' }).click();
   await expect(field).toHaveAttribute('data-preview', 'live');
-  await page.getByRole('button', { name: 'Show what ⍵=Rotten would harvest today' }).click();
-  await page.getByRole('button', { name: 'Show what ⍵=Rotten would harvest today' }).click();
+  await page.getByRole('button', { name: 'Show me what ⍵=Rotten would harvest today' }).click();
+  await page.getByRole('button', { name: 'Show me what ⍵=Rotten would harvest today' }).click();
   await expect(note).toBeHidden();
 
   // A new day returns to your preview too.
-  await page.getByRole('button', { name: 'Show what ⍵≠Seed would harvest today' }).click();
+  await page.getByRole('button', { name: 'Show me what ⍵≠Seed would harvest today' }).click();
   await page.click('#step');
   await expect(field).toHaveAttribute('data-preview', 'live');
 
   // Use puts the snippet in your code at the cursor, selected.
   await code.evaluate(el => { el.setSelectionRange(9, 12); });
-  await page.getByRole('button', { name: 'Add ⍵≠Seed to your code' }).click();
+  await page.getByRole('button', { name: 'Use ⍵≠Seed in your code' }).click();
   await expect(code).toHaveValue('Harvest←{⍵≠Seed}');
   expect(await code.evaluate(el => el.value.slice(el.selectionStart, el.selectionEnd))).toBe('⍵≠Seed');
   await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
@@ -595,13 +596,13 @@ test('the farming guide shows why brackets matter, reading right to left', async
   await page.selectOption('#farm', 'practice');
   await page.click('#openGuide');
   const field = page.locator('#field');
-  await page.getByRole('button', { name: 'Show what (⍵=Rotten)∨⍵=Ripe would harvest today' }).click();
+  await page.getByRole('button', { name: 'Show me what (⍵=Rotten)∨⍵=Ripe would harvest today' }).click();
   await expect(field).toHaveAttribute('data-preview', 'example');
   const withBrackets = Number(await field.getAttribute('data-picked'));
-  await page.getByRole('button', { name: 'Show what ⍵=Rotten∨⍵=Ripe would harvest today' }).click();
+  await page.getByRole('button', { name: 'Show me what ⍵=Rotten∨⍵=Ripe would harvest today' }).click();
   const without = Number(await field.getAttribute('data-picked'));
   expect(withBrackets).toBeGreaterThan(without);
-  await page.getByRole('button', { name: 'Show what ripe←⍵=Ripe ⋄ ripe∨⍵=Rotten would harvest today' }).click();
+  await page.getByRole('button', { name: 'Show me what ripe←⍵=Ripe ⋄ ripe∨⍵=Rotten would harvest today' }).click();
   expect(Number(await field.getAttribute('data-picked'))).toBe(withBrackets);
 });
 
@@ -655,4 +656,84 @@ test('every name and key button explains itself when you hover over it', async (
   expect(titles.length).toBeGreaterThan(20);
   expect(titles.every(t => t && t.length > 0)).toBe(true);
   await expect(page.locator('#words button', { hasText: /^Promising$/ })).toHaveAttribute('title', /bumper crop could form/);
+});
+
+test('accessibility: axe finds no problems on the page, its panels, a played day, Crowhurst or the code view', async ({ browser }) => {
+  test.setTimeout(120000); // fourteen full scans, in both themes
+  for (const colorScheme of ['light', 'dark']) {
+    const context = await browser.newContext({ colorScheme });
+    const page = await context.newPage();
+    await page.route(`${LEADERBOARD}/**`, route => route.fulfill({ json: { entries: [], checking: 0, pending: [] } }));
+    await page.goto(`${PAGE}?god`);
+    await page.evaluate(() => localStorage.setItem('acres:help-seen', '1'));
+    await page.reload();
+    const check = async where => {
+      const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']).analyze();
+      expect(violations.map(v => `${colorScheme} ${where}: ${v.id} at ${v.nodes.map(n => n.target.join(' ')).join(', ')}`)).toEqual([]);
+    };
+    await check('main');
+    for (const panel of ['openAbout', 'openHelp', 'openGuide', 'openBoard']) { await page.click(`#${panel}`); await check(panel); await page.click('#closePanel'); }
+    await page.click('#step');
+    await check('after a day');
+    await page.selectOption('#farm', 'crowhurst-farm');
+    await check('Crowhurst');
+    await page.click('#viewToggle');
+    await check('code view');
+    await context.close();
+  }
+});
+
+test('screen readers get the field as text, and hear what each day brought', async ({ page }) => {
+  await page.selectOption('#farm', 'practice');
+  await page.locator('#code').fill('Harvest←{⍵=Ripe}');
+  await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
+  const text = page.locator('#fieldText');
+  await expect(page.locator('#field')).toHaveAttribute('aria-describedby', 'fieldText');
+  await expect(text).toContainText('Day 0 of 100. Row 1: ');
+  await expect(text).toContainText('Row 8: ');
+  await expect(text).toContainText('Ripe, picked');
+  await page.click('#step');
+  await expect(page.locator('#announce')).toHaveText(/^Day 1: \d+ points?.*\. Score \d+\.$/);
+  await expect(text).toContainText('Day 1 of 100.');
+});
+
+test('keyboard and touch: a skip link to the code, explanations on focus and long press, and the panel keeps focus on small screens', async ({ browser }) => {
+  // Skip link: the first Tab reaches it, and it goes straight to the code box.
+  let page = await browser.newPage();
+  await page.goto(PAGE);
+  await page.evaluate(() => localStorage.setItem('acres:help-seen', '1')); // a first visit opens How to play instead
+  await page.reload();
+  await page.keyboard.press('Tab');
+  await expect(page.locator('.skip-link')).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#hBody')).toBeFocused();
+  // Explanations show on keyboard focus.
+  await page.locator('#words button').first().focus();
+  await page.keyboard.press('Tab');
+  await expect(page.locator('.tip')).toBeVisible();
+  await expect(page.locator('.tip')).toHaveText(/Equals/);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.tip')).toBeHidden();
+  await page.close();
+
+  // On a phone-sized touch screen: a long press explains without adding the name, and the panel takes over focus.
+  const context = await browser.newContext({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+  page = await context.newPage();
+  await page.goto(PAGE);
+  await page.evaluate(() => localStorage.setItem('acres:help-seen', '1'));
+  await page.reload();
+  const ripe = page.locator('#words button', { hasText: /^Ripe$/ });
+  const box = await ripe.boundingBox();
+  const before = await page.locator('#hBody').inputValue();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await ripe.dispatchEvent('pointerdown', { pointerType: 'touch' });
+  await expect(page.locator('.tip')).toHaveText(/Ripe: ready to harvest/);
+  await ripe.dispatchEvent('pointerup', { pointerType: 'touch' });
+  await ripe.dispatchEvent('click');
+  await expect(page.locator('#hBody')).toHaveValue(before);
+  await page.click('#openHelp');
+  expect(await page.evaluate(() => document.querySelector('.game').inert)).toBe(true);
+  await page.click('#closePanel');
+  expect(await page.evaluate(() => document.querySelector('.game').inert)).toBe(false);
+  await context.close();
 });
