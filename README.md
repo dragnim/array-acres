@@ -30,6 +30,7 @@ For testing, adding `?god` to the address (or pressing G) unlocks everything; `?
 - Harvesting a sprout or a growing plant wastes it. Harvesting a seed or a rotten plant scores nothing, so clearing rot is free. Every harvested plot is replanted as a seed.
 - Overnight, each unripe plant grows one stage with the chance given by the farm's sunshine, and each ripe plant left standing rots with the chance given by its rainfall.
 - Each farm's starting field and luck are fixed, so the same code always scores the same there.
+- On Blightwick Farm, some plants are `Blighted`: they never ripen, and each night they spread blight to each sprout, growing or ripe plant directly beside them with a 50% chance, even if cleared that day. Clearing blight is free, and seeds and rotten plants can't catch it, so harvesting a plant next to blight makes a firebreak.
 - On Crowhurst Farm, a flock of crows lands on a 3×3 patch each night and eats the ripe plants there. A second function, `Scare`, can stand up to two scarecrows. Crows eat nothing within one plot of a scarecrow, but a scarecrow tramples the plant on its own plot back to a seed.
 
 ## Tips
@@ -41,6 +42,52 @@ For testing, adding `?god` to the address (or pressing G) unlocks everything; `?
 - **Try before you type.** Show me in the farming guide marks what an expression would pick on today's field, without touching your code.
 - **Experiment on Practice Farm.** It has every tool, and New field gives you a fresh field whenever you like.
 - **Read the report.** It shows what went wrong, such as rot or waste, without telling you what to change; working that out is the game.
+
+## The farms
+
+Every farm follows the rules above. Each has its own weather, its own fixed starting field and luck, and its own Bronze, Silver and Gold targets. Some add a mechanic of their own.
+
+### Middlebourne Farm
+
+- **Weather:** sunshine 55%, rainfall 20%.
+- **Medals:** Bronze 1200, Silver 1350, Gold 1500.
+- **Unlocks:** open from the start. Bronze here unlocks `∧ ∨ ~`, the `BumperCrops` helper and Sunnyhill Farm.
+- **Tips:** the place to learn. Start with `⍵=Ripe`, then clear rot as well. Once bumper crops unlock, watch the season report's figure for ripe plants taken alone where a bumper crop could form: it shows how much harvesting straight away is costing you.
+
+### Sunnyhill Farm
+
+- **Weather:** sunshine 65%, rainfall 15%.
+- **Medals:** Bronze 1450, Silver 1750, Gold 2100.
+- **Unlocks:** Bronze on Middlebourne Farm. Silver here unlocks the `Promising` helper and Marshgate Farm.
+- **Tips:** plants grow quickly and rarely rot, so patience pays more here than anywhere: waiting for a bumper crop is usually worth the risk.
+
+### Marshgate Farm
+
+- **Weather:** sunshine 50%, rainfall 25%.
+- **Medals:** Bronze 1050, Silver 1150, Gold 1200.
+- **Unlocks:** Silver on Sunnyhill Farm.
+- **Tips:** wet and slow. Plants take longer to ripen and rot more often, so waiting is riskier: a strategy that wins on Sunnyhill may lose here. The targets are lower to match.
+
+### Crowhurst Farm (experimental)
+
+- **Weather:** sunshine 55%, rainfall 20%, plus one flock of crows.
+- **Medals:** Bronze 1050, Silver 1150, Gold 1250.
+- **Unlocks:** Gold on any farm.
+- **Crows:** after the field grows each night, a flock lands on a 3×3 patch and eats every ripe plant there, leaving seeds. A flock at the edge of the field only reaches the plots inside it.
+- **Scarecrows:** a second function, `Scare`, is given the same field and gives back 1s where scarecrows should stand tonight, two at most. Crows eat nothing within one plot of a scarecrow. A scarecrow tramples the plant on its own plot back to a seed, though that seed can still grow that night.
+- **Tips:** stand scarecrows where ripe and promising plants cluster, and on plots you're harvesting anyway (or seeds), so the trampling costs nothing.
+
+### Blightwick Farm (experimental)
+
+- **Weather:** sunshine 55%, rainfall 20%, plus blight.
+- **Medals:** Bronze 1050, Silver 1300, Gold 1450.
+- **Unlocks:** Gold on any farm.
+- **Blight:** three plants start the season `Blighted`. A blighted plant never ripens and scores nothing, and harvesting it is free and replants a seed. Each night, every plant that was blighted that morning spreads blight to each sprout, growing or ripe plant directly above, below, left or right of it, each with a 50% chance, even if you cleared it that day: its spores are already out. Whether a plant can catch it is decided after the day's harvest, so seeds and rotten plants can't, even if a seed sprouts that night. Each night there's also a 10% chance of a new outbreak on a random plant.
+- **Tips:** clear blight every day, or it takes the whole field. Clearing alone isn't enough, though: its neighbours are still at risk tonight. Harvesting the plants next to blight wastes them but turns them into seeds, a firebreak blight can't cross. Finding those plants means shifting the blight map one step in each direction, and the farming guide shows how. Take ripe plants near blight now, rather than waiting for a bumper crop.
+
+### Practice Farm
+
+A new random field each time, with Middlebourne's weather and every symbol and helper unlocked. No medals and no leaderboard: it's for experimenting.
 
 ## Accessibility
 
@@ -60,11 +107,11 @@ The game is in `index.html`, in three scripts:
 
 The art is separate, in `assets/plants`: the plants, crows and scarecrow, and the image shown when a link to the game is shared, with notes on how they were made in [its own README](assets/plants/README.md). If an image can't load, the page draws it in code instead, so the game never depends on them. The leaderboard's server code is in `leaderboard/`.
 
-A season is 100 days. There are four farms under ruleset `v2`. Middlebourne, Sunnyhill and Marshgate each have their own weather: sunshine sets how likely an unripe plant is to grow overnight, and rainfall how likely a ripe plant left in the ground is to rot. Crowhurst has Middlebourne's weather plus crows, which eat ripe plants at night unless a second function, `Scare`, stands scarecrows nearby. Each farm also has its own starting field and fixed luck, so the same farm and the same code always give the same score, and its own Bronze, Silver and Gold targets. Personal bests are kept in the browser, and Practice Farm plays random fields with Middlebourne Farm's weather. At the end of a season, a report shows what happened day by day, without suggesting what to change.
+A season is 100 days. There are five farms under ruleset `v2`. Middlebourne, Sunnyhill and Marshgate each have their own weather: sunshine sets how likely an unripe plant is to grow overnight, and rainfall how likely a ripe plant left in the ground is to rot. Crowhurst has Middlebourne's weather plus crows, which eat ripe plants at night unless a second function, `Scare`, stands scarecrows nearby. Blightwick has Middlebourne's weather plus blight, which spreads from plant to plant overnight unless firebreaks stop it. Each farm also has its own starting field and fixed luck, so the same farm and the same code always give the same score, and its own Bronze, Silver and Gold targets. Personal bests are kept in the browser, and Practice Farm plays random fields with Middlebourne Farm's weather. At the end of a season, a report shows what happened day by day, without suggesting what to change.
 
 ## Progression
 
-Medals unlock the game. A new player starts on Middlebourne Farm with only `⍵` and the comparisons `= ≠ < > ≤ ≥`. Bronze on Middlebourne Farm unlocks `∧ ∨ ~`, the `BumperCrops` helper and Sunnyhill Farm. Silver on Sunnyhill Farm unlocks the `Promising` helper and Marshgate Farm. Gold on any farm unlocks every symbol and the helpers' APL source, so players can see how they work and write better ones. It also unlocks Crowhurst Farm, an experiment: each night a flock of crows eats the ripe plants on a 3×3 patch, and players can write a second function, `Scare`, to stand up to two scarecrows that protect the plots around them. Practice Farm always has everything.
+Medals unlock the game. A new player starts on Middlebourne Farm with only `⍵` and the comparisons `= ≠ < > ≤ ≥`. Bronze on Middlebourne Farm unlocks `∧ ∨ ~`, the `BumperCrops` helper and Sunnyhill Farm. Silver on Sunnyhill Farm unlocks the `Promising` helper and Marshgate Farm. Gold on any farm unlocks every symbol and the helpers' APL source, so players can see how they work and write better ones. It also unlocks Crowhurst Farm, an experiment: each night a flock of crows eats the ripe plants on a 3×3 patch, and players can write a second function, `Scare`, to stand up to two scarecrows that protect the plots around them. And it unlocks Blightwick Farm, also an experiment, where blight spreads between neighbouring plants and the winning idea is firebreaks: finding the plants next to blight means shifting the field one step in each direction. Practice Farm always has everything.
 
 Unlocks are worked out from personal bests, so there's nothing extra to save, and the in-game farming guide explains each tool with a small example as it unlocks.
 
@@ -76,7 +123,7 @@ Every farm has a top 10, shown on the Leaderboard page and in each season report
 - **Limits.** Each player has one entry waiting per farm, which a better score replaces. Entries left unchecked for a day expire. A sender can submit 10 scores an hour, remembered only as a hash of their address, and each board holds 20 waiting entries at most. Each replay stops after 10 seconds, so one slow program can't hold up the rest.
 - **The secret.** The job and the Worker share a secret, `LEADERBOARD_TOKEN`, set in the repository's Actions secrets and in the Worker's settings. It's never stored in the code.
 - **Deploying.** The Worker runs the code in `leaderboard/worker.mjs`, pasted into its editor in the Cloudflare dashboard, so keep the two in step.
-- **Crowhurst.** Its board is marked experimental and starts fresh whenever its rules change: bump `boardVersion` for the farm in the game and `VERSIONS` in the Worker together.
+- **Crowhurst and Blightwick.** Their boards are marked experimental and start fresh whenever their rules change: bump `boardVersion` for the farm in the game and `VERSIONS` in the Worker together.
 
 ## Tests
 

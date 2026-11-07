@@ -135,6 +135,10 @@ body {
 .new-badge[hidden] { display: none; }
 .god-badge { align-self: center; font-size: 0.78rem; font-weight: 700; background: var(--error); color: var(--bg); border-radius: 999px; padding: 3px 9px; }
 .god-badge[hidden] { display: none; }
+/* Things that come and go with the farm keep their space, so switching farms doesn't shift the page:
+   the medals (on real farms) and New field (on Practice Farm) share one slot of fixed height. */
+.farm-slot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 38px; }
+#farmInfo:empty { display: none; }
 /* The side panel slides in from the right. On wide screens the game moves aside to make room. */
 :root { --panel-w: min(440px, 100vw); }
 .panel {
@@ -177,21 +181,25 @@ button.link { font: inherit; font-weight: inherit; background: none; border: 0; 
 #field { display: block; width: 100%; aspect-ratio: 1; border-radius: 8px; background: var(--soil-2); box-shadow: 0 0 0 4px var(--frame); }
 /* Each farm has its own soil and field edge, so they're recognisable at a glance. Middlebourne (and Practice)
    keep the default warm brown with a hedgerow green; Sunnyhill is sandy with a golden edge; Marshgate is
-   dark, damp peat edged with reeds; Crowhurst is grey, stony ground behind a weathered fence. */
+   dark, damp peat edged with reeds; Crowhurst is grey, stony ground behind a weathered fence; Blightwick
+   is tired, ashen soil edged in a sickly mauve. */
 :root { --frame: #6E8A45; }
 :root[data-farm="sunnyhill-farm"] { --soil: #A8834F; --soil-2: #8A6838; --frame: #D4A93C; }
 :root[data-farm="marshgate-farm"] { --soil: #5D5443; --soil-2: #453E31; --frame: #4F7A6C; }
 :root[data-farm="crowhurst-farm"] { --soil: #7D756A; --soil-2: #5F584F; --frame: #5A4E43; }
+:root[data-farm="blightwick-farm"] { --soil: #77695A; --soil-2: #5A4E43; --frame: #7D6A8F; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) { --frame: #4F6634; }
   :root[data-farm="sunnyhill-farm"]:not([data-theme="light"]) { --soil: #5E4729; --soil-2: #3E2E1A; --frame: #A8842C; }
   :root[data-farm="marshgate-farm"]:not([data-theme="light"]) { --soil: #38322A; --soil-2: #24201A; --frame: #3D5F54; }
   :root[data-farm="crowhurst-farm"]:not([data-theme="light"]) { --soil: #47423B; --soil-2: #2F2B27; --frame: #4A4038; }
+  :root[data-farm="blightwick-farm"]:not([data-theme="light"]) { --soil: #453A30; --soil-2: #2D2620; --frame: #5C4C6B; }
 }
 :root[data-theme="dark"] { --frame: #4F6634; }
 :root[data-theme="dark"][data-farm="sunnyhill-farm"] { --soil: #5E4729; --soil-2: #3E2E1A; --frame: #A8842C; }
 :root[data-theme="dark"][data-farm="marshgate-farm"] { --soil: #38322A; --soil-2: #24201A; --frame: #3D5F54; }
 :root[data-theme="dark"][data-farm="crowhurst-farm"] { --soil: #47423B; --soil-2: #2F2B27; --frame: #4A4038; }
+:root[data-theme="dark"][data-farm="blightwick-farm"] { --soil: #453A30; --soil-2: #2D2620; --frame: #5C4C6B; }
 .field-stage { position: relative; width: min(100%, var(--field)); margin: 0 auto; }
 #fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .field-stage.bump { animation: bump 260ms ease-out; }
@@ -382,9 +390,11 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
         <option value="practice">Practice Farm</option>
       </select>
       <span class="weather" id="weather" aria-label="Weather"></span>
-      <span class="targets" id="targets" aria-label="Targets"></span>
-      <button type="button" id="newField" hidden>New field</button>
-      <span id="farmInfo"></span>
+      <span class="farm-slot">
+        <span class="targets" id="targets" aria-label="Targets"></span>
+        <button type="button" id="newField" hidden>New field</button>
+        <span id="farmInfo"></span>
+      </span>
     </div>
     <div class="panel-buttons">
       <span class="god-badge" id="godBadge" title="Everything is unlocked for testing. Press G to turn it off." hidden>God mode</span>
@@ -510,6 +520,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
       <div class="stat"><span>Wasted plants</span><strong id="rWasted">0</strong></div>
       <div class="stat"><span>Bumper crop plants</span><strong id="rBonus">0</strong></div>
       <div class="stat"><span>Ripe plants taken alone where a bumper crop could form</span><strong id="rMissed">0</strong></div>
+      <div class="stat" id="rBlightStat" hidden><span>Plants lost to blight</span><strong id="rBlight">0</strong></div>
       <div class="stat" id="rEatenStat" hidden><span>Ripe plants eaten by crows</span><strong id="rEaten">0</strong></div>
       <div class="stat" id="rTrampledStat" hidden><span>Plants trampled by scarecrows</span><strong id="rTrampled">0</strong></div>
     </div>
@@ -1194,7 +1205,7 @@ const AcresCore = (() => {
   // targets, the order of operations in advance(), or how random numbers are drawn changes
   // scores, so it needs a new id. The exception is Crowhurst Farm, an experiment whose crow and
   // scarecrow rules may still change under v2; the other farms' scores never depend on them.
-  const RULES = Object.freeze({ id: 'v2', size: 8, days: 100, ripe: 3, rot: 4, bonus: 3, scarecrows: 2 });
+  const RULES = Object.freeze({ id: 'v2', size: 8, days: 100, ripe: 3, rot: 4, blighted: 5, bonus: 3, scarecrows: 2 });
 
   // Each farm has its own weather. Sunshine is the chance that an unripe plant grows a stage
   // overnight; rainfall is the chance that a ripe plant left in the ground rots overnight.
@@ -1204,13 +1215,19 @@ const AcresCore = (() => {
   // partly right idea about bumper crops, and gold matches the hybrid reference strategy.
   // crows: flocks landing each night (Crowhurst Farm only, so far). boardVersion: an experimental
   // farm's leaderboard version; bump it, and VERSIONS in leaderboard/worker.mjs, when its rules change.
-  const farm = (id, name, sunshine, rainfall, seed, bronze, silver, gold, crows = 0, boardVersion = 0) =>
-    Object.freeze({ id, name, sunshine, rainfall, seed, crows, boardVersion, rules: RULES.id, targets: Object.freeze({ bronze, silver, gold }) });
+  // blight: how blight behaves (Blightwick Farm only): the chance it spreads to each neighbour
+  // overnight, how many plants start blighted, and the nightly chance of a new outbreak.
+  const farm = (id, name, sunshine, rainfall, seed, bronze, silver, gold, crows = 0, boardVersion = 0, blight = null) =>
+    Object.freeze({ id, name, sunshine, rainfall, seed, crows, boardVersion, blight, rules: RULES.id, targets: Object.freeze({ bronze, silver, gold }) });
+  const BLIGHT = Object.freeze({ spread: 0.5, start: 3, outbreak: 0.1 });
   const FARMS = Object.freeze([
     farm('middlebourne-farm', 'Middlebourne Farm', 0.55, 0.20, 16574467, 1200, 1350, 1500),
     farm('sunnyhill-farm', 'Sunnyhill Farm', 0.65, 0.15, 14879801, 1450, 1750, 2100),
     farm('marshgate-farm', 'Marshgate Farm', 0.50, 0.25, 17057526, 1050, 1150, 1200),
     farm('crowhurst-farm', 'Crowhurst Farm', 0.55, 0.20, 413813, 1050, 1150, 1250, 1, 1),
+    // Blightwick's field was chosen the same way: clearing blight reaches bronze, the other farms' gold
+    // strategy plus clearing reaches silver, and firebreaks are needed for gold. Experimental, like Crowhurst.
+    farm('blightwick-farm', 'Blightwick Farm', 0.55, 0.20, 252000756, 1050, 1300, 1450, 0, 1, BLIGHT),
   ]);
   // Practice Farm: Middlebourne Farm's weather on a new random field each time, with no targets.
   const PRACTICE = Object.freeze({ id: 'practice', name: 'Practice Farm', sunshine: 0.55, rainfall: 0.20 });
@@ -1244,14 +1261,21 @@ const AcresCore = (() => {
   function newSeason(seed, weather = PRACTICE) {
     const rng = mulberry32(seed), N = RULES.size;
     const field = Array.from({ length: N }, () => Array.from({ length: N }, () => Math.floor(rng() * 4)));
-    return { seed, rng, field, day: 0, score: 0, wasted: 0, eaten: 0, marks: null, history: [],
-      sunshine: weather.sunshine, rainfall: weather.rainfall, crows: weather.crows || 0, crowPatches: [], eatenAt: [], rottedAt: [] };
+    const st = { seed, rng, field, day: 0, score: 0, wasted: 0, eaten: 0, blighted: 0, marks: null, history: [],
+      sunshine: weather.sunshine, rainfall: weather.rainfall, crows: weather.crows || 0, blight: weather.blight || null,
+      crowPatches: [], eatenAt: [], rottedAt: [], blightedAt: [] };
+    // Blight starts on a few living plants. Only farms with blight roll for it, so other fields are unchanged.
+    for (let k = 0; st.blight && k < st.blight.start; k++) {
+      const r = Math.floor(rng() * N), c = Math.floor(rng() * N);
+      if (field[r][c] >= 1 && field[r][c] <= RULES.ripe) field[r][c] = RULES.blighted;
+    }
+    return st;
   }
 
   // Helpers: farm tools written in APL. Players unlock them by name, and once they reach Gold
   // they can read this source and write their own.
   const HELPER_SOURCE = `⍝ The stages, by name: just numbers with labels.
-Seed←0 ⋄ Sprout←1 ⋄ Growing←2 ⋄ Ripe←3 ⋄ Rotten←4
+Seed←0 ⋄ Sprout←1 ⋄ Growing←2 ⋄ Ripe←3 ⋄ Rotten←4 ⋄ Blighted←5
 
 ⍝ Squares: 1 on every plot that is part of
 ⍝ a 2×2 square of 1s.
@@ -1271,7 +1295,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
 `;
   const HELPERS = APL.run(HELPER_SOURCE).env.vars;
   // The stage names are there from the start; the helpers are unlocked one by one.
-  const STAGE_NAMES = ['Seed', 'Sprout', 'Growing', 'Ripe', 'Rotten'];
+  const STAGE_NAMES = ['Seed', 'Sprout', 'Growing', 'Ripe', 'Rotten', 'Blighted'];
 
   // Progression: medals unlock symbols, helpers and farms. Unlocks are worked out from personal
   // bests, so there's nothing extra to save. Practice Farm always has everything.
@@ -1280,7 +1304,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     Object.freeze({ id: 'start', farm: null, tier: null, glyphs: '=≠<>≤≥', helpers: [], farms: ['middlebourne-farm'], source: false }),
     Object.freeze({ id: 'middlebourne-bronze', farm: 'middlebourne-farm', tier: 'bronze', glyphs: '∧∨~', helpers: ['BumperCrops'], farms: ['sunnyhill-farm'], source: false }),
     Object.freeze({ id: 'sunnyhill-silver', farm: 'sunnyhill-farm', tier: 'silver', glyphs: '', helpers: ['Promising'], farms: ['marshgate-farm'], source: false }),
-    Object.freeze({ id: 'any-gold', farm: '*', tier: 'gold', glyphs: ALL_GLYPHS, helpers: ['Squares'], farms: ['crowhurst-farm'], source: true }),
+    Object.freeze({ id: 'any-gold', farm: '*', tier: 'gold', glyphs: ALL_GLYPHS, helpers: ['Squares'], farms: ['crowhurst-farm', 'blightwick-farm'], source: true }),
   ]);
   const cap = t => t[0].toUpperCase() + t.slice(1);
   const needText = u => u.farm === '*' ? `${cap(u.tier)} on any farm` : `${cap(u.tier)} on ${FARMS.find(f => f.id === u.farm).name}`;
@@ -1357,6 +1381,9 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   // Apply a harvest mask, then grow the field by one day.
   function advance(st, mask, scare = null) {
     const { size: N, ripe: RIPE, rot: ROT, bonus } = RULES, f = st.field;
+    // Blight has already released its spores, so this morning's blighted plants spread tonight even if
+    // cleared: firebreaks, not just clearing, are what stop it.
+    const sporing = st.blight ? f.map(row => row.map(v => v === RULES.blighted)) : null;
     const grow = st.sunshine, rotChance = st.rainfall;
 
     // A ripe plot scores the bonus when it's in a 2×2 block of ripe plots all harvested together.
@@ -1376,7 +1403,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
 
     // Daily statistics are recorded as the rules run, never recalculated separately. missed: ripe plants
     // harvested alone, for 1 point, from a square where a bumper crop could have formed.
-    const rec = { day: st.day + 1, points: 0, ripeHarvested: 0, bonusPlots: 0, missed: 0, wasted: 0, rotted: 0, eaten: 0, trampled: 0, cumulative: 0 };
+    const rec = { day: st.day + 1, points: 0, ripeHarvested: 0, bonusPlots: 0, missed: 0, wasted: 0, rotted: 0, eaten: 0, trampled: 0, blighted: 0, cumulative: 0 };
 
     for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
       if (!mask[r][c]) continue;
@@ -1395,12 +1422,33 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     if (scare) for (let r = 0; r < N; r++) for (let c = 0; c < N; c++)
       if (scare[r][c]) { if (f[r][c] > 0) rec.trampled++; f[r][c] = 0; }
 
+    // Which plants could catch blight tonight: those living after today's harvest, before anything grows,
+    // so a freshly harvested plot stays a firebreak even if its seed sprouts overnight.
+    const catchable = st.blight ? f.map(row => row.map(v => v >= 1 && v <= RIPE)) : null;
+
     st.rottedAt = [];
     // One roll per plot per day, whatever the player did, so randomness is fixed by the seed.
     for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
       const roll = st.rng(), v = f[r][c];
       if (v < RIPE) { if (roll < grow) f[r][c] = v + 1; }
       else if (v === RIPE && roll < rotChance) { f[r][c] = ROT; rec.rotted++; st.rottedAt.push([r, c]); }
+    }
+
+    // Blight: a living plant (sprout, growing or ripe) catches it from each blighted neighbour above,
+    // below, left or right with the farm's spread chance; seeds and rotten plants can't catch it. Now and
+    // then an outbreak starts on a random living plant. Blight rolls once per plot per night, plus once for
+    // an outbreak, whatever the player did, so luck stays fixed by the seed; only farms with blight roll.
+    st.blightedAt = [];
+    if (st.blight) {
+      const B = RULES.blighted, was = sporing, living = v => v >= 1 && v <= RIPE;
+      const infect = (r, c) => { f[r][c] = B; rec.blighted++; st.blighted++; st.blightedAt.push([r, c]); };
+      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+        const roll = st.rng();
+        const k = (r > 0 && was[r - 1][c]) + (r < N - 1 && was[r + 1][c]) + (c > 0 && was[r][c - 1]) + (c < N - 1 && was[r][c + 1]);
+        if (k && catchable[r][c] && f[r][c] !== B && roll < 1 - (1 - st.blight.spread) ** k) infect(r, c);
+      }
+      const roll = st.rng(), or = Math.floor(st.rng() * N), oc = Math.floor(st.rng() * N);
+      if (roll < st.blight.outbreak && catchable[or][oc] && living(f[or][oc])) infect(or, oc);
     }
 
     // Crows: each flock lands on a 3×3 patch and eats the ripe plants there, leaving seeds, except
@@ -1647,6 +1695,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     AcresCore.advance(state, mask, scare);
     celebrate(before, mask, state.marks);
     lament(before, mask, state.rottedAt);
+    blightSpread(state.blightedAt);
     crowsAte(state.eatenAt, state.crowPatches);
     setMsg('');
     updateStats();
@@ -1738,7 +1787,14 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
       crows.title = 'Each night a flock of crows lands on a 3×3 patch and eats the ripe plants there';
       chips.push(crows);
     }
+    if (w.blight) {
+      const blight = document.createElement('span');
+      blight.textContent = `Blight ${pct(w.blight.spread)}`;
+      blight.title = `Each night, every blighted plant spreads to each living neighbour with a ${pct(w.blight.spread)} chance`;
+      chips.push(blight);
+    }
     $('weather').replaceChildren(...chips);
+    $('rBlightStat').hidden = !w.blight;
     $('rEatenStat').hidden = !w.crows;
     $('rTrampledStat').hidden = !w.crows;
     $('newField').disabled = !!farm;
@@ -1747,7 +1803,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     if (COL) refreshTheme();
     $('newField').hidden = !!farm;
     $('bestLabel').textContent = farm ? 'Personal best' : 'Best on this field';
-    $('farmInfo').textContent = farm ? '' : 'A new random field each time, with every symbol and helper unlocked.';
+    $('farmInfo').textContent = farm ? '' : 'Random fields, everything unlocked.';
     renderRules();
     refreshProgress();
     if (COL) drawLegend();
@@ -1803,6 +1859,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     { title: 'Naming answers ←', glyph: '∨', text: 'Give an answer a name with ←, then use the name later, so longer strategies stay easy to read: `ripe←⍵=Ripe`. Put each step on its own line, or separate steps with ⋄. The last step is the answer `Harvest` gives back.', snippets: [['ripe←⍵=Ripe ⋄ ripe∨⍵=Rotten', 'name the ripe plants, then add the rotten ones']] },
     { title: 'BumperCrops ⍵', helper: 'BumperCrops', text: 'A ready-made helper. It gives 1 on every ripe plant that’s part of a bumper crop today (four ripe plants in a 2×2 square), and 0 everywhere else. Its answer combines with others like any other: with ∧ and ~, `(⍵=Ripe)∧~BumperCrops ⍵` is the ripe plants that aren’t part of one.', snippets: [['BumperCrops ⍵', 'today’s bumper crops'], ['(⍵=Ripe)∧~BumperCrops ⍵', 'ripe plants not in a bumper crop']] },
     { title: 'Promising ⍵', helper: 'Promising', text: 'A ready-made helper. It gives 1 on every plant that’s part of a 2×2 square of growing or ripe plants: places where a bumper crop could form if you wait.', snippets: [['Promising ⍵', 'where a bumper crop could form']] },
+    { title: 'Blight', farm: 'blightwick-farm', text: 'On Blightwick Farm, `Blighted` plants never ripen, and each night they spread blight to the plants directly beside them, even if you cleared them that day. Seeds can’t catch it, so harvesting a plant next to blight turns it into a firebreak. To find those plants, shift the blight map one step in each direction with `↓`, joining a row or column of 0s on with `⍪` or `,` so it stays 8 by 8, and combine the four with `∨`.', snippets: [['⍵=Blighted', 'blighted plants'], ['b←⍵=Blighted ⋄ (1↓b⍪0)∨(¯1↓0⍪b)∨(0 1↓b,0)∨0 ¯1↓0,b', 'plots next to blight']] },
     { title: 'Scare ⍵', farm: 'crowhurst-farm', text: 'A second function you can write for Crowhurst Farm, beside `Harvest`. It’s given today’s field as ⍵ and gives back 1s where up to two scarecrows should stand tonight. Crows eat nothing within one plot of a scarecrow, but the scarecrow tramples the plant on its own plot back to a seed. So stand them beside the plants you’re waiting for, on plots worth little.' },
     { title: 'Every symbol, and how the helpers work', source: true, text: 'You can now use every symbol. `BumperCrops` and `Promising` are ordinary APL functions, both built on a third helper, `Squares`, which finds 2×2 squares of 1s, and the stage names are ordinary variables: underneath, each stage is a number. Here’s their code, and you can now use `Squares` yourself. Can you write better helpers? Show numbers, above the field, now shows each plot’s stage as the number your code really sees.', snippets: [['Squares ⍵=Growing', '2×2 squares of growing plants']], code: AcresCore.HELPER_SOURCE },
   ];
@@ -1857,7 +1914,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   function refreshProgress() {
     renderFarmOptions(); renderGlyphLocks(); renderGuide(); renderWords(); showView();
     numbersUnlocked = !!access().source;
-    numbersBtn.hidden = !numbersUnlocked;
+    numbersBtn.style.visibility = numbersUnlocked ? '' : 'hidden'; // keeps its space, so the field doesn't move
   }
 
   // Drawing
@@ -1865,7 +1922,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
 
   // Painted art from assets/plants. Any image that hasn't loaded, or can't load, is drawn in
   // code instead, so the game never depends on the images.
-  const ART_FILES = { 0: '0-seed', 1: '1-sprout', 2: '2-growing', 3: '3-ripe', 4: '4-rotten', bumper: 'bumper-crop', crows: 'crow', scarecrow: 'scarecrow' };
+  const ART_FILES = { 0: '0-seed', 1: '1-sprout', 2: '2-growing', 3: '3-ripe', 4: '4-rotten', 5: 'blight', bumper: 'bumper-crop', crows: 'crow', scarecrow: 'scarecrow' };
   const ART = {};
   let artReady = false;
   {
@@ -1910,7 +1967,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
       c.beginPath(); c.ellipse(cx, base - s * 0.04, s * 0.075, s * 0.05, 0, 0, Math.PI * 2); c.fill();
     } else {
       const h = v === 1 ? s * 0.24 : v === 2 ? s * 0.44 : s * 0.5;
-      const col = v === ROT ? COL.rot : COL.leaf;
+      const col = v === ROT ? COL.rot : v === RULES.blighted ? '#9C8F3A' : COL.leaf;
       c.strokeStyle = col; c.fillStyle = col;
       c.lineWidth = Math.max(1.2, s * 0.045);
       c.beginPath(); c.moveTo(cx, base);
@@ -2084,6 +2141,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     wasted: { text: '#ff5446', flash: '#a3170c', drop: '#7a1f15' },
     rotted: { text: '#a7ad3c', flash: '#3f4b12', drop: '#5c5322' },
     eaten: { text: '#d9d3c9', flash: '#141414', drop: '#2a2a2a' },
+    blighted: { text: '#d7b8ec', flash: '#3b1f4d', drop: '#5b3b70' },
   };
   function sorrow(x, y, s, word, now, life) {
     const k = SAD[word];
@@ -2102,6 +2160,17 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     const now = performance.now();
     rottedAt.forEach(([r, c]) => sorrow(at(c) + s / 2, at(r) + s / 2, s, 'rotted', now, 900));
     wasted.forEach(([r, c]) => sorrow(at(c) + s / 2, at(r) + s / 2, s, 'wasted', now, 900));
+    if (!fxRaf) fxRaf = requestAnimationFrame(fxFrame);
+  }
+
+  // Blight: each plant it reaches overnight gets the same sinking treatment, in a sickly purple.
+  function blightSpread(blightedAt) {
+    $('fx').dataset.blighted = blightedAt.length;
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches || Number($('speed').value) <= 30;
+    const { s, at } = plotGeom();
+    if (still || !s || !blightedAt.length) return;
+    const now = performance.now();
+    blightedAt.forEach(([r, c]) => sorrow(at(c) + s / 2, at(r) + s / 2, s, 'blighted', now, 900));
     if (!fxRaf) fxRaf = requestAnimationFrame(fxFrame);
   }
 
@@ -2256,6 +2325,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
       `Then the field grows overnight, depending on the farm’s weather. Sunshine: every seed, sprout and growing plant, including newly replanted seeds, has a ${pct(w.sunshine)} chance to grow one stage. Rainfall: every ripe plant left unharvested has a ${pct(w.rainfall)} chance to rot. Rotten plants stay until harvested. No plot changes by more than one stage a night${w.crows ? ', except where crows eat' : ''}.`,
       'Every night, each plant still has the stated chance to grow or rot, but each farm’s starting field and luck are set: on any given night, each plot’s chance comes out the same way every time you play. So the same code always scores the same, and only a change to your code can change the result. Practice Farm has Middlebourne Farm’s weather: Restart replays the same field and luck, and New field brings a new field with new luck.',
     ];
+    if (w.blight) items.push(`Blight: some plants start the season \`Blighted\`. A blighted plant never ripens and scores nothing, and harvesting it is free and replants a seed. Each night, every plant that was blighted that morning spreads blight to each sprout, growing or ripe plant directly above, below, left or right of it, each with a ${pct(w.blight.spread)} chance, even if you cleared it that day: its spores are already out. Seeds and rotten plants can’t catch it, so a freshly harvested plot is a firebreak. Now and then, a new outbreak appears on a random plant.`);
     if (w.crows) items.push(`Crows: after the field grows, ${w.crows === 1 ? 'a flock of crows lands' : `${w.crows} flocks of crows land`} on a 3×3 patch of plots each night and eats every ripe plant there, leaving seeds. A flock landing at the edge of the field only reaches the plots inside it, so edges are safer. Where they land is part of the farm’s set luck, and your code can’t see it in advance: scarecrows guard against the risk, not a known attack. You can stand up to ${RULES.scarecrows} scarecrows each night by writing a second function, \`Scare\`: it’s given today’s field as ⍵ and gives back 1s where scarecrows should stand. A scarecrow stands on its plot for the night, trampling whatever grew there back to a seed (which can still sprout that night), and crows eat nothing within one plot of it.`);
     $('rules').replaceChildren(...items.map(t => { const li = document.createElement('li'); li.append(rich(t)); return li; }));
   }
@@ -2327,7 +2397,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
       item.append(c, label);
       el.append(item);
     };
-    STAGE_NAMES.forEach((name, v) => add(`<code>${name}</code>`, v, 0, null));
+    STAGE_NAMES.forEach((name, v) => { if (v !== RULES.blighted || (farm && farm.blight)) add(`<code>${name}</code>`, v, 0, null); });
     {
       const item = document.createElement('div'), c = document.createElement('canvas'), dpr = window.devicePixelRatio || 1;
       c.width = 40 * dpr; c.height = 40 * dpr;
@@ -2493,6 +2563,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     $('rWasted').textContent = total('wasted');
     $('rBonus').textContent = total('bonusPlots');
     $('rMissed').textContent = total('missed');
+    $('rBlight').textContent = total('blighted');
     $('rEaten').textContent = total('eaten');
     $('rTrampled').textContent = total('trampled');
     hoverDay = null;
@@ -2821,15 +2892,20 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     Growing: 'Growing: one step from ripe. Harvesting it wastes it',
     Ripe: 'Ripe: ready to harvest for 1 point, or 3 in a bumper crop',
     Rotten: 'Rotten: gone off. Harvesting it is free and replants the plot',
+    Blighted: 'Blighted: diseased, and spreading to its neighbours. Harvesting it is free and replants the plot',
     BumperCrops: 'BumperCrops ⍵: 1 on every ripe plant in a 2×2 square of ripe plants',
     Promising: 'Promising ⍵: 1 where a bumper crop could form, in 2×2 squares of growing or ripe plants',
     Squares: 'Squares: 1 on every plot in a 2×2 square of 1s, as in Squares ⍵=Growing',
   };
   function renderWords() {
-    const acc = access(), helpers = ['BumperCrops', 'Promising', 'Squares'].filter(h => acc.helpers.has(h));
-    $('words').replaceChildren(...['⍵', '=', '<', '>', '(', ')', ...AcresCore.STAGE_NAMES, ...helpers].map(w => {
+    // Every helper has a button, greyed out until it's unlocked, like locked symbols: players can see
+    // what's coming, and the row doesn't change size from farm to farm.
+    const acc = access(), helpers = ['BumperCrops', 'Promising', 'Squares'];
+    const stages = AcresCore.STAGE_NAMES.filter(n => n !== 'Blighted' || (farm && farm.blight));
+    $('words').replaceChildren(...['⍵', '=', '<', '>', '(', ')', ...stages, ...helpers].map(w => {
       const b = document.createElement('button');
-      b.type = 'button'; b.textContent = w; b.title = WORD_TIPS[w];
+      const u = helpers.includes(w) && !acc.helpers.has(w) ? AcresCore.unlockFor('helper', w) : null;
+      b.type = 'button'; b.textContent = w; b.title = u ? `${w}: unlocks with ${AcresCore.needText(u)}` : WORD_TIPS[w]; b.disabled = !!u;
       const text = w === 'Squares' ? 'Squares ' : helpers.includes(w) ? `${w} ⍵` : w;
       b.addEventListener('mousedown', e => e.preventDefault());
       b.addEventListener('click', () => { editorEl().focus(); insertText(text); });

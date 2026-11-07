@@ -9,10 +9,10 @@
 // Secret: LEADERBOARD_TOKEN, shared with the GitHub job, for /pending and /verify.
 
 export const RULESET = 'v2';
-export const FARMS = ['middlebourne-farm', 'sunnyhill-farm', 'marshgate-farm', 'crowhurst-farm'];
+export const FARMS = ['middlebourne-farm', 'sunnyhill-farm', 'marshgate-farm', 'crowhurst-farm', 'blightwick-farm'];
 // Experimental farms have versioned boards. When an experiment's rules change, bump its number
 // here and its boardVersion in the game's farm list, and its board starts fresh.
-export const VERSIONS = { 'crowhurst-farm': 1 };
+export const VERSIONS = { 'crowhurst-farm': 1, 'blightwick-farm': 1 };
 export const SIZE = 10;
 export const MAX_PENDING = 20;          // per board
 export const PENDING_HOURS = 24;        // unchecked entries expire after this
