@@ -614,6 +614,7 @@ test('on big screens the field grows but the field, stats and key still fit with
     expect(await page.evaluate(() => window.scrollY)).toBe(0); // opens at the top, not jumped to the code
     expect(field.width).toBeGreaterThanOrEqual(479);
     if (fits) expect(panel.y + panel.height).toBeLessThanOrEqual(height);
+    expect(panel.width - field.width).toBeLessThan(40); // the panel hugs the field, with no empty space beside it
     await page.close();
   }
 });
@@ -628,4 +629,11 @@ test('each farm has its own soil and field edge', async ({ page }) => {
     seen.add(await look());
   }
   expect(seen.size).toBe(4);
+});
+
+test('on a phone nothing runs off the side of the page', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await page.goto(PAGE);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await page.close();
 });
