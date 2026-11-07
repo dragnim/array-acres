@@ -212,6 +212,10 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
 .words { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; background: var(--surface); border: 1px solid var(--line); border-top: 0; }
 .words button { font: 15px/1 var(--mono); padding: 7px 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--code-bg); color: var(--ink); cursor: pointer; }
 .words button:hover { border-color: var(--muted); }
+.keys { padding-top: 0; }
+.keys button { min-width: 2.4em; }
+.keys button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+@media (pointer: coarse) { .glyphs button { min-width: 42px; min-height: 42px; } .words button { min-height: 40px; } }
 .glyphs {
   display: flex;
   flex-wrap: wrap;
@@ -376,7 +380,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
           <button type="button" class="small-button" id="resetCode">Reset code</button>
         </span>
       </div>
-      <p class="code-note"><code>⍵</code> is today’s field, one number per plot: 0 Seed, 1 Sprout, 2 Growing, 3 Ripe, 4 Rotten. Give back 1 to harvest a plot, or 0 to leave it.</p>
+      <p class="code-note"><code>⍵</code> is today’s field. Compare it with a stage, like <code>⍵=Ripe</code>, to get a yes (1) or no (0) for every plot: <code>Harvest</code> harvests the 1s. The stages come in order: Seed, Sprout, Growing, Ripe, Rotten.</p>
       <div class="framed" id="framed">
         <div class="frame-fn">
           <code class="frame-edge">Harvest←{</code>
@@ -391,6 +395,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
       </div>
       <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" hidden></textarea>
       <div class="words" id="words" aria-label="Names you can use"></div>
+      <div class="words keys" id="keys" aria-label="Keys"></div>
       <div class="glyphs" id="glyphs" aria-label="APL symbols"></div>
       <div id="diag" aria-live="polite"></div>
       <div class="controls">
@@ -406,7 +411,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
         </label>
       </div>
       <div id="msg" role="status"></div>
-      <p class="hint">Tap names and symbols to add them, or type symbols with a backtick prefix, so <kbd>`w</kbd> gives <kbd>⍵</kbd>. Hover a symbol to see its name and key. Dashed outlines preview what <code>Harvest</code> would pick today, without using up a day. Ctrl+Enter or ⌘+Enter moves to the next day. Tab indents; press Esc then Tab to leave the editor.</p>
+      <p class="hint">Tap names, symbols and keys to build your code (on a tablet, ⌨ brings up the keyboard), or type symbols with a backtick prefix, so <kbd>`w</kbd> gives <kbd>⍵</kbd>. Hover a symbol to see its name and key. Dashed outlines preview what <code>Harvest</code> would pick today, without using up a day. Ctrl+Enter or ⌘+Enter moves to the next day. Tab indents; press Esc then Tab to leave the editor.</p>
     </section>
   </main>
 
@@ -423,7 +428,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
       <figure class="apl-example">
         <div class="apl-example-part">
           <span class="apl-example-label">⍵: stages</span>
-          <canvas id="aplExampleField" width="132" height="132" role="img" aria-label="A small field of stages: 1 3 2, 3 0 3, 2 1 3"></canvas>
+          <canvas id="aplExampleField" width="132" height="132" role="img" aria-label="A small field: sprout, ripe, growing; ripe, seed, ripe; growing, sprout, ripe"></canvas>
         </div>
         <code class="apl-example-op">⍵=Ripe</code>
         <div class="apl-example-part">
@@ -1258,7 +1263,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     };
     const { env } = APL.run(src, { parent, lockGlyph });
     const f = env.vars.get('Harvest');
-    if (!f) throw new APL.AplError('VALUE ERROR: define a function called Harvest, for example Harvest←{⍵=3}');
+    if (!f) throw new APL.AplError('VALUE ERROR: define a function called Harvest, for example Harvest←{⍵=Ripe}');
     if (!APL.isFn(f)) throw new APL.AplError('DOMAIN ERROR: Harvest must be a function, but it\'s an array');
     const scare = env.vars.get('Scare') || null;
     if (scare && !APL.isFn(scare)) throw new APL.AplError('DOMAIN ERROR: Scare must be a function, but it\'s an array');
@@ -1692,7 +1697,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
 
   // Each entry explains one tool with a small example. Locked entries show only what unlocks them.
   const GUIDE = [
-    { title: '⍵', text: '⍵ is today’s field: 8×8 numbers, one for each plot. Each stage also has a name you can use instead of its number: `Seed` 0, `Sprout` 1, `Growing` 2, `Ripe` 3 and `Rotten` 4. Turn on “Show numbers” to see the numbers on the field.', snippets: [['⍵=Sprout', 'the sprouts']] },
+    { title: '⍵', text: '⍵ is today’s field: the stage of every plot, 8 by 8. Compare it with a stage, like `⍵=Sprout`, to ask the same question of every plot at once. The stages come in order, `Seed`, `Sprout`, `Growing`, `Ripe`, `Rotten`, so `⍵≥Ripe` means ripe or rotten.', snippets: [['⍵=Sprout', 'the sprouts']] },
     { title: '= ≠ < > ≤ ≥', glyph: '=', text: 'Compare. These ask a question of every plot at once, and answer 1 for yes and 0 for no.', snippets: [['⍵=Rotten', 'the rotten plants'], ['⍵≤Sprout', 'seeds and sprouts'], ['⍵≠Seed', 'everything except seeds']] },
     { title: '∧ ∨ ~', glyph: '∧', text: 'Combine answers. ∧ means “and”: 1 only where both answers are 1. ∨ means “or”: 1 where either is. ~ means “not”: it turns 1s into 0s and 0s into 1s.', snippets: [['(⍵=Sprout)∨⍵=Growing', 'everything still growing'], ['(⍵≥Growing)∧⍵≤Ripe', 'growing or ripe plants'], ['~⍵=Rotten', 'everything except rotten plants']] },
     { title: 'BumperCrops ⍵', helper: 'BumperCrops', text: 'A ready-made helper. It gives 1 on every ripe plant that’s part of a bumper crop today (four ripe plants in a 2×2 square), and 0 everywhere else.', snippets: [['BumperCrops ⍵', 'today’s bumper crops']] },
@@ -2135,8 +2140,8 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   function renderRules() {
     const pct = p => `${Math.round(p * 100)}%`, N = RULES.size, B = RULES.bonus, w = farm || AcresCore.PRACTICE;
     const items = [
-      `The field is ${N}×${N} and a season lasts ${RULES.days} days. Each plot holds one plant at one of five stages: \`Seed\` 0, \`Sprout\` 1, \`Growing\` 2, \`Ripe\` 3 or \`Rotten\` 4. Your code can use either the name or the number. A season starts with every plot at a random stage from \`Seed\` to \`Ripe\`.`,
-      'Each day, your `Harvest` function is given today’s field as ⍵, a matrix of stage numbers, and gives back a matrix of yes or no answers: 1 means harvest that plot, 0 means leave it. These 1s and 0s are answers, not stages. Every harvested plot is cleared and replanted as a seed.',
+      `The field is ${N}×${N} and a season lasts ${RULES.days} days. Each plot holds one plant at one of five stages, in order: \`Seed\`, \`Sprout\`, \`Growing\`, \`Ripe\` and \`Rotten\`. A season starts with every plot at a random stage from \`Seed\` to \`Ripe\`.`,
+      'Each day, your `Harvest` function is given today’s field as ⍵ and gives back a yes or no for every plot: 1 means harvest that plot, 0 means leave it. Every harvested plot is cleared and replanted as a seed.',
       `A harvested ripe plant scores 1. If it’s part of a 2×2 square of ripe plants that are all harvested that day, a bumper crop, it scores ${B} instead and is outlined in gold the next day. A plant in more than one such square still scores ${B}. Squares don’t wrap around the edges of the field.`,
       'Harvesting a sprout or a growing plant wastes it. Harvesting a seed or a rotten plant scores nothing, so clearing rot is free.',
       `Then the field grows overnight, depending on the farm’s weather. Sunshine: every seed, sprout and growing plant, including newly replanted seeds, has a ${pct(w.sunshine)} chance to grow one stage. Rainfall: every ripe plant left unharvested has a ${pct(w.rainfall)} chance to rot. Rotten plants stay until harvested. No plot changes by more than one stage a night${w.crows ? ', except where crows eat' : ''}.`,
@@ -2213,7 +2218,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
       item.append(c, label);
       el.append(item);
     };
-    STAGE_NAMES.forEach((name, v) => add(`<code>${name}</code> ${v}`, v, 0, null));
+    STAGE_NAMES.forEach((name, v) => add(`<code>${name}</code>`, v, 0, null));
     {
       const item = document.createElement('div'), c = document.createElement('canvas'), dpr = window.devicePixelRatio || 1;
       c.width = 40 * dpr; c.height = 40 * dpr;
@@ -2255,7 +2260,6 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     APL_EXAMPLE.forEach((row, r) => row.forEach((v, k) => {
       const px = gap + k * (s + gap), py = gap + r * (s + gap);
       drawPlot(x, px, py, s, v, 0, null, false);
-      drawNumber(x, px, py, s, v);
     }));
     document.querySelector('.apl-example-result').replaceChildren(...APL_EXAMPLE.flat().map(v => {
       const cell = document.createElement('span'); cell.textContent = v === RIPE ? 1 : 0;
@@ -2616,6 +2620,39 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     el.dispatchEvent(new Event('input'));
   }
 
+  // Keys for everything else code needs: digits, space, + - , a new line and delete. On touch screens the
+  // simple view keeps the on-screen keyboard away, so tapping builds the code; ⌨ brings the keyboard back.
+  const touch = matchMedia('(pointer: coarse)').matches;
+  let keyboard = !touch;
+  function setKeyboard(on) {
+    keyboard = on;
+    [hBody, sBody].forEach(el => el.setAttribute('inputmode', on ? 'text' : 'none'));
+    $('kbdKey').setAttribute('aria-pressed', String(on));
+    if (on) { const el = editorEl(); el.blur(); el.focus(); }
+  }
+  {
+    const key = (label, aria, act) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = label; b.setAttribute('aria-label', aria);
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => { editorEl().focus(); act(); });
+      return b;
+    };
+    const backspace = () => {
+      const el = editorEl(), { selectionStart: a, selectionEnd: b, value } = el;
+      if (a === b && a === 0) return;
+      const from = a === b ? a - [...value.slice(0, a)].slice(-1)[0].length : a;
+      el.value = value.slice(0, from) + value.slice(b);
+      el.selectionStart = el.selectionEnd = from;
+      el.dispatchEvent(new Event('input'));
+    };
+    const kbd = key('⌨', 'Keyboard', () => setKeyboard(!keyboard));
+    kbd.id = 'kbdKey';
+    $('keys').append(...'0123456789'.split('').map(d => key(d, d, () => insertText(d))),
+      key('+', 'plus', () => insertText('+')), key('-', 'minus', () => insertText('-')), key(',', 'comma', () => insertText(',')),
+      key('space', 'space', () => insertText(' ')), key('↵', 'new line', () => insertText('\n')), key('⌫', 'delete', backspace), kbd);
+  }
+
   // Name buttons: tap ⍵, the comparisons and brackets every first strategy needs, the stages and helpers
   // into the code, handy on touch screens where these keys are hidden. Helpers appear as they unlock.
   function renderWords() {
@@ -2650,6 +2687,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   codeEl.value = saved || DEFAULT_CODE;
   // Code that doesn't fit the simple view opens in the full view.
   if (view === 'simple' && !fillFrames()) view = 'full';
+  setKeyboard(keyboard);
 
   // Back to the starter code. Done as an edit, so Ctrl+Z or ⌘+Z brings the player's code back.
   $('resetCode').addEventListener('click', () => {
