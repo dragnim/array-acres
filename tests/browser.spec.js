@@ -617,3 +617,15 @@ test('on big screens the field grows but the field, stats and key still fit with
     await page.close();
   }
 });
+
+test('each farm has its own soil and field edge', async ({ page }) => {
+  await page.goto(`${PAGE}?god`);
+  const look = () => page.evaluate(() => { const cs = getComputedStyle(document.documentElement); return cs.getPropertyValue('--soil').trim() + cs.getPropertyValue('--frame').trim(); });
+  const seen = new Set();
+  for (const farm of ['middlebourne-farm', 'sunnyhill-farm', 'marshgate-farm', 'crowhurst-farm']) {
+    await page.selectOption('#farm', farm);
+    await expect(page.locator('html')).toHaveAttribute('data-farm', farm);
+    seen.add(await look());
+  }
+  expect(seen.size).toBe(4);
+});
