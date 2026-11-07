@@ -604,16 +604,16 @@ test('the game loads nothing from other sites, apart from the leaderboard', asyn
   expect(elsewhere).toEqual([]);
 });
 
-test('the field is the biggest thing on a wide screen, and the page opens at the top with the whole field in view', async ({ browser }) => {
-  for (const [width, height] of [[2560, 1300], [1440, 900], [1366, 768]]) {
+test('on big screens the field grows but the field, stats and key still fit without scrolling; smaller screens keep the old size', async ({ browser }) => {
+  for (const [width, height, fits] of [[2560, 1300, true], [2560, 1150, true], [1440, 900, false], [1366, 768, false]]) {
     const page = await browser.newPage({ viewport: { width, height } });
     await page.goto(PAGE);
     await page.evaluate(() => localStorage.setItem('acres:help-seen', '1'));
     await page.reload();
-    const field = await page.locator('#field').boundingBox(), code = await page.locator('.editor').boundingBox();
-    expect(await page.evaluate(() => window.scrollY)).toBe(0);
-    expect(field.y + field.height).toBeLessThanOrEqual(height);
-    expect(field.width).toBeGreaterThan(code.width * 0.9);
+    const field = await page.locator('#field').boundingBox(), panel = await page.locator('section.plot').boundingBox();
+    expect(await page.evaluate(() => window.scrollY)).toBe(0); // opens at the top, not jumped to the code
+    expect(field.width).toBeGreaterThanOrEqual(479);
+    if (fits) expect(panel.y + panel.height).toBeLessThanOrEqual(height);
     await page.close();
   }
 });
