@@ -14,7 +14,7 @@ Play it at https://dragnim.github.io/array-acres/, or open `index.html` in a bro
 
 You write one function, `Harvest`. Every day of the season, the game gives it today's field as `⍵`, and it gives back a yes (1) or no (0) for every plot: 1 harvests that plot, 0 leaves it. Your code works on the whole field at once, so one expression like `⍵=Ripe` decides all 64 plots.
 
-- **Write your code.** In the simple view, `Harvest←{` and `}` are already in place and you only write what goes inside. The advanced view lets you edit the whole program. Every name, symbol and key can be tapped, so the game works on a tablet without the keyboard; ⌨ brings the keyboard back.
+- **Write your code.** In the simple view, `Harvest←{` and `}` are already in place and you only write what goes inside. The code view lets you edit the whole program. Every name, symbol and key can be tapped, so the game works on a tablet without the keyboard; ⌨ brings the keyboard back.
 - **Check it before you play.** Dashed outlines on the field show what your code would harvest today, and they update as you type.
 - **Play** a whole season, or step through it a day at a time with Next day.
 - **Read the season report** to see how it went: your score, plants lost to rot, plants wasted, and what happened day by day.
@@ -48,7 +48,7 @@ The game is in `index.html`, in three scripts:
 
 - `apl-interpreter`: the APL subset, with limits on size, recursion and work so no expression can freeze the page. Glyphs outside the subset report `NONCE ERROR`; symbols a player hasn't unlocked yet say what unlocks them.
 - `acres-core`: the rules and simulation, with no access to the page, so the browser and the tests share one implementation.
-- The page script: drawing and effects, the editor (simple and advanced views, with buttons for tapping code in), the live preview and diagnostics, progression, and the side panel for What is APL?, How to play, the farming guide, the leaderboard and the season report.
+- The page script: drawing and effects, the editor (simple and code views, with buttons for tapping code in), the live preview and diagnostics, progression, and the side panel for What is APL?, How to play, the farming guide, the leaderboard and the season report.
 
 The art is separate, in `assets/plants`: the plants, crows and scarecrow, and the image shown when a link to the game is shared, with notes on how they were made in [its own README](assets/plants/README.md). If an image can't load, the page draws it in code instead, so the game never depends on them. The leaderboard's server code is in `leaderboard/`.
 
