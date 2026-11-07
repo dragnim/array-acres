@@ -546,3 +546,25 @@ test('the simple view frames Harvest, taps in names, and switches to the advance
   await page.goto(`${PAGE}?god=off`);
   await expect(page.locator('#godBadge')).toBeHidden();
 });
+
+test('on a touch screen the simple view builds code by tapping, without the keyboard', async ({ browser }) => {
+  const context = await browser.newContext({ hasTouch: true, isMobile: true, viewport: { width: 820, height: 1180 } });
+  const page = await context.newPage();
+  await page.goto(PAGE);
+  await page.evaluate(() => localStorage.setItem('acres:help-seen', '1'));
+  await page.reload();
+  await page.selectOption('#farm', 'practice'); // where ∨ is already unlocked
+  const body = page.locator('#hBody'), tap = async label => page.locator('#words button, #keys button').filter({ hasText: new RegExp(`^${label.replace(/[()]/g, '\\$&')}$`) }).first().tap();
+  await expect(body).toHaveAttribute('inputmode', 'none');
+  await body.tap();
+  await tap('⌫');
+  await expect(body).toHaveValue('');
+  for (const label of ['(', '⍵', '=', 'Rotten', ')']) await tap(label);
+  await page.locator('#glyphs button[aria-label="Or"]').tap();
+  for (const label of ['⍵', '=', 'Ripe']) await tap(label);
+  await expect(body).toHaveValue('(⍵=Rotten)∨⍵=Ripe');
+  await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
+  await tap('⌨');
+  await expect(body).toHaveAttribute('inputmode', 'text');
+  await context.close();
+});
