@@ -661,7 +661,8 @@ test('every name and key button explains itself when you hover over it', async (
 test('accessibility: axe finds no problems on the page, its panels, a played day, Crowhurst or the code view', async ({ browser }) => {
   test.setTimeout(120000); // fourteen full scans, in both themes
   for (const colorScheme of ['light', 'dark']) {
-    const context = await browser.newContext({ colorScheme });
+    // Reduced motion, so panels appear at once: mid-slide, their text is still faint and fails contrast.
+    const context = await browser.newContext({ colorScheme, reducedMotion: 'reduce' });
     const page = await context.newPage();
     await page.route(`${LEADERBOARD}/**`, route => route.fulfill({ json: { entries: [], checking: 0, pending: [] } }));
     await page.goto(`${PAGE}?god`);
