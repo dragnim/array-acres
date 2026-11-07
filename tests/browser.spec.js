@@ -486,7 +486,7 @@ test('the Leaderboard page shows every farm’s top 10, without playing a season
   await page.route(`${LEADERBOARD}/**`, route => {
     const farm = new URL(route.request().url()).searchParams.get('farm');
     return route.fulfill({ json: farm === 'sunnyhill-farm'
-      ? { entries: [{ initials: 'SUN', score: 2132, date: '2026-11-01' }], pending: [{ initials: 'NEW', score: 2000, date: '2026-11-02' }] }
+      ? { entries: [{ initials: 'SUN', score: 2132, date: '2026-11-01' }], checking: 2, pending: [] }
       : { entries: [], pending: [] } });
   });
   await page.goto(PAGE);
@@ -494,7 +494,7 @@ test('the Leaderboard page shows every farm’s top 10, without playing a season
   await expect(page.locator('#panelTitle')).toHaveText('Leaderboard');
   await expect(page.locator('#boards h3')).toHaveText(['Middlebourne Farm', 'Sunnyhill Farm', 'Marshgate Farm', 'Crowhurst Farm (experimental)']);
   await expect(page.locator('#boards ol[data-farm="sunnyhill-farm"]')).toContainText('SUN');
-  await expect(page.locator('#boards ol[data-farm="sunnyhill-farm"] li.checking')).toContainText('NEW');
+  await expect(page.locator('#boards ol[data-farm="sunnyhill-farm"] li.checking')).toHaveText('2 scores being checked');
   await expect(page.locator('#boards ol[data-farm="middlebourne-farm"]')).toContainText('No scores yet');
 });
 
