@@ -201,6 +201,21 @@ textarea {
   overflow: auto;
   display: block;
 }
+#code[hidden], .framed[hidden] { display: none; }
+.code-note { margin: 0 0 8px; color: var(--muted); font-size: 0.9rem; }
+.framed { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px 10px 0 0; padding: 10px 14px; }
+.frame-fn + .frame-fn { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.frame-edge { display: block; font: 16px/1.5 var(--mono); color: var(--muted); user-select: none; }
+textarea.frame-body { min-height: 150px; border: 0; border-radius: 0; padding: 2px 0 2px 2ch; background: transparent; }
+textarea.frame-body.frame-scare { min-height: 90px; }
+textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted); }
+.words { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; background: var(--surface); border: 1px solid var(--line); border-top: 0; }
+.words button { font: 15px/1 var(--mono); padding: 7px 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--code-bg); color: var(--ink); cursor: pointer; }
+.words button:hover { border-color: var(--muted); }
+.keys { padding-top: 0; }
+.keys button { min-width: 2.4em; }
+.keys button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+@media (pointer: coarse) { .glyphs button { min-width: 42px; min-height: 42px; } .words button { min-height: 40px; } }
 .glyphs {
   display: flex;
   flex-wrap: wrap;
@@ -358,13 +373,29 @@ textarea {
 
     <section class="editor">
       <div class="label-row">
-        <label class="title" for="code">Your code</label>
+        <label class="title" for="code" id="codeLabel">Your code</label>
         <span class="label-tools">
           <span class="status" id="status" aria-live="polite"></span>
+          <button type="button" class="small-button" id="viewToggle">Advanced view</button>
           <button type="button" class="small-button" id="resetCode">Reset code</button>
         </span>
       </div>
-      <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
+      <p class="code-note"><code>⍵</code> is today’s field. Compare it with a stage, like <code>⍵=Ripe</code>, to get a yes (1) or no (0) for every plot: <code>Harvest</code> harvests the 1s. The stages come in order: Seed, Sprout, Growing, Ripe, Rotten.</p>
+      <div class="framed" id="framed">
+        <div class="frame-fn">
+          <code class="frame-edge">Harvest←{</code>
+          <textarea id="hBody" class="frame-body" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="The inside of Harvest"></textarea>
+          <code class="frame-edge">}</code>
+        </div>
+        <div class="frame-fn" id="scareFrame" hidden>
+          <code class="frame-edge">Scare←{</code>
+          <textarea id="sBody" class="frame-body frame-scare" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="The inside of Scare, optional" placeholder="Optional: where to stand scarecrows"></textarea>
+          <code class="frame-edge">}</code>
+        </div>
+      </div>
+      <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" hidden></textarea>
+      <div class="words" id="words" aria-label="Names you can use"></div>
+      <div class="words keys" id="keys" aria-label="Keys"></div>
       <div class="glyphs" id="glyphs" aria-label="APL symbols"></div>
       <div id="diag" aria-live="polite"></div>
       <div class="controls">
@@ -380,7 +411,7 @@ textarea {
         </label>
       </div>
       <div id="msg" role="status"></div>
-      <p class="hint">Type symbols with the bar or a backtick prefix, so <kbd>`w</kbd> gives <kbd>⍵</kbd>. Hover a symbol to see its name and key. Dashed outlines preview what <code>Harvest</code> would pick today, without using up a day. Ctrl+Enter or ⌘+Enter moves to the next day. Tab indents; press Esc then Tab to leave the editor.</p>
+      <p class="hint">Tap names, symbols and keys to build your code (on a tablet, ⌨ brings up the keyboard), or type symbols with a backtick prefix, so <kbd>`w</kbd> gives <kbd>⍵</kbd>. Hover a symbol to see its name and key. Dashed outlines preview what <code>Harvest</code> would pick today, without using up a day. Ctrl+Enter or ⌘+Enter moves to the next day. Tab indents; press Esc then Tab to leave the editor.</p>
     </section>
   </main>
 
@@ -397,7 +428,7 @@ textarea {
       <figure class="apl-example">
         <div class="apl-example-part">
           <span class="apl-example-label">⍵: stages</span>
-          <canvas id="aplExampleField" width="132" height="132" role="img" aria-label="A small field of stages: 1 3 2, 3 0 3, 2 1 3"></canvas>
+          <canvas id="aplExampleField" width="132" height="132" role="img" aria-label="A small field: sprout, ripe, growing; ripe, seed, ripe; growing, sprout, ripe"></canvas>
         </div>
         <code class="apl-example-op">⍵=Ripe</code>
         <div class="apl-example-part">
@@ -1232,7 +1263,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     };
     const { env } = APL.run(src, { parent, lockGlyph });
     const f = env.vars.get('Harvest');
-    if (!f) throw new APL.AplError('VALUE ERROR: define a function called Harvest, for example Harvest←{⍵=3}');
+    if (!f) throw new APL.AplError('VALUE ERROR: define a function called Harvest, for example Harvest←{⍵=Ripe}');
     if (!APL.isFn(f)) throw new APL.AplError('DOMAIN ERROR: Harvest must be a function, but it\'s an array');
     const scare = env.vars.get('Scare') || null;
     if (scare && !APL.isFn(scare)) throw new APL.AplError('DOMAIN ERROR: Scare must be a function, but it\'s an array');
@@ -1351,15 +1382,8 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   const STAGE_NAMES = AcresCore.STAGE_NAMES;
   const STORE_KEY = 'allotment:apl';
 
-  const DEFAULT_CODE = `⍝ ⍵ is today's field, one number per plot:
-⍝   0 Seed  1 Sprout  2 Growing
-⍝   3 Ripe  4 Rotten
-⍝ Give back 1 to harvest a plot, or 0 to
-⍝ leave it: yes and no, not stages.
-⍝ Change the 0 below to start farming.
-
-Harvest←{0}
-`;
+  // The notes that explain it sit beside the code box, so the starter is just the function.
+  const DEFAULT_CODE = 'Harvest←{0}\n';
 
   // Symbols in this prototype, with names and backtick keys as in Dyalog.
   const GLYPHS = [
@@ -1442,13 +1466,26 @@ Harvest←{0}
     msgEl.textContent = text || '';
     msgEl.classList.toggle('error', !!isError);
   }
+  // A helper used like a stage (⍵=BumperCrops) gives back a function, not an answer; say so in plain terms.
+  function friendlier(message) {
+    if (!/a function must return an array/.test(message)) return message;
+    const helper = (codeEl.value.match(/\b(BumperCrops|Promising|Squares)\b(?!\s*[⍵(\w¯])/) || [])[1];
+    return helper ? `${helper} is a helper, not a stage: give it the field, as in ${helper} ⍵`
+      : 'This gives back a function, not an answer: a function needs something to work on, such as ⍵';
+  }
   const errorText = (kind, message) =>
     kind === 'result' ? `Invalid result: ${message}`
     : kind === 'locked' ? `${message.replace(/^LOCKED: /, '')}. Practice Farm has every symbol and helper.`
-    : kind === 'code' ? message : `Internal error: ${message}`;
+    : kind === 'code' ? friendlier(message) : `Internal error: ${message}`;
   const kindOf = e => e instanceof AcresCore.ResultError ? 'result'
     : e instanceof APL.AplError ? (/^LOCKED/.test(e.message) ? 'locked' : 'code') : 'internal';
-  const showError = e => setMsg(errorText(kindOf(e), e && e.message), true);
+  // A run that fails shows its error under the code, where the preview's errors appear, rather than twice.
+  const showError = e => {
+    const kind = kindOf(e);
+    diagEl.textContent = errorText(kind, e && e.message);
+    setStatus(kind);
+    setMsg('Fix the error shown under your code to play.', true);
+  };
 
   function compile() {
     try { ({ harvest: fn, scare: scareFn } = AcresCore.compileProgram(codeEl.value, access())); compiledSrc = codeEl.value; dirty = false; return true; }
@@ -1488,9 +1525,10 @@ Harvest←{0}
   function useSnippet(code) {
     // Where the panel covers the editor, close it so the code is in view.
     if (!matchMedia('(min-width: 1100px)').matches) closePanel(false);
-    codeEl.focus();
+    const el = editorEl();
+    el.focus();
     insertText(code);
-    codeEl.selectionStart = codeEl.selectionEnd - code.length; // selected, so it's easy to see and move
+    el.selectionStart = el.selectionEnd - code.length; // selected, so it's easy to see and move
   }
 
   function codeChanged() {
@@ -1672,7 +1710,7 @@ Harvest←{0}
 
   // Each entry explains one tool with a small example. Locked entries show only what unlocks them.
   const GUIDE = [
-    { title: '⍵', text: '⍵ is today’s field: 8×8 numbers, one for each plot. Each stage also has a name you can use instead of its number: `Seed` 0, `Sprout` 1, `Growing` 2, `Ripe` 3 and `Rotten` 4. Turn on “Show numbers” to see the numbers on the field.', snippets: [['⍵=Sprout', 'the sprouts']] },
+    { title: '⍵', text: '⍵ is today’s field: the stage of every plot, 8 by 8. Compare it with a stage, like `⍵=Sprout`, to ask the same question of every plot at once. The stages come in order, `Seed`, `Sprout`, `Growing`, `Ripe`, `Rotten`, so `⍵≥Ripe` means ripe or rotten.', snippets: [['⍵=Sprout', 'the sprouts']] },
     { title: '= ≠ < > ≤ ≥', glyph: '=', text: 'Compare. These ask a question of every plot at once, and answer 1 for yes and 0 for no.', snippets: [['⍵=Rotten', 'the rotten plants'], ['⍵≤Sprout', 'seeds and sprouts'], ['⍵≠Seed', 'everything except seeds']] },
     { title: '∧ ∨ ~', glyph: '∧', text: 'Combine answers. ∧ means “and”: 1 only where both answers are 1. ∨ means “or”: 1 where either is. ~ means “not”: it turns 1s into 0s and 0s into 1s.', snippets: [['(⍵=Sprout)∨⍵=Growing', 'everything still growing'], ['(⍵≥Growing)∧⍵≤Ripe', 'growing or ripe plants'], ['~⍵=Rotten', 'everything except rotten plants']] },
     { title: 'BumperCrops ⍵', helper: 'BumperCrops', text: 'A ready-made helper. It gives 1 on every ripe plant that’s part of a bumper crop today (four ripe plants in a 2×2 square), and 0 everywhere else.', snippets: [['BumperCrops ⍵', 'today’s bumper crops']] },
@@ -1727,7 +1765,7 @@ Harvest←{0}
     setGodMode(!godMode);
   });
 
-  function refreshProgress() { renderFarmOptions(); renderGlyphLocks(); renderGuide(); }
+  function refreshProgress() { renderFarmOptions(); renderGlyphLocks(); renderGuide(); renderWords(); showView(); }
 
   // Drawing
   let COL;
@@ -2115,8 +2153,8 @@ Harvest←{0}
   function renderRules() {
     const pct = p => `${Math.round(p * 100)}%`, N = RULES.size, B = RULES.bonus, w = farm || AcresCore.PRACTICE;
     const items = [
-      `The field is ${N}×${N} and a season lasts ${RULES.days} days. Each plot holds one plant at one of five stages: \`Seed\` 0, \`Sprout\` 1, \`Growing\` 2, \`Ripe\` 3 or \`Rotten\` 4. Your code can use either the name or the number. A season starts with every plot at a random stage from \`Seed\` to \`Ripe\`.`,
-      'Each day, your `Harvest` function is given today’s field as ⍵, a matrix of stage numbers, and gives back a matrix of yes or no answers: 1 means harvest that plot, 0 means leave it. These 1s and 0s are answers, not stages. Every harvested plot is cleared and replanted as a seed.',
+      `The field is ${N}×${N} and a season lasts ${RULES.days} days. Each plot holds one plant at one of five stages, in order: \`Seed\`, \`Sprout\`, \`Growing\`, \`Ripe\` and \`Rotten\`. A season starts with every plot at a random stage from \`Seed\` to \`Ripe\`.`,
+      'Each day, your `Harvest` function is given today’s field as ⍵ and gives back a yes or no for every plot: 1 means harvest that plot, 0 means leave it. Every harvested plot is cleared and replanted as a seed.',
       `A harvested ripe plant scores 1. If it’s part of a 2×2 square of ripe plants that are all harvested that day, a bumper crop, it scores ${B} instead and is outlined in gold the next day. A plant in more than one such square still scores ${B}. Squares don’t wrap around the edges of the field.`,
       'Harvesting a sprout or a growing plant wastes it. Harvesting a seed or a rotten plant scores nothing, so clearing rot is free.',
       `Then the field grows overnight, depending on the farm’s weather. Sunshine: every seed, sprout and growing plant, including newly replanted seeds, has a ${pct(w.sunshine)} chance to grow one stage. Rainfall: every ripe plant left unharvested has a ${pct(w.rainfall)} chance to rot. Rotten plants stay until harvested. No plot changes by more than one stage a night${w.crows ? ', except where crows eat' : ''}.`,
@@ -2193,7 +2231,7 @@ Harvest←{0}
       item.append(c, label);
       el.append(item);
     };
-    STAGE_NAMES.forEach((name, v) => add(`<code>${name}</code> ${v}`, v, 0, null));
+    STAGE_NAMES.forEach((name, v) => add(`<code>${name}</code>`, v, 0, null));
     {
       const item = document.createElement('div'), c = document.createElement('canvas'), dpr = window.devicePixelRatio || 1;
       c.width = 40 * dpr; c.height = 40 * dpr;
@@ -2235,7 +2273,6 @@ Harvest←{0}
     APL_EXAMPLE.forEach((row, r) => row.forEach((v, k) => {
       const px = gap + k * (s + gap), py = gap + r * (s + gap);
       drawPlot(x, px, py, s, v, 0, null, false);
-      drawNumber(x, px, py, s, v);
     }));
     document.querySelector('.apl-example-result').replaceChildren(...APL_EXAMPLE.flat().map(v => {
       const cell = document.createElement('span'); cell.textContent = v === RIPE ? 1 : 0;
@@ -2409,7 +2446,7 @@ Harvest←{0}
   $('openBoard').addEventListener('click', () => togglePanel('board'));
   $('closePanel').addEventListener('click', () => closePanel());
   // Esc closes the panel, except in the editor, where Esc is how you Tab out of it.
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && panelOpen && e.target !== codeEl) closePanel(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && panelOpen && !e.target.matches('textarea')) closePanel(); });
 
   // A "New" badge on the farming guide button until the guide is opened after an unlock.
   function setGuideNew(on) {
@@ -2518,12 +2555,129 @@ Harvest←{0}
   chartEl.addEventListener('blur', () => { hoverDay = null; drawChart(); });
   new ResizeObserver(() => drawChart()).observe(chartEl);
 
-  // Editor
+  // Editor. Two views of the same code: the simple view fixes Harvest←{ and } around what the player
+  // writes (and Scare←{ } on farms with crows), so they only edit the inside; the full view edits the
+  // whole program. Either way, the full program in #code is what's saved and run.
+  const hBody = $('hBody'), sBody = $('sBody'), VIEW_KEY = 'acres:editor';
+  let view = 'simple', activeEl = null;
+  try { if (localStorage.getItem(VIEW_KEY) === 'full') view = 'full'; } catch (e) {}
+  const editors = [codeEl, hBody, sBody];
+  const editorEl = () => view === 'full' ? codeEl : (activeEl === sBody && !$('scareFrame').hidden ? sBody : hBody);
+
+  // The program as its Harvest and Scare insides, or null if it holds anything else.
+  function splitProgram(src) {
+    const out = {};
+    let i = 0;
+    while (i < src.length) {
+      if (/\s/.test(src[i])) { i++; continue; }
+      const m = /^(Harvest|Scare)←\{/.exec(src.slice(i));
+      if (!m || m[1] in out) return null;
+      let depth = 1, j = i + m[0].length;
+      const start = j;
+      while (j < src.length && depth) {
+        const ch = src[j];
+        if (ch === "'") { j = src.indexOf("'", j + 1); if (j < 0) return null; }
+        else if (ch === '⍝') { j = src.indexOf('\n', j); if (j < 0) return null; }
+        else if (ch === '{') depth++;
+        else if (ch === '}') depth--;
+        j++;
+      }
+      if (depth) return null;
+      out[m[1]] = tidyBody(src.slice(start, j - 1));
+      i = j;
+    }
+    return 'Harvest' in out ? out : null;
+  }
+  // A body on several lines loses the line breaks around it and its common indent, and gets them back when joined.
+  function tidyBody(b) {
+    if (!b.includes('\n')) return b.trim();
+    const lines = b.replace(/^[ \t]*\n/, '').replace(/\n[ \t]*$/, '').split('\n');
+    const indents = lines.filter(l => l.trim()).map(l => l.match(/^ */)[0].length);
+    const cut = indents.length ? Math.min(...indents) : 0;
+    return lines.map(l => l.slice(cut)).join('\n');
+  }
+  const wrapBody = (name, body) => body.includes('\n')
+    ? `${name}←{\n${body.split('\n').map(l => (l ? `  ${l}` : l)).join('\n')}\n}` : `${name}←{${body}}`;
+  const joinProgram = (h, s) => `${wrapBody('Harvest', h)}\n${s.trim() ? `${wrapBody('Scare', s)}\n` : ''}`;
+
+  function fillFrames() {
+    const parts = splitProgram(codeEl.value);
+    if (!parts) return false;
+    hBody.value = parts.Harvest; sBody.value = parts.Scare || '';
+    return true;
+  }
+  function showView() {
+    $('framed').hidden = view !== 'simple';
+    codeEl.hidden = view !== 'full';
+    $('scareFrame').hidden = !hasCrows();
+    $('viewToggle').textContent = view === 'simple' ? 'Advanced view' : 'Simple view';
+    $('codeLabel').htmlFor = view === 'simple' ? 'hBody' : 'code';
+  }
+  function setView(next) {
+    if (next === 'simple' && !fillFrames()) {
+      setMsg('This program has more than Harvest and Scare in it, so it can only be edited in the advanced view.');
+      return;
+    }
+    view = next;
+    try { localStorage.setItem(VIEW_KEY, view); } catch (e) {}
+    showView();
+    editorEl().focus();
+  }
+  $('viewToggle').addEventListener('click', () => setView(view === 'simple' ? 'full' : 'simple'));
+
   function insertText(text) {
-    const { selectionStart: a, selectionEnd: b, value } = codeEl;
-    codeEl.value = value.slice(0, a) + text + value.slice(b);
-    codeEl.selectionStart = codeEl.selectionEnd = a + text.length;
-    codeEl.dispatchEvent(new Event('input'));
+    const el = editorEl();
+    const { selectionStart: a, selectionEnd: b, value } = el;
+    el.value = value.slice(0, a) + text + value.slice(b);
+    el.selectionStart = el.selectionEnd = a + text.length;
+    el.dispatchEvent(new Event('input'));
+  }
+
+  // Keys for everything else code needs: digits, space, + - , a new line and delete. On touch screens the
+  // simple view keeps the on-screen keyboard away, so tapping builds the code; ⌨ brings the keyboard back.
+  const touch = matchMedia('(pointer: coarse)').matches;
+  let keyboard = !touch;
+  function setKeyboard(on) {
+    keyboard = on;
+    [hBody, sBody].forEach(el => el.setAttribute('inputmode', on ? 'text' : 'none'));
+    $('kbdKey').setAttribute('aria-pressed', String(on));
+    if (on) { const el = editorEl(); el.blur(); el.focus(); }
+  }
+  {
+    const key = (label, aria, act) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = label; b.setAttribute('aria-label', aria);
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => { editorEl().focus(); act(); });
+      return b;
+    };
+    const backspace = () => {
+      const el = editorEl(), { selectionStart: a, selectionEnd: b, value } = el;
+      if (a === b && a === 0) return;
+      const from = a === b ? a - [...value.slice(0, a)].slice(-1)[0].length : a;
+      el.value = value.slice(0, from) + value.slice(b);
+      el.selectionStart = el.selectionEnd = from;
+      el.dispatchEvent(new Event('input'));
+    };
+    const kbd = key('⌨', 'Keyboard', () => setKeyboard(!keyboard));
+    kbd.id = 'kbdKey';
+    $('keys').append(...'0123456789'.split('').map(d => key(d, d, () => insertText(d))),
+      key('+', 'plus', () => insertText('+')), key('-', 'minus', () => insertText('-')), key(',', 'comma', () => insertText(',')),
+      key('space', 'space', () => insertText(' ')), key('↵', 'new line', () => insertText('\n')), key('⌫', 'delete', backspace), kbd);
+  }
+
+  // Name buttons: tap ⍵, the comparisons and brackets every first strategy needs, the stages and helpers
+  // into the code, handy on touch screens where these keys are hidden. Helpers appear as they unlock.
+  function renderWords() {
+    const acc = access(), helpers = ['BumperCrops', 'Promising', 'Squares'].filter(h => acc.helpers.has(h));
+    $('words').replaceChildren(...['⍵', '=', '<', '>', '(', ')', ...AcresCore.STAGE_NAMES, ...helpers].map(w => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = w;
+      const text = w === 'Squares' ? 'Squares ' : helpers.includes(w) ? `${w} ⍵` : w;
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => { editorEl().focus(); insertText(text); });
+      return b;
+    }));
   }
 
   const bar = $('glyphs'), glyphButtons = [];
@@ -2536,7 +2690,7 @@ Harvest←{0}
     b.title = `${name}  (\`${key})`;
     b.setAttribute('aria-label', name);
     b.addEventListener('mousedown', e => e.preventDefault());
-    b.addEventListener('click', () => { codeEl.focus(); insertText(ch); });
+    b.addEventListener('click', () => { editorEl().focus(); insertText(ch); });
     glyphButtons.push({ b, ch, name, key });
     bar.append(b);
   });
@@ -2544,42 +2698,51 @@ Harvest←{0}
   let saved = null;
   try { saved = localStorage.getItem(STORE_KEY); } catch (e) {}
   codeEl.value = saved || DEFAULT_CODE;
+  // Code that doesn't fit the simple view opens in the full view.
+  if (view === 'simple' && !fillFrames()) view = 'full';
+  setKeyboard(keyboard);
 
   // Back to the starter code. Done as an edit, so Ctrl+Z or ⌘+Z brings the player's code back.
   $('resetCode').addEventListener('click', () => {
     if (codeEl.value === DEFAULT_CODE) return;
-    codeEl.focus();
-    codeEl.select();
-    if (!document.execCommand('insertText', false, DEFAULT_CODE)) {
-      codeEl.value = DEFAULT_CODE;
-      codeEl.dispatchEvent(new Event('input'));
+    if (view === 'simple') sBody.value = '';
+    const el = view === 'simple' ? hBody : codeEl, text = view === 'simple' ? splitProgram(DEFAULT_CODE).Harvest : DEFAULT_CODE;
+    el.focus();
+    el.select();
+    if (!document.execCommand('insertText', false, text)) {
+      el.value = text;
+      el.dispatchEvent(new Event('input'));
     }
-    codeEl.setSelectionRange(0, 0);
-    codeEl.scrollTop = 0;
+    el.setSelectionRange(0, 0);
+    el.scrollTop = 0;
     setMsg('Starter code restored. Ctrl+Z or ⌘+Z in the editor brings your code back.');
   });
 
-  // Backtick prefix: replace "`x" with its symbol as soon as x is typed.
-  codeEl.addEventListener('input', e => {
-    if (e.inputType === 'insertText') {
-      const pos = codeEl.selectionStart, v = codeEl.value;
-      if (pos >= 2 && v[pos - 2] === '`' && PREFIX[v[pos - 1]]) {
-        const g = PREFIX[v[pos - 1]];
-        codeEl.value = v.slice(0, pos - 2) + g + v.slice(pos);
-        codeEl.selectionStart = codeEl.selectionEnd = pos - 2 + g.length;
-      }
-    }
-    dirty = true;
-    try { localStorage.setItem(STORE_KEY, codeEl.value); } catch (err) {}
-    codeChanged();
-  });
-
+  // Backtick prefix: replace "`x" with its symbol as soon as x is typed. Edits in the simple view
+  // rebuild the full program, which is what's saved and run.
   let escaped = false;
-  codeEl.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { escaped = true; return; }
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); stop(); step(); return; }
-    if (e.key === 'Tab' && !escaped && !e.shiftKey) { e.preventDefault(); insertText('  '); }
-    escaped = false;
+  editors.forEach(el => {
+    el.addEventListener('focus', () => { activeEl = el; });
+    el.addEventListener('input', e => {
+      if (e.inputType === 'insertText') {
+        const pos = el.selectionStart, v = el.value;
+        if (pos >= 2 && v[pos - 2] === '`' && PREFIX[v[pos - 1]]) {
+          const g = PREFIX[v[pos - 1]];
+          el.value = v.slice(0, pos - 2) + g + v.slice(pos);
+          el.selectionStart = el.selectionEnd = pos - 2 + g.length;
+        }
+      }
+      if (el !== codeEl) codeEl.value = joinProgram(hBody.value, sBody.value);
+      dirty = true;
+      try { localStorage.setItem(STORE_KEY, codeEl.value); } catch (err) {}
+      codeChanged();
+    });
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { escaped = true; return; }
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); stop(); step(); return; }
+      if (e.key === 'Tab' && !escaped && !e.shiftKey) { e.preventDefault(); insertText('  '); }
+      escaped = false;
+    });
   });
 
   // Controls
@@ -2604,6 +2767,8 @@ Harvest←{0}
   } catch (e) {}
   reset();
   sizeCanvas();
+  // On touch screens, with no G key: opening the game with ?god turns god mode on, and ?god=off turns it off.
+  { const g = new URLSearchParams(location.search).get('god'); if (g !== null && (g !== 'off') !== godMode) setGodMode(g !== 'off'); }
 })();
 </script>
 </body>

@@ -10,13 +10,45 @@ This is an early prototype. The APL runs on a small interpreter written in JavaS
 
 Play it at https://dragnim.github.io/array-acres/, or open `index.html` in a browser: there's no build step and nothing to install. Only the leaderboard needs an internet connection.
 
+## How to play
+
+You write one function, `Harvest`. Every day of the season, the game gives it today's field as `⍵`, and it gives back a yes (1) or no (0) for every plot: 1 harvests that plot, 0 leaves it. Your code works on the whole field at once, so one expression like `⍵=Ripe` decides all 64 plots.
+
+- **Write your code.** In the simple view, `Harvest←{` and `}` are already in place and you only write what goes inside. The advanced view lets you edit the whole program. Every name, symbol and key can be tapped, so the game works on a tablet without the keyboard; ⌨ brings the keyboard back.
+- **Check it before you play.** Dashed outlines on the field show what your code would harvest today, and they update as you type.
+- **Play** a whole season, or step through it a day at a time with Next day.
+- **Read the season report** to see how it went: your score, plants lost to rot, plants wasted, and what happened day by day.
+- **Earn medals** to unlock new symbols, helpers and farms. The farming guide explains each new tool with examples you can try on the field, and What is APL? introduces the language.
+
+For testing, adding `?god` to the address (or pressing G) unlocks everything; `?god=off` turns it off.
+
+## Rules
+
+- The field is 8×8, and a season lasts 100 days.
+- Every plot holds a plant at one of five stages, in order: Seed, Sprout, Growing, Ripe and Rotten. In code, compare `⍵` with the stage names, as in `⍵=Ripe` or `⍵≥Ripe`. Underneath they're the numbers 0 to 4, but you never need to use the numbers.
+- Harvesting a ripe plant scores 1. Four ripe plants in a 2×2 square, harvested on the same day, are a bumper crop and score 3 each.
+- Harvesting a sprout or a growing plant wastes it. Harvesting a seed or a rotten plant scores nothing, so clearing rot is free. Every harvested plot is replanted as a seed.
+- Overnight, each unripe plant grows one stage with the chance given by the farm's sunshine, and each ripe plant left standing rots with the chance given by its rainfall.
+- Each farm's starting field and luck are fixed, so the same code always scores the same there.
+- On Crowhurst Farm, a flock of crows lands on a 3×3 patch each night and eats the ripe plants there. A second function, `Scare`, can stand up to two scarecrows. Crows eat nothing within one plot of a scarecrow, but a scarecrow tramples the plant on its own plot back to a seed.
+
+## Tips
+
+- **Start simple.** `⍵=Ripe` is a perfectly good first season. Get something working, then improve it.
+- **Step before you play.** Use Next day and watch the dashed outlines for a few days before playing a whole season.
+- **Don't leave rot lying around.** A rotten plant takes up its plot until you clear it, and clearing it costs nothing.
+- **Waiting can pay, or cost.** A ripe plant beside nearly ripe ones might become part of a bumper crop, but every night it waits, it might rot. The weather decides how far that's worth pushing, so the best strategy differs from farm to farm.
+- **Try before you type.** Show me in the farming guide marks what an expression would pick on today's field, without touching your code.
+- **Experiment on Practice Farm.** It has every tool, and New field gives you a fresh field whenever you like.
+- **Read the report.** It shows what went wrong, such as rot or waste, without telling you what to change; working that out is the game.
+
 ## How it's built
 
 The game is in `index.html`, in three scripts:
 
 - `apl-interpreter`: the APL subset, with limits on size, recursion and work so no expression can freeze the page. Glyphs outside the subset report `NONCE ERROR`; symbols a player hasn't unlocked yet say what unlocks them.
 - `acres-core`: the rules and simulation, with no access to the page, so the browser and the tests share one implementation.
-- The page script: drawing and effects, the editor, the live preview and diagnostics, progression, and the side panel for What is APL?, How to play, the farming guide, the leaderboard and the season report.
+- The page script: drawing and effects, the editor (simple and advanced views, with buttons for tapping code in), the live preview and diagnostics, progression, and the side panel for What is APL?, How to play, the farming guide, the leaderboard and the season report.
 
 The art is separate, in `assets/plants`: the plants, crows and scarecrow, and the image shown when a link to the game is shared, with notes on how they were made in [its own README](assets/plants/README.md). If an image can't load, the page draws it in code instead, so the game never depends on them. The leaderboard's server code is in `leaderboard/`.
 

@@ -7,11 +7,13 @@ const { pathToFileURL } = require('url');
 
 const PAGE = pathToFileURL(path.join(__dirname, '..', 'index.html')).href;
 
-// How to play opens by itself on a first visit. Most tests start as a returning player.
+// How to play opens by itself on a first visit. Most tests start as a returning player, editing the
+// full program; the simple view has its own test.
 // (Set by visiting once, not with an init script: init scripts that touch storage can lose it on reload.)
 const returning = async page => {
   await page.goto(PAGE);
-  await page.evaluate(() => localStorage.setItem('acres:help-seen', '1'));
+  await page.evaluate(() => { localStorage.setItem('acres:help-seen', '1'); localStorage.setItem('acres:editor', 'full'); });
+  await page.reload();
 };
 // The leaderboard is a real server; tests use a stand-in board instead.
 const LEADERBOARD = 'https://array-acres-leaderboard.long-tree-e1ed.workers.dev';
@@ -349,7 +351,7 @@ test('How to play opens on a first visit, and the side panel switches and closes
 
   // Esc in the editor leaves it for Tab, and doesn't close the panel.
   await page.click('#openGuide');
-  await page.locator('#code').focus();
+  await page.locator('#hBody').focus(); // a first visit starts in the simple view
   await page.keyboard.press('Escape');
   await expect(panel).toBeVisible();
   await page.close();
@@ -494,4 +496,87 @@ test('the Leaderboard page shows every farm’s top 10, without playing a season
   await expect(page.locator('#boards ol[data-farm="sunnyhill-farm"]')).toContainText('SUN');
   await expect(page.locator('#boards ol[data-farm="sunnyhill-farm"] li.checking')).toContainText('NEW');
   await expect(page.locator('#boards ol[data-farm="middlebourne-farm"]')).toContainText('No scores yet');
+});
+
+test('the simple view frames Harvest, taps in names, and switches to the advanced view and back', async ({ page }) => {
+  await page.evaluate(() => localStorage.removeItem('acres:editor'));
+  await page.goto(PAGE);
+  const body = page.locator('#hBody'), code = page.locator('#code'), status = page.locator('#status');
+  await expect(page.locator('#framed')).toBeVisible();
+  await expect(code).toBeHidden();
+  await expect(body).toHaveValue('0');
+  await expect(page.locator('.frame-edge').first()).toHaveText('Harvest←{');
+
+  // Typing and tapping names edit the inside; the full program is what's run and saved.
+  await body.fill('');
+  for (const w of ['⍵', '=', 'Ripe']) await page.locator('#words button', { hasText: new RegExp(`^${w}$`) }).click();
+  await expect(body).toHaveValue('⍵=Ripe');
+  await expect(status).toHaveAttribute('data-state', 'ready');
+  expect(await page.evaluate(() => localStorage.getItem('allotment:apl'))).toBe('Harvest←{⍵=Ripe}\n');
+
+  // The full view shows the whole program, and a program that still fits goes back to the simple view.
+  await page.click('#viewToggle');
+  await expect(code).toBeVisible();
+  await expect(code).toHaveValue('Harvest←{⍵=Ripe}\n');
+  await code.fill('Harvest←{\n  r←⍵=Ripe\n  r∨⍵=Rotten\n}\n');
+  await page.click('#viewToggle');
+  await expect(body).toHaveValue('r←⍵=Ripe\nr∨⍵=Rotten');
+
+  // A program with more than Harvest and Scare stays in the full view, and says why.
+  await page.click('#viewToggle');
+  await code.fill('Ripe2←{⍵=Ripe}\nHarvest←{Ripe2 ⍵}\n');
+  await page.click('#viewToggle');
+  await expect(code).toBeVisible();
+  await expect(page.locator('#msg')).toContainText('can only be edited in the advanced view');
+  await page.reload();
+  await expect(code).toBeVisible();
+  await expect(code).toHaveValue('Ripe2←{⍵=Ripe}\nHarvest←{Ripe2 ⍵}\n');
+
+  // On Crowhurst Farm, reached with ?god on a touch screen, Scare gets its own frame.
+  await code.fill('Harvest←{0}\n');
+  await page.click('#viewToggle');
+  await page.goto(`${PAGE}?god`);
+  await expect(page.locator('#godBadge')).toBeVisible();
+  await page.selectOption('#farm', 'crowhurst-farm');
+  await expect(page.locator('#scareFrame')).toBeVisible();
+  await page.locator('#sBody').fill('8 8⍴(⍳64)∊10 30');
+  await expect(status).toHaveAttribute('data-state', 'ready');
+  expect(await page.evaluate(() => localStorage.getItem('allotment:apl'))).toBe('Harvest←{0}\nScare←{8 8⍴(⍳64)∊10 30}\n');
+  await expect(page.locator('#field')).toHaveAttribute('data-scarecrows', '2');
+  await page.goto(`${PAGE}?god=off`);
+  await expect(page.locator('#godBadge')).toBeHidden();
+});
+
+test('on a touch screen the simple view builds code by tapping, without the keyboard', async ({ browser }) => {
+  const context = await browser.newContext({ hasTouch: true, isMobile: true, viewport: { width: 820, height: 1180 } });
+  const page = await context.newPage();
+  await page.goto(PAGE);
+  await page.evaluate(() => localStorage.setItem('acres:help-seen', '1'));
+  await page.reload();
+  await page.selectOption('#farm', 'practice'); // where ∨ is already unlocked
+  const body = page.locator('#hBody'), tap = async label => page.locator('#words button, #keys button').filter({ hasText: new RegExp(`^${label.replace(/[()]/g, '\\$&')}$`) }).first().tap();
+  await expect(body).toHaveAttribute('inputmode', 'none');
+  await body.tap();
+  await tap('⌫');
+  await expect(body).toHaveValue('');
+  for (const label of ['(', '⍵', '=', 'Rotten', ')']) await tap(label);
+  await page.locator('#glyphs button[aria-label="Or"]').tap();
+  for (const label of ['⍵', '=', 'Ripe']) await tap(label);
+  await expect(body).toHaveValue('(⍵=Rotten)∨⍵=Ripe');
+  await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
+  await tap('⌨');
+  await expect(body).toHaveAttribute('inputmode', 'text');
+  await context.close();
+});
+
+test('errors show once, under the code, and a helper used like a stage gets a plain explanation', async ({ page }) => {
+  await page.selectOption('#farm', 'practice');
+  const code = page.locator('#code'), diag = page.locator('#diag'), msg = page.locator('#msg');
+  await code.fill('Harvest←{(⍵=Rotten)∧⍵=BumperCrops}');
+  await expect(diag).toHaveText('BumperCrops is a helper, not a stage: give it the field, as in BumperCrops ⍵');
+  await page.click('#step');
+  await expect(msg).toHaveText('Fix the error shown under your code to play.');
+  await expect(diag).toHaveText('BumperCrops is a helper, not a stage: give it the field, as in BumperCrops ⍵');
+  await code.fill('Harvest←{(⍵=Rotten)∨BumperCrops ⍵}');
+  await expect(diag).toHaveText('');
 });
