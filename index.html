@@ -1466,13 +1466,26 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     msgEl.textContent = text || '';
     msgEl.classList.toggle('error', !!isError);
   }
+  // A helper used like a stage (⍵=BumperCrops) gives back a function, not an answer; say so in plain terms.
+  function friendlier(message) {
+    if (!/a function must return an array/.test(message)) return message;
+    const helper = (codeEl.value.match(/\b(BumperCrops|Promising|Squares)\b(?!\s*[⍵(\w¯])/) || [])[1];
+    return helper ? `${helper} is a helper, not a stage: give it the field, as in ${helper} ⍵`
+      : 'This gives back a function, not an answer: a function needs something to work on, such as ⍵';
+  }
   const errorText = (kind, message) =>
     kind === 'result' ? `Invalid result: ${message}`
     : kind === 'locked' ? `${message.replace(/^LOCKED: /, '')}. Practice Farm has every symbol and helper.`
-    : kind === 'code' ? message : `Internal error: ${message}`;
+    : kind === 'code' ? friendlier(message) : `Internal error: ${message}`;
   const kindOf = e => e instanceof AcresCore.ResultError ? 'result'
     : e instanceof APL.AplError ? (/^LOCKED/.test(e.message) ? 'locked' : 'code') : 'internal';
-  const showError = e => setMsg(errorText(kindOf(e), e && e.message), true);
+  // A run that fails shows its error under the code, where the preview's errors appear, rather than twice.
+  const showError = e => {
+    const kind = kindOf(e);
+    diagEl.textContent = errorText(kind, e && e.message);
+    setStatus(kind);
+    setMsg('Fix the error shown under your code to play.', true);
+  };
 
   function compile() {
     try { ({ harvest: fn, scare: scareFn } = AcresCore.compileProgram(codeEl.value, access())); compiledSrc = codeEl.value; dirty = false; return true; }
