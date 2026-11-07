@@ -603,3 +603,17 @@ test('the game loads nothing from other sites, apart from the leaderboard', asyn
   expect(await page.evaluate(() => document.fonts.check('800 40px "Bricolage Grotesque"'))).toBe(true);
   expect(elsewhere).toEqual([]);
 });
+
+test('the field is the biggest thing on a wide screen, and the page opens at the top with the whole field in view', async ({ browser }) => {
+  for (const [width, height] of [[2560, 1300], [1440, 900], [1366, 768]]) {
+    const page = await browser.newPage({ viewport: { width, height } });
+    await page.goto(PAGE);
+    await page.evaluate(() => localStorage.setItem('acres:help-seen', '1'));
+    await page.reload();
+    const field = await page.locator('#field').boundingBox(), code = await page.locator('.editor').boundingBox();
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+    expect(field.y + field.height).toBeLessThanOrEqual(height);
+    expect(field.width).toBeGreaterThan(code.width * 0.9);
+    await page.close();
+  }
+});
