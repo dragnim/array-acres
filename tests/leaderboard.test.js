@@ -60,6 +60,8 @@ function fakeD1() {
     [replay(core, { ruleset: 'v2', farm: 'middlebourne-farm', code: 'Harvest←{⍵=}' }), replay(core, { ruleset: 'v2', farm: 'nowhere', code: GOLD }),
      replay(core, { ruleset: 'v2', farm: 'crowhurst-farm', version: 0, code: GOLD }), replay(core, { ruleset: 'v1', farm: 'middlebourne-farm', code: GOLD })], [-1, -1, -1, -1]);
   check('replay: Crowhurst replays Scare too, scoring what the game gives', replay(core, { ruleset: 'v2', farm: 'crowhurst-farm', version: 1, code: SCARE }), 1288);
+  check('replay: Blightwick replays with its blight, scoring what the game gives, and refuses its earlier rules',
+    [replay(core, { ruleset: 'v2', farm: 'blightwick-farm', version: 1, code: 'Harvest←{⍵≥Ripe}' }), replay(core, { ruleset: 'v2', farm: 'blightwick-farm', version: 0, code: 'Harvest←{⍵≥Ripe}' })], [1083, -1]);
   check('replay: a season slower than its time budget is invalid', replay(core, { ruleset: 'v2', farm: 'middlebourne-farm', code: GOLD }, 0), -1);
 
   // Submitting puts a score in "checking"; nothing reaches the board until it's verified.
