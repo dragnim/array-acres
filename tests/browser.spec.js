@@ -802,3 +802,34 @@ test('a newcomer’s first taps replace the starter 0, so ⍵ = Ripe gives ⍵=R
   await page.keyboard.type('1');
   await expect(body).toHaveValue('1');
 });
+
+test('Practice Farm can borrow crows and blight, but only once Gold has unlocked them', async ({ page }) => {
+  // A new player: Practice has no toggles.
+  await page.selectOption('#farm', 'practice');
+  await expect(page.locator('#practiceCrows')).toBeHidden();
+  await expect(page.locator('#practiceBlight')).toBeHidden();
+  // With everything unlocked, both appear, and each one switches its mechanic on, with a new field.
+  await page.goto(`${PAGE}?god`);
+  await page.selectOption('#farm', 'practice');
+  const crows = page.locator('#practiceCrows'), blight = page.locator('#practiceBlight');
+  await expect(crows).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('#weather')).not.toContainText('Crows');
+  await crows.click();
+  await expect(crows).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#weather')).toContainText('Crows 1 flock');
+  await expect(page.locator('#rules')).toContainText('Crows:');
+  await expect(page.locator('#msg')).toHaveText('Crows on. New field planted.');
+  await blight.click();
+  await expect(page.locator('#weather')).toContainText('Blight 50%');
+  await expect(page.locator('#words button', { hasText: /^Blighted$/ })).toHaveCount(1);
+  await expect(page.locator('#legend')).toContainText('Blighted');
+  // Scarecrows work on Practice too.
+  await page.locator('#code').fill('Harvest←{⍵=Ripe}\nScare←{8 8⍴1,63⍴0}');
+  await expect(page.locator('#field')).toHaveAttribute('data-scarecrows', '1');
+  // The choices are remembered, and other farms are unaffected.
+  await page.reload();
+  await expect(page.locator('#practiceCrows')).toHaveAttribute('aria-pressed', 'true');
+  await page.selectOption('#farm', 'middlebourne-farm');
+  await expect(page.locator('#weather')).not.toContainText('Crows');
+  await expect(page.locator('#practiceCrows')).toBeHidden();
+});
