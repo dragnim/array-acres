@@ -895,3 +895,7 @@ test('buttons never move: not when pressing Crows or Blight, and not when switch
     await page.close();
   }
 });
+
+test('the page has its own icon: the ripe plant, built into the page', async ({ page }) => {
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /^data:image\/png;base64,/);
+});
