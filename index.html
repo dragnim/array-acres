@@ -144,6 +144,9 @@ body {
 .mixed-note[hidden] { display: none; }
 .mod-toggle[hidden] { display: none; }
 .mod-toggle[aria-pressed="true"] { background: var(--ripe); color: var(--bg); border-color: var(--ripe); }
+.mod-toggle[aria-disabled="true"] { opacity: 0.45; border-style: dashed; cursor: help; }
+/* On a phone, Practice Farm's short note gives way, so its buttons fit one row like the other farms' medals. */
+@media (max-width: 640px) { #farmInfo { display: none; } }
 /* The side panel slides in from the right. On wide screens the game moves aside to make room. */
 :root { --panel-w: min(440px, 100vw); }
 .panel {
@@ -1567,7 +1570,9 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   const PRACTICE_MODS_KEY = 'acres:practice-mods';
   let practiceMods = { crows: false, blight: false };
   try { Object.assign(practiceMods, JSON.parse(localStorage.getItem(PRACTICE_MODS_KEY) || '{}')); } catch (e) {}
-  const modUnlocked = mod => unlocked().farms.has(mod === 'crows' ? 'crowhurst-farm' : 'blightwick-farm');
+  const modFarm = mod => mod === 'crows' ? 'crowhurst-farm' : 'blightwick-farm';
+  const modUnlocked = mod => unlocked().farms.has(modFarm(mod));
+  const modUnlock = mod => AcresCore.unlockFor('farm', modFarm(mod));
   const modOn = mod => !!practiceMods[mod] && modUnlocked(mod);
   function weather() {
     if (farm) return farm;
@@ -1850,13 +1855,17 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     document.documentElement.dataset.farm = farm ? farm.id : 'practice';
     if (COL) refreshTheme();
     $('newField').hidden = !!farm;
+    // Always there on Practice Farm, so nothing jumps: locked ones are faded and say what unlocks them.
     for (const mod of ['crows', 'blight']) {
-      const b = $(mod === 'crows' ? 'practiceCrows' : 'practiceBlight');
-      b.hidden = !!farm || !modUnlocked(mod);
+      const b = $(mod === 'crows' ? 'practiceCrows' : 'practiceBlight'), open = modUnlocked(mod);
+      const from = mod === 'crows' ? 'Crowhurst Farm’s crows' : 'Blightwick Farm’s blight';
+      b.hidden = !!farm;
       b.setAttribute('aria-pressed', String(modOn(mod)));
+      if (open) { b.removeAttribute('aria-disabled'); b.title = `${from}, on Practice Farm’s random fields`; }
+      else { b.setAttribute('aria-disabled', 'true'); b.title = `${from}: unlocks with ${AcresCore.needText(modUnlock(mod))}`; }
     }
     $('bestLabel').textContent = farm ? 'Personal best' : 'Best on this field';
-    $('farmInfo').textContent = farm ? '' : 'Random fields, everything unlocked.';
+    $('farmInfo').textContent = farm ? '' : 'Random fields, every symbol and helper unlocked.';
     renderRules();
     refreshProgress();
     if (COL) drawLegend();
@@ -3050,6 +3059,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   // Switching crows or blight plants a new field with them on or off.
   for (const mod of ['crows', 'blight']) {
     $(mod === 'crows' ? 'practiceCrows' : 'practiceBlight').addEventListener('click', () => {
+      if (!modUnlocked(mod)) { setMsg(`${mod === 'crows' ? 'Crows' : 'Blight'} for Practice Farm unlock with ${AcresCore.needText(modUnlock(mod))}.`); return; }
       practiceMods[mod] = !modOn(mod);
       try { localStorage.setItem(PRACTICE_MODS_KEY, JSON.stringify(practiceMods)); } catch (e) {}
       stop(); chooseFarm('practice'); reset();
