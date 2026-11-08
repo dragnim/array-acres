@@ -808,14 +808,18 @@ test('a newcomer’s first taps replace the starter 0, so ⍵ = Ripe gives ⍵=R
 });
 
 test('Practice Farm can borrow crows and blight, but only once Gold has unlocked them', async ({ page }) => {
-  // A new player: Practice has no toggles.
+  // A new player: the toggles are there, so nothing jumps, but faded, and pressing one says what unlocks it.
   await page.selectOption('#farm', 'practice');
-  await expect(page.locator('#practiceCrows')).toBeHidden();
-  await expect(page.locator('#practiceBlight')).toBeHidden();
+  await expect(page.locator('#practiceCrows')).toHaveAttribute('aria-disabled', 'true');
+  await expect(page.locator('#practiceBlight')).toHaveAttribute('title', /unlocks with Gold on any farm/);
+  await page.locator('#practiceCrows').click({ force: true });
+  await expect(page.locator('#msg')).toHaveText('Crows for Practice Farm unlock with Gold on any farm.');
+  await expect(page.locator('#weather')).not.toContainText('Crows');
   // With everything unlocked, both appear, and each one switches its mechanic on, with a new field.
   await page.goto(`${PAGE}?god`);
   await page.selectOption('#farm', 'practice');
   const crows = page.locator('#practiceCrows'), blight = page.locator('#practiceBlight');
+  await expect(crows).not.toHaveAttribute('aria-disabled', 'true');
   await expect(crows).toHaveAttribute('aria-pressed', 'false');
   await expect(page.locator('#weather')).not.toContainText('Crows');
   await crows.click();
