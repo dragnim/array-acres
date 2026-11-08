@@ -742,11 +742,11 @@ test('keyboard and touch: a skip link to the code, explanations on focus and lon
 test('Blightwick Farm: blight in the field, the key, the name buttons, the guide, the rules and the report', async ({ page }) => {
   await page.goto(`${PAGE}?god`);
   const blighted = page.locator('#words button', { hasText: /^Blighted$/ });
-  await expect(blighted).toHaveCount(0); // only on Blightwick
+  await expect(blighted).toHaveAttribute('aria-disabled', 'true'); // always there, but faded where blight doesn't grow
   await page.selectOption('#farm', 'blightwick-farm');
   await expect(page.locator('#weather')).toContainText('Blight 50%');
   await expect(page.locator('#legend')).toContainText('Blighted');
-  await expect(blighted).toHaveCount(1);
+  await expect(blighted).not.toHaveAttribute('aria-disabled', 'true');
   await expect(page.locator('#fieldText')).toContainText('Blighted');
   expect(await page.locator('#rBlightStat').getAttribute('hidden')).toBeNull(); // shown in the report on Blightwick
   await page.click('#openHelp');
@@ -824,12 +824,13 @@ test('Practice Farm can borrow crows and blight, but only once Gold has unlocked
   await expect(page.locator('#weather')).not.toContainText('Crows');
   await crows.click();
   await expect(crows).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('#weather')).toContainText('Crows 1 flock');
+  await expect(page.locator('#legend')).toContainText('eaten by crows'); // the pressed button shows crows are on; no extra chip
+  await expect(page.locator('#weather')).not.toContainText('Crows');
   await expect(page.locator('#rules')).toContainText('Crows:');
   await expect(page.locator('#msg')).toHaveText('Crows on. New field planted.');
   await blight.click();
-  await expect(page.locator('#weather')).toContainText('Blight 50%');
-  await expect(page.locator('#words button', { hasText: /^Blighted$/ })).toHaveCount(1);
+  await expect(page.locator('#rules')).toContainText('Blight:');
+  await expect(page.locator('#words button', { hasText: /^Blighted$/ })).not.toHaveAttribute('aria-disabled', 'true');
   await expect(page.locator('#legend')).toContainText('Blighted');
   // Scarecrows work on Practice too.
   await page.locator('#code').fill('Harvest←{⍵=Ripe}\nScare←{8 8⍴1,63⍴0}');
@@ -861,4 +862,29 @@ test('changing code mid-season is allowed, but the mixed score sets no best or m
   await expect(page.locator('#msg')).toHaveText('Season complete. You scored 1213.', { timeout: 60000 });
   await expect(page.locator('#mixedNote')).toBeHidden();
   await expect(page.locator('#sBest')).toHaveText('1213');
+});
+
+test('buttons never move: not when pressing Crows or Blight, and not when switching farms', async ({ browser }) => {
+  const where = page => page.evaluate(() => Object.fromEntries([...document.querySelectorAll('button, select')]
+    .filter(b => b.offsetParent && !b.closest('#panel'))
+    .map(b => { const r = b.getBoundingClientRect(); return [b.id || b.textContent.trim(), [Math.round(r.x), Math.round(r.y)]]; })));
+  const same = (a, b, what) => { for (const k of Object.keys(b)) if (a[k]) expect(b[k], `${k} moved ${what}`).toEqual(a[k]); };
+  for (const [width, height] of [[1440, 900], [820, 1180], [390, 844]]) {
+    const page = await browser.newPage({ viewport: { width, height } });
+    await page.goto(`${PAGE}?god`);
+    await page.evaluate(() => { localStorage.setItem('acres:help-seen', '1'); localStorage.setItem('acres:editor', 'simple'); });
+    await page.reload();
+    await page.selectOption('#farm', 'practice');
+    for (const id of ['practiceCrows', 'practiceBlight', 'practiceCrows', 'practiceBlight']) {
+      const before = await where(page);
+      await page.click(`#${id}`);
+      same(before, await where(page), `pressing ${id} at ${width}px`);
+    }
+    for (const farm of ['middlebourne-farm', 'crowhurst-farm', 'blightwick-farm', 'practice']) {
+      const before = await where(page);
+      await page.selectOption('#farm', farm);
+      same(before, await where(page), `switching to ${farm} at ${width}px`);
+    }
+    await page.close();
+  }
 });
