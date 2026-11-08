@@ -259,6 +259,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
 .words { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; background: var(--surface); border: 1px solid var(--line); border-top: 0; }
 .words button { font: 15px/1 var(--mono); padding: 7px 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--code-bg); color: var(--ink); cursor: pointer; }
 .words button:hover { border-color: var(--muted); }
+.words button[aria-disabled="true"] { opacity: 0.45; border-style: dashed; cursor: help; }
 .keys { padding-top: 0; }
 .keys button { min-width: 2.4em; }
 .keys button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
@@ -2962,10 +2963,15 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     $('words').replaceChildren(...['⍵', '=', '<', '>', '(', ')', ...stages, ...helpers].map(w => {
       const b = document.createElement('button');
       const u = helpers.includes(w) && !acc.helpers.has(w) ? AcresCore.unlockFor('helper', w) : null;
-      b.type = 'button'; b.textContent = w; b.title = u ? `${w}: unlocks with ${AcresCore.needText(u)}` : WORD_TIPS[w]; b.disabled = !!u;
+      b.type = 'button'; b.textContent = w; b.title = u ? `${w}: unlocks with ${AcresCore.needText(u)}` : WORD_TIPS[w];
+      // A locked helper still answers a press, on any screen, by saying what unlocks it.
+      if (u) b.setAttribute('aria-disabled', 'true');
       const text = w === 'Squares' ? 'Squares ' : helpers.includes(w) ? `${w} ⍵` : w;
       b.addEventListener('mousedown', e => e.preventDefault());
-      b.addEventListener('click', () => { editorEl().focus(); insertText(text); });
+      b.addEventListener('click', () => {
+        if (u) { setMsg(`${w} unlocks with ${AcresCore.needText(u)}.`); return; }
+        editorEl().focus(); insertText(text);
+      });
       return b;
     }));
   }

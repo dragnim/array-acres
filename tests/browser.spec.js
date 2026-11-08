@@ -780,12 +780,16 @@ test('switching from Practice Farm to a farm doesn’t shift the page, on deskto
   }
 });
 
-test('helpers are always there to see, greyed out until unlocked', async ({ page }) => {
+test('helpers are always there to see, greyed out until unlocked, and pressing a locked one says what unlocks it', async ({ page }) => {
   const promising = page.locator('#words button', { hasText: /^Promising$/ });
-  await expect(promising).toBeDisabled();
+  await expect(promising).toHaveAttribute('aria-disabled', 'true');
   await expect(promising).toHaveAttribute('title', /unlocks with Silver on Sunnyhill Farm/);
+  const before = await page.locator('#code').inputValue();
+  await promising.click({ force: true }); // Playwright won't press an aria-disabled button by default; players can
+  await expect(page.locator('#msg')).toHaveText('Promising unlocks with Silver on Sunnyhill Farm.');
+  await expect(page.locator('#code')).toHaveValue(before);
   await page.selectOption('#farm', 'practice');
-  await expect(promising).toBeEnabled();
+  await expect(promising).not.toHaveAttribute('aria-disabled', 'true');
 });
 
 test('a newcomer’s first taps replace the starter 0, so ⍵ = Ripe gives ⍵=Ripe', async ({ page }) => {
