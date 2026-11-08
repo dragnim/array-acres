@@ -33,7 +33,7 @@ For testing, adding `?god` to the address (or pressing G) unlocks everything; `?
 ## Rules
 
 - The field is 8×8, and a season lasts 100 days.
-- Every plot holds a plant at one of five stages, in order: Seed, Sprout, Growing, Ripe and Rotten. In code, compare `⍵` with the stage names, as in `⍵=Ripe` or `⍵≥Ripe`. Underneath they're the numbers 0 to 4, but you never need to use the numbers.
+- Every plot holds a plant at one of five growth stages, in order: Seed, Sprout, Growing, Ripe and Rotten. Blightwick Farm adds one more, Blighted (see below). In code, compare `⍵` with the stage names, as in `⍵=Ripe` or `⍵≥Ripe`. Underneath they're numbers, 0 to 4 for the growth stages and 5 for Blighted, but you never need to use the numbers.
 - Harvesting a ripe plant scores 1. Four ripe plants in a 2×2 square, harvested on the same day, are a bumper crop and score 3 each.
 - Harvesting a sprout or a growing plant wastes it. Harvesting a seed or a rotten plant scores nothing, so clearing rot is free. Every harvested plot is replanted as a seed.
 - Overnight, each unripe plant grows one stage with the chance given by the farm's sunshine, and each ripe plant left standing rots with the chance given by its rainfall.
