@@ -2818,13 +2818,18 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   // The skip link goes to whichever code box is showing.
   document.querySelector('.skip-link').addEventListener('click', e => { e.preventDefault(); editorEl().focus(); });
 
+  // While the code is still the starter 0, it's a placeholder: the first thing tapped or typed replaces it,
+  // so a newcomer following the note above the box gets ⍵=Ripe, not 0⍵=Ripe.
+  const isStarter = el => el !== codeEl && el.value.trim() === '0';
   function insertText(text) {
     const el = editorEl();
-    const { selectionStart: a, selectionEnd: b, value } = el;
+    let { selectionStart: a, selectionEnd: b, value } = el;
+    if (isStarter(el)) { a = 0; b = value.length; }
     el.value = value.slice(0, a) + text + value.slice(b);
     el.selectionStart = el.selectionEnd = a + text.length;
     el.dispatchEvent(new Event('input'));
   }
+  hBody.addEventListener('beforeinput', e => { if (isStarter(hBody) && e.inputType.startsWith('insert')) hBody.select(); });
 
   // Keys for everything else code needs: digits, space, + - , a new line and delete. On touch screens the
   // simple view keeps the on-screen keyboard away, so tapping builds the code; ⌨ brings the keyboard back.
