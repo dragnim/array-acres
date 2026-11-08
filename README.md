@@ -85,7 +85,7 @@ Every farm follows the rules above. Each has its own weather, its own fixed star
 
 ### Practice Farm
 
-A new random field each time, with Middlebourne's weather and every symbol and helper unlocked. No medals and no leaderboard: it's for experimenting.
+A new random field each time, with Middlebourne's weather and every symbol and helper unlocked. No medals and no leaderboard: it's for experimenting. Once Gold has unlocked Crowhurst and Blightwick, Practice Farm can switch on their crows and blight too, separately or together, to try ideas on fresh fields.
 
 ## Accessibility
 
