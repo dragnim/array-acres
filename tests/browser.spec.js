@@ -787,3 +787,18 @@ test('helpers are always there to see, greyed out until unlocked', async ({ page
   await page.selectOption('#farm', 'practice');
   await expect(promising).toBeEnabled();
 });
+
+test('a newcomer’s first taps replace the starter 0, so ⍵ = Ripe gives ⍵=Ripe', async ({ page }) => {
+  await page.evaluate(() => localStorage.setItem('acres:editor', 'simple')); // the view a newcomer sees
+  await page.reload();
+  const body = page.locator('#hBody');
+  await expect(body).toHaveValue('0');
+  for (const word of ['⍵', '=', 'Ripe']) await page.locator('#words button', { hasText: new RegExp(`^${word}$`) }).click();
+  await expect(body).toHaveValue('⍵=Ripe');
+  await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
+  // Clicking into the untouched starter selects it, so typing replaces it too.
+  await page.click('#resetCode');
+  await body.click();
+  await page.keyboard.type('1');
+  await expect(body).toHaveValue('1');
+});
