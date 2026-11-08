@@ -20,6 +20,14 @@ You write one function, `Harvest`. Every day of the season, the game gives it to
 - **Read the season report** to see how it went: your score, plants lost to rot, plants wasted, and what happened day by day.
 - **Earn medals** to unlock new symbols, helpers and farms. The farming guide explains each new tool with examples you can try on the field, and What is APL? introduces the language.
 
+**Helpers** are ready-made functions the game gives you, so you can use an idea before you can build it yourself. Like your own code, each one is given the field and gives back a yes-or-no map, which you can combine with your own comparisons:
+
+- `BumperCrops ⍵` marks every ripe plant in a 2×2 square of ripe plants.
+- `Promising ⍵` marks every plant in a 2×2 square of growing or ripe plants.
+- `Squares` marks every plot in a 2×2 square of 1s in any yes-or-no map, as in `Squares ⍵=Growing`.
+
+At Gold, the farming guide shows each helper's APL code, so you can see how it works and write your own.
+
 For testing, adding `?god` to the address (or pressing G) unlocks everything; `?god=off` turns it off.
 
 ## Rules
