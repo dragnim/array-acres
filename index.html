@@ -139,6 +139,8 @@ body {
    the medals (on real farms) and New field (on Practice Farm) share one slot of fixed height. */
 .farm-slot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 38px; }
 #farmInfo:empty { display: none; }
+.mod-toggle[hidden] { display: none; }
+.mod-toggle[aria-pressed="true"] { background: var(--ripe); color: var(--bg); border-color: var(--ripe); }
 /* The side panel slides in from the right. On wide screens the game moves aside to make room. */
 :root { --panel-w: min(440px, 100vw); }
 .panel {
@@ -393,6 +395,8 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
       <span class="farm-slot">
         <span class="targets" id="targets" aria-label="Targets"></span>
         <button type="button" id="newField" hidden>New field</button>
+        <button type="button" class="mod-toggle" id="practiceCrows" aria-pressed="false" title="Crowhurst Farm’s crows, on Practice Farm’s random fields" hidden>Crows</button>
+        <button type="button" class="mod-toggle" id="practiceBlight" aria-pressed="false" title="Blightwick Farm’s blight, on Practice Farm’s random fields" hidden>Blight</button>
         <span id="farmInfo"></span>
       </span>
     </div>
@@ -1550,7 +1554,19 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   const unlocked = () => godMode ? AcresCore.FULL : prog;
   const access = () => farm ? unlocked() : AcresCore.FULL;
   let running = false, timer = null, fn = null, scareFn = null, dirty = true, compiledSrc = '';
-  const hasCrows = () => !!(farm && farm.crows);
+  // Practice Farm can borrow Crowhurst's crows and Blightwick's blight, each once Gold has unlocked that
+  // farm, so players can try their ideas on fresh fields. weather() is what the current farm plays with.
+  const PRACTICE_MODS_KEY = 'acres:practice-mods';
+  let practiceMods = { crows: false, blight: false };
+  try { Object.assign(practiceMods, JSON.parse(localStorage.getItem(PRACTICE_MODS_KEY) || '{}')); } catch (e) {}
+  const modUnlocked = mod => unlocked().farms.has(mod === 'crows' ? 'crowhurst-farm' : 'blightwick-farm');
+  const modOn = mod => !!practiceMods[mod] && modUnlocked(mod);
+  function weather() {
+    if (farm) return farm;
+    const crowFarm = AcresCore.FARMS.find(f => f.crows), blightFarm = AcresCore.FARMS.find(f => f.blight);
+    return { ...AcresCore.PRACTICE, crows: modOn('crows') ? crowFarm.crows : 0, blight: modOn('blight') ? blightFarm.blight : null };
+  }
+  const hasCrows = () => !!weather().crows;
   const best = {};
 
   // Preview: the mask Harvest would return for today's field. stale means it no longer
@@ -1577,7 +1593,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
 
   function reset() {
     clearFx();
-    state = AcresCore.newSeason(seed, farm || AcresCore.PRACTICE);
+    state = AcresCore.newSeason(seed, weather());
     hideReport();
     updateStats();
     fieldChanged();
@@ -1787,7 +1803,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     dirty = true;
     farmEl.value = farm ? farm.id : 'practice';
     seed = farm ? farm.seed : newSeed();
-    const w = farm || AcresCore.PRACTICE, pct = p => `${Math.round(p * 100)}%`;
+    const w = weather(), pct = p => `${Math.round(p * 100)}%`;
     const sun = document.createElement('span'), rain = document.createElement('span');
     sun.textContent = `Sunshine ${pct(w.sunshine)}`; sun.title = `Each unripe plant has a ${pct(w.sunshine)} chance to grow a stage overnight`;
     rain.textContent = `Rainfall ${pct(w.rainfall)}`; rain.title = `Each ripe plant left unharvested has a ${pct(w.rainfall)} chance to rot overnight`;
@@ -1813,6 +1829,11 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     document.documentElement.dataset.farm = farm ? farm.id : 'practice';
     if (COL) refreshTheme();
     $('newField').hidden = !!farm;
+    for (const mod of ['crows', 'blight']) {
+      const b = $(mod === 'crows' ? 'practiceCrows' : 'practiceBlight');
+      b.hidden = !!farm || !modUnlocked(mod);
+      b.setAttribute('aria-pressed', String(modOn(mod)));
+    }
     $('bestLabel').textContent = farm ? 'Personal best' : 'Best on this field';
     $('farmInfo').textContent = farm ? '' : 'Random fields, everything unlocked.';
     renderRules();
@@ -2327,7 +2348,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   // The rules, stated exactly. They're built from the ruleset itself, so the text can't drift
   // from what the game actually does.
   function renderRules() {
-    const pct = p => `${Math.round(p * 100)}%`, N = RULES.size, B = RULES.bonus, w = farm || AcresCore.PRACTICE;
+    const pct = p => `${Math.round(p * 100)}%`, N = RULES.size, B = RULES.bonus, w = weather();
     const items = [
       `The field is ${N}×${N} and a season lasts ${RULES.days} days. Each plot holds one plant at one of five stages, in order: \`Seed\`, \`Sprout\`, \`Growing\`, \`Ripe\` and \`Rotten\`. A season starts with every plot at a random stage from \`Seed\` to \`Ripe\`.`,
       'Each day, your `Harvest` function is given today’s field as ⍵ and gives back a yes or no for every plot: 1 means harvest that plot, 0 means leave it. Every harvested plot is cleared and replanted as a seed.',
@@ -2408,7 +2429,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
       item.append(c, label);
       el.append(item);
     };
-    STAGE_NAMES.forEach((name, v) => { if (v !== RULES.blighted || (farm && farm.blight)) add(`<code>${name}</code>`, v, 0, null); });
+    STAGE_NAMES.forEach((name, v) => { if (v !== RULES.blighted || weather().blight) add(`<code>${name}</code>`, v, 0, null); });
     {
       const item = document.createElement('div'), c = document.createElement('canvas'), dpr = window.devicePixelRatio || 1;
       c.width = 40 * dpr; c.height = 40 * dpr;
@@ -2917,7 +2938,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     // Every helper has a button, greyed out until it's unlocked, like locked symbols: players can see
     // what's coming, and the row doesn't change size from farm to farm.
     const acc = access(), helpers = ['BumperCrops', 'Promising', 'Squares'];
-    const stages = AcresCore.STAGE_NAMES.filter(n => n !== 'Blighted' || (farm && farm.blight));
+    const stages = AcresCore.STAGE_NAMES.filter(n => n !== 'Blighted' || weather().blight);
     $('words').replaceChildren(...['⍵', '=', '<', '>', '(', ')', ...stages, ...helpers].map(w => {
       const b = document.createElement('button');
       const u = helpers.includes(w) && !acc.helpers.has(w) ? AcresCore.unlockFor('helper', w) : null;
@@ -2999,6 +3020,15 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   $('step').addEventListener('click', nextDay);
   $('restart').addEventListener('click', () => { stop(); reset(); setMsg(''); });
   $('newField').addEventListener('click', () => { stop(); seed = newSeed(); reset(); setMsg('New field planted.'); });
+  // Switching crows or blight plants a new field with them on or off.
+  for (const mod of ['crows', 'blight']) {
+    $(mod === 'crows' ? 'practiceCrows' : 'practiceBlight').addEventListener('click', () => {
+      practiceMods[mod] = !modOn(mod);
+      try { localStorage.setItem(PRACTICE_MODS_KEY, JSON.stringify(practiceMods)); } catch (e) {}
+      stop(); chooseFarm('practice'); reset();
+      setMsg(`${mod === 'crows' ? 'Crows' : 'Blight'} ${practiceMods[mod] ? 'on' : 'off'}. New field planted.`);
+    });
+  }
 
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', refreshTheme);
   new MutationObserver(refreshTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
