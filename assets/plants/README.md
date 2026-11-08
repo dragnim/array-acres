@@ -1,6 +1,6 @@
 # Plant art
 
-The images the game uses to draw the field: six for the plants, and two for Crowhurst Farm.
+The images the game uses to draw the field: six for the plants, one for Blightwick Farm and two for Crowhurst Farm.
 
 | File | Shown for |
 |---|---|
