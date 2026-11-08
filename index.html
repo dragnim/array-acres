@@ -3078,7 +3078,9 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
       practiceMods[mod] = !modOn(mod);
       try { localStorage.setItem(PRACTICE_MODS_KEY, JSON.stringify(practiceMods)); } catch (e) {}
       stop(); chooseFarm('practice'); reset();
-      setMsg(`${mod === 'crows' ? 'Crows' : 'Blight'} ${practiceMods[mod] ? 'on' : 'off'}. New field planted.`);
+      // Describe the field you now have, whichever button was pressed.
+      const on = ['crows', 'blight'].filter(modOn);
+      setMsg(`New field planted, with ${on.length ? on.join(' and ') : 'no crows or blight'}.`);
     });
   }
 
