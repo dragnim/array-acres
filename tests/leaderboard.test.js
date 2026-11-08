@@ -127,6 +127,9 @@ function fakeD1() {
   for (let i = 0; i < SUBMITS_PER_HOUR + 1; i++) last = await call('POST', '/submit', { farm: 'middlebourne-farm', initials: `R${String.fromCharCode(65 + i)}A`, score: 1300 + i, code: RIPE });
   check('rate limit: one sender can only submit so often', [last.status, last.body.error], [429, 'rate-limited']);
   check('rate limit: senders are stored only as a hash', DB.prepare('SELECT sender FROM submissions LIMIT 1').get().sender.includes('192.0.2'), false);
+  // A keyed hash (HMAC with a server secret), not a plain one anybody could reverse by hashing every address.
+  const plain = require('crypto').createHash('sha256').update(`array-acres:${ip}`).digest('hex').slice(0, 32);
+  check('rate limit: the hash is keyed with a server secret, so it can\'t be reversed by trying addresses', DB.prepare('SELECT sender FROM submissions LIMIT 1').get().sender === plain, false);
   DB.exec('DELETE FROM pending; DELETE FROM submissions');
   for (let i = 0; i < MAX_PENDING; i++) DB.prepare('INSERT INTO pending VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(`q${i}`, 'v2:middlebourne-farm', 'middlebourne-farm', 0, `Q${String.fromCharCode(65 + i)}A`, 1300, RIPE, new Date(clock).toISOString());
   ip = '192.0.2.201';
