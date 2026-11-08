@@ -833,3 +833,24 @@ test('Practice Farm can borrow crows and blight, but only once Gold has unlocked
   await expect(page.locator('#weather')).not.toContainText('Crows');
   await expect(page.locator('#practiceCrows')).toBeHidden();
 });
+
+test('changing code mid-season is allowed, but the mixed score sets no best or medal, and one click replays it properly', async ({ page }) => {
+  await page.locator('#code').fill('Harvest←{⍵=Ripe}');
+  await page.click('#step');
+  await page.click('#step');
+  await page.locator('#code').fill('Harvest←{⍵≥Ripe}');
+  await page.click('#step');
+  await expect(page.locator('#msg')).toHaveText(/^Your code changed on day 3: this season’s score now mixes two programs/);
+  await page.selectOption('#speed', '30');
+  await page.click('#run');
+  await expect(page.locator('#msg')).toHaveText(/Season complete\. You scored \d+, with your code changed on day 3\./, { timeout: 60000 });
+  await expect(page.locator('#mixedNote')).toBeVisible();
+  await expect(page.locator('#compare')).toBeHidden();
+  await expect(page.locator('#lbSection')).toBeHidden();
+  await expect(page.locator('#sBest')).toHaveText('–'); // no personal best from a mixed season
+  // Restart with this code plays the current program from day 1, and that season counts.
+  await page.click('#restartSame');
+  await expect(page.locator('#msg')).toHaveText('Season complete. You scored 1213.', { timeout: 60000 });
+  await expect(page.locator('#mixedNote')).toBeHidden();
+  await expect(page.locator('#sBest')).toHaveText('1213');
+});
