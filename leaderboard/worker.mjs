@@ -6,7 +6,8 @@
 //
 // Storage is a D1 database, bound as DB (tables in leaderboard/schema.sql). Each change is a
 // single statement or batch, so simultaneous submissions and checks can't overwrite each other.
-// Secret: LEADERBOARD_TOKEN, shared with the GitHub job, for /pending and /verify.
+// Secret: LEADERBOARD_TOKEN, shared with the GitHub job, for /pending and /verify. Optional secret:
+// RATE_LIMIT_KEY, the key for pseudonymising senders (LEADERBOARD_TOKEN is used until it's set).
 
 export const RULESET = 'v2';
 export const FARMS = ['middlebourne-farm', 'sunnyhill-farm', 'marshgate-farm', 'crowhurst-farm', 'blightwick-farm'];
@@ -41,11 +42,14 @@ function authorised(request, env) {
   return diff === 0;
 }
 
-// The sender is remembered only as a hash of their address, and only for an hour.
-async function senderOf(request) {
+// For rate limiting, the sender is remembered only as a keyed hash of their address (HMAC-SHA-256 with a
+// server secret), and only for an hour. Without the secret it can't be reversed by trying every address.
+async function senderOf(request, env) {
   const ip = request.headers.get('cf-connecting-ip') || 'unknown';
-  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`array-acres:${ip}`));
-  return [...new Uint8Array(hash)].slice(0, 16).map(b => b.toString(16).padStart(2, '0')).join('');
+  const secret = env.RATE_LIMIT_KEY || env.LEADERBOARD_TOKEN || '';
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(`array-acres:${secret}`), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(ip));
+  return [...new Uint8Array(mac)].slice(0, 16).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 // Would this score earn a place on the board, as a new best for these initials?
@@ -93,7 +97,7 @@ export default {
         db.prepare('DELETE FROM submissions WHERE date < ?').bind(ago(now, 1)),
         db.prepare('DELETE FROM pending WHERE date < ?').bind(ago(now, PENDING_HOURS)),
       ]);
-      const sender = await senderOf(request);
+      const sender = await senderOf(request, env);
       const sent = await db.prepare('SELECT COUNT(*) AS n FROM submissions WHERE sender = ?').bind(sender).first();
       if (sent.n >= SUBMITS_PER_HOUR) return json({ error: 'rate-limited' }, 429);
       await db.prepare('INSERT INTO submissions (sender, date) VALUES (?, ?)').bind(sender, new Date(now).toISOString()).run();
