@@ -139,6 +139,9 @@ body {
    the medals (on real farms) and New field (on Practice Farm) share one slot of fixed height. */
 .farm-slot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 38px; }
 #farmInfo:empty { display: none; }
+.mixed-note { border: 1px solid var(--line); border-left: 4px solid var(--ripe); border-radius: 8px; padding: 10px 14px; margin: 0 0 14px; }
+.mixed-note p { margin: 0 0 10px; }
+.mixed-note[hidden] { display: none; }
 .mod-toggle[hidden] { display: none; }
 .mod-toggle[aria-pressed="true"] { background: var(--ripe); color: var(--bg); border-color: var(--ripe); }
 /* The side panel slides in from the right. On wide screens the game moves aside to make room. */
@@ -527,6 +530,10 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
       <div class="stat" id="rBlightStat" hidden><span>Plants lost to blight</span><strong id="rBlight">0</strong></div>
       <div class="stat" id="rEatenStat" hidden><span>Ripe plants eaten by crows</span><strong id="rEaten">0</strong></div>
       <div class="stat" id="rTrampledStat" hidden><span>Plants trampled by scarecrows</span><strong id="rTrampled">0</strong></div>
+    </div>
+    <div class="mixed-note" id="mixedNote" hidden>
+      <p id="mixedText"></p>
+      <button type="button" class="small-button" id="restartSame">Restart with this code</button>
     </div>
     <div class="compare" id="compare" hidden>
       <h3 id="cmpTitle"></h3>
@@ -1591,8 +1598,13 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   });
   syncNumbersButton();
 
+  // A season's score should be one program's score. Editing mid-season is allowed, for tinkering, but
+  // once different code runs partway the season is "mixed": it plays on, but sets no best and earns no medal.
+  let seasonCode = null, mixedDay = 0;
   function reset() {
     clearFx();
+    seasonCode = null; mixedDay = 0;
+    $('mixedNote').hidden = true;
     state = AcresCore.newSeason(seed, weather());
     hideReport();
     updateStats();
@@ -1709,6 +1721,10 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   function step() {
     if (state.day >= TICKS) { stop(); setMsg('Season complete. Restart to play this field again.'); return false; }
     if (dirty && !compile()) { stop(); return false; }
+    // Spacing and comments don't change a program, so they don't make a season mixed.
+    const program = src => src.replace(/⍝.*$/gm, '').replace(/\s+/g, ' ').trim();
+    if (seasonCode === null) seasonCode = program(compiledSrc);
+    else if (!mixedDay && program(compiledSrc) !== seasonCode) mixedDay = state.day + 1;
 
     let mask, scare = null;
     try {
@@ -1724,13 +1740,17 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     lament(before, mask, state.rottedAt);
     blightSpread(state.blightedAt);
     crowsAte(state.eatenAt, state.crowPatches);
-    setMsg('');
+    setMsg(mixedDay ? `Your code changed on day ${mixedDay}: this season’s score now mixes two programs, so it won’t count for medals or your best.` : '');
     updateStats();
     fieldChanged();
 
     if (state.day >= TICKS) {
       let result = null;
-      if (farm) {
+      if (mixedDay) {
+        // A mixed season: no best, no medal. One click plays the current code properly from day 1.
+        $('mixedText').textContent = `Your code changed on day ${mixedDay}, so this score mixes two programs and doesn’t count for medals or your best. Play the whole season with your current code to see its real score.`;
+        $('mixedNote').hidden = false;
+      } else if (farm) {
         const before = new Set(prog.earned);
         result = AcresCore.recordBest(bests, { ruleset: RULES.id, farm: farm.id, seed: farm.seed, score: state.score, code: codeEl.value });
         bests = result.bests;
@@ -1743,9 +1763,9 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
       }
       updateStats();
       stop();
-      setMsg(`Season complete. You scored ${state.score}.`);
+      setMsg(mixedDay ? `Season complete. You scored ${state.score}, with your code changed on day ${mixedDay}.` : `Season complete. You scored ${state.score}.`);
       showReport(result);
-      showLeaderboard(state.score);
+      if (mixedDay) $('lbSection').hidden = true; else showLeaderboard(state.score);
       return false;
     }
     return true;
@@ -3020,6 +3040,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   $('step').addEventListener('click', nextDay);
   $('restart').addEventListener('click', () => { stop(); reset(); setMsg(''); });
   $('newField').addEventListener('click', () => { stop(); seed = newSeed(); reset(); setMsg('New field planted.'); });
+  $('restartSame').addEventListener('click', () => { stop(); reset(); closePanel(false); start(); });
   // Switching crows or blight plants a new field with them on or off.
   for (const mod of ['crows', 'blight']) {
     $(mod === 'crows' ? 'practiceCrows' : 'practiceBlight').addEventListener('click', () => {
