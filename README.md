@@ -159,11 +159,11 @@ Every new mechanic should answer: what's the obvious solution, why does it work 
 
 ## Next
 
-Human playtesting of the four farms and the unlock ladder, before adding another crop. A gentler Starter Farm, to come before Middlebourne Farm, is a candidate for later.
+Human playtesting of the five farms and the unlock ladder, before adding another crop. A gentler Starter Farm, to come before Middlebourne Farm, is a candidate for later.
 
 ## Credits
 
-The editor uses [APL386](https://github.com/abrudz/APL386), released into the public domain, subset and embedded in the page. Headings and text use [Bricolage Grotesque](https://github.com/ateliertriay/bricolage), self-hosted in `assets/fonts` under the SIL Open Font License, so the game loads nothing from other sites. All the illustrations in `assets/plants`, the plants, crows and scarecrow, were generated with ChatGPT for this project, then prepared for the game.
+The editor uses [APL386](https://github.com/abrudz/APL386), released into the public domain, subset and embedded in the page. Headings and text use [Bricolage Grotesque](https://github.com/ateliertriay/bricolage), self-hosted in `assets/fonts` under the SIL Open Font License, so the game loads nothing from other sites. All the illustrations in `assets/plants`, the plants, blight, crow and scarecrow, were generated with ChatGPT for this project, then prepared for the game.
 
 ## Licence
 
