@@ -827,14 +827,21 @@ test('Practice Farm can borrow crows and blight, but only once Gold has unlocked
   await expect(page.locator('#legend')).toContainText('eaten by crows'); // the pressed button shows crows are on; no extra chip
   await expect(page.locator('#weather')).not.toContainText('Crows');
   await expect(page.locator('#rules')).toContainText('Crows:');
-  await expect(page.locator('#msg')).toHaveText('Crows on. New field planted.');
+  await expect(page.locator('#msg')).toHaveText('New field planted, with crows.');
   await blight.click();
+  await expect(page.locator('#msg')).toHaveText('New field planted, with crows and blight.');
   await expect(page.locator('#rules')).toContainText('Blight:');
   await expect(page.locator('#words button', { hasText: /^Blighted$/ })).not.toHaveAttribute('aria-disabled', 'true');
   await expect(page.locator('#legend')).toContainText('Blighted');
   // Scarecrows work on Practice too.
   await page.locator('#code').fill('Harvest←{⍵=Ripe}\nScare←{8 8⍴1,63⍴0}');
   await expect(page.locator('#field')).toHaveAttribute('data-scarecrows', '1');
+  // The message always describes the field you have, whichever button was pressed.
+  await crows.click();
+  await expect(page.locator('#msg')).toHaveText('New field planted, with blight.');
+  await blight.click();
+  await expect(page.locator('#msg')).toHaveText('New field planted, with no crows or blight.');
+  await crows.click();
   // The choices are remembered, and other farms are unaffected.
   await page.reload();
   await expect(page.locator('#practiceCrows')).toHaveAttribute('aria-pressed', 'true');
