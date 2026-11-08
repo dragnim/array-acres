@@ -109,7 +109,7 @@ body {
 :root {
   --page-w: 1560px;
   /* The field's size: as big as fits on screen with its stats and key, between 480px and 640px. */
-  --field: max(480px, min(640px, calc(100svh - 560px)));
+  --field: max(480px, min(640px, calc(100svh - 600px)));
 }
 .wrap { max-width: var(--page-w); margin: 0 auto; padding: clamp(16px, 4vw, 40px); }
 .topbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px 24px; }
@@ -254,6 +254,9 @@ textarea {
 #code[hidden], .framed[hidden] { display: none; }
 .code-note { margin: 0 0 8px; color: var(--muted); font-size: 0.9rem; }
 .framed { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px 10px 0 0; padding: 10px 14px; }
+.scare-box { border-radius: 10px; margin-top: 12px; }
+.scare-box[hidden] { display: none; }
+.legend-space, .legend > div { min-height: 46px; }
 .frame-fn + .frame-fn { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
 .frame-edge { display: block; font: 16px/1.5 var(--mono); color: var(--muted); user-select: none; }
 textarea.frame-body { min-height: 150px; border: 0; border-radius: 0; padding: 2px 0 2px 2ch; background: transparent; }
@@ -454,11 +457,6 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
           <textarea id="hBody" class="frame-body" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="The inside of Harvest"></textarea>
           <code class="frame-edge">}</code>
         </div>
-        <div class="frame-fn" id="scareFrame" hidden>
-          <code class="frame-edge">Scare←{</code>
-          <textarea id="sBody" class="frame-body frame-scare" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="The inside of Scare, optional" placeholder="Optional: where to stand scarecrows"></textarea>
-          <code class="frame-edge">}</code>
-        </div>
       </div>
       <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" hidden></textarea>
       <div class="words" id="words" aria-label="Names you can use"></div>
@@ -478,6 +476,12 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
         </label>
       </div>
       <div id="msg" role="status"></div>
+      <!-- Below the controls, so it can appear for crows without moving a single button. -->
+      <div class="framed frame-fn scare-box" id="scareFrame" hidden>
+          <code class="frame-edge">Scare←{</code>
+          <textarea id="sBody" class="frame-body frame-scare" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="The inside of Scare, optional" placeholder="Optional: where to stand scarecrows"></textarea>
+          <code class="frame-edge">}</code>
+      </div>
       <p class="hint">Tap names, symbols and keys to build your code (on a tablet, ⌨ brings up the keyboard), or type symbols with a backtick prefix, so <kbd>`w</kbd> gives <kbd>⍵</kbd>. Hover a symbol, focus it with the keyboard or press and hold it to see what it does. Dashed outlines preview what <code>Harvest</code> would pick today, without using up a day. Ctrl+Enter or ⌘+Enter moves to the next day. Tab indents; press Esc then Tab to leave the editor.</p>
     </section>
   </main>
@@ -1834,13 +1838,13 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     sun.textContent = `Sunshine ${pct(w.sunshine)}`; sun.title = `Each unripe plant has a ${pct(w.sunshine)} chance to grow a stage overnight`;
     rain.textContent = `Rainfall ${pct(w.rainfall)}`; rain.title = `Each ripe plant left unharvested has a ${pct(w.rainfall)} chance to rot overnight`;
     const chips = [sun, rain];
-    if (w.crows) {
+    if (w.crows && farm) {
       const crows = document.createElement('span');
       crows.textContent = `Crows ${w.crows} flock${w.crows === 1 ? '' : 's'}`;
       crows.title = 'Each night a flock of crows lands on a 3×3 patch and eats the ripe plants there';
       chips.push(crows);
     }
-    if (w.blight) {
+    if (w.blight && farm) {
       const blight = document.createElement('span');
       blight.textContent = `Blight ${pct(w.blight.spread)}`;
       blight.title = `Each night, every blighted plant spreads to each living neighbour with a ${pct(w.blight.spread)} chance`;
@@ -2488,6 +2492,14 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
       icon('eaten by crows', x => drawEaten(x, 0, 0, 40));
       icon('<code>Scare</code> places a scarecrow', x => drawScarecrow(x, 0, 0, 40, false));
     }
+    // The key always takes the room of its largest version (blight and crows together), with invisible
+    // spaces for entries that don't apply, so it never changes size and nothing below it moves.
+    const LARGEST = STAGE_NAMES.length + 3 + 2;
+    while (el.children.length < LARGEST) {
+      const space = document.createElement('div');
+      space.className = 'legend-space'; space.setAttribute('aria-hidden', 'true');
+      el.append(space);
+    }
   }
 
   function refreshTheme() { readColors(); render(); drawLegend(); drawChart(); drawAplExample(); }
@@ -2851,7 +2863,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   function showView() {
     $('framed').hidden = view !== 'simple';
     codeEl.hidden = view !== 'full';
-    $('scareFrame').hidden = !hasCrows();
+    $('scareFrame').hidden = !hasCrows() || view !== 'simple';
     $('viewToggle').textContent = view === 'simple' ? 'Code view' : 'Simple view';
     $('codeLabel').htmlFor = view === 'simple' ? 'hBody' : 'code';
   }
@@ -2968,17 +2980,20 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     // Every helper has a button, greyed out until it's unlocked, like locked symbols: players can see
     // what's coming, and the row doesn't change size from farm to farm.
     const acc = access(), helpers = ['BumperCrops', 'Promising', 'Squares'];
-    const stages = AcresCore.STAGE_NAMES.filter(n => n !== 'Blighted' || weather().blight);
-    $('words').replaceChildren(...['⍵', '=', '<', '>', '(', ')', ...stages, ...helpers].map(w => {
+    // Blighted is always there too, so nothing shifts, but faded where blight doesn't grow.
+    const noBlight = 'Blighted plants only grow on Blightwick Farm, or on Practice Farm with blight on';
+    $('words').replaceChildren(...['⍵', '=', '<', '>', '(', ')', ...AcresCore.STAGE_NAMES, ...helpers].map(w => {
       const b = document.createElement('button');
       const u = helpers.includes(w) && !acc.helpers.has(w) ? AcresCore.unlockFor('helper', w) : null;
-      b.type = 'button'; b.textContent = w; b.title = u ? `${w}: unlocks with ${AcresCore.needText(u)}` : WORD_TIPS[w];
+      const away = w === 'Blighted' && !weather().blight;
+      b.type = 'button'; b.textContent = w; b.title = u ? `${w}: unlocks with ${AcresCore.needText(u)}` : away ? noBlight : WORD_TIPS[w];
       // A locked helper still answers a press, on any screen, by saying what unlocks it.
-      if (u) b.setAttribute('aria-disabled', 'true');
+      if (u || away) b.setAttribute('aria-disabled', 'true');
       const text = w === 'Squares' ? 'Squares ' : helpers.includes(w) ? `${w} ⍵` : w;
       b.addEventListener('mousedown', e => e.preventDefault());
       b.addEventListener('click', () => {
         if (u) { setMsg(`${w} unlocks with ${AcresCore.needText(u)}.`); return; }
+        if (away) { setMsg(`${noBlight}.`); return; }
         editorEl().focus(); insertText(text);
       });
       return b;
