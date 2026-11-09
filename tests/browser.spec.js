@@ -899,3 +899,8 @@ test('buttons never move: not when pressing Crows or Blight, and not when switch
 test('the page has its own icon: the ripe plant, built into the page', async ({ page }) => {
   await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /^data:image\/png;base64,/);
 });
+
+test('the footer shows the version and rules for bug reports, with a link to report a problem', async ({ page }) => {
+  await expect(page.locator('#buildInfo')).toHaveText(/^Array Acres prototype \d+\.\d+ · rules v2$/);
+  await expect(page.getByRole('link', { name: 'Report a problem' })).toHaveAttribute('href', 'https://github.com/dragnim/array-acres/issues');
+});
