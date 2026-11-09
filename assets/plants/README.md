@@ -28,8 +28,8 @@ They were then prepared for the game: ripe was moved down onto the shared baseli
 
 ## How the game uses them
 
-Each plant image fills its plot, and the bumper crop covers the four plots of a ripe 2×2 square. The images load when the page opens, and each is used as soon as it arrives. Any image that hasn't loaded, or fails, is drawn more simply in code instead, so the game never depends on these files. The crow and scarecrow images were added later at 512 px, generated with ChatGPT in the same painted style.
+Each plant image fills its plot, and the bumper crop covers the four plots of a ripe 2×2 square. The images load when the page opens, and each is used as soon as it arrives. Any image that hasn't loaded, or fails, is drawn more simply in code instead, so the game never depends on these files. The blight, crow and scarecrow images were added later, generated with ChatGPT in the same painted style and resized to 256 px. A 32 px copy of the ripe plant is also built into the page as its icon.
 
 ## Replacing them
 
-Keep the same file names and follow the brief above: square and transparent, soil at the same baseline in every image (462 px down on a 512 px canvas), 128 px for plants and 256 px for the bumper crop. Check ripe and rotten side by side at game size before committing: telling stage 3 from stage 4 at a glance matters for play.
+Keep the same file names and follow the brief above: square and transparent, soil at the same baseline in every image (462 px down on a 512 px canvas), 128 px for plants, and 256 px for the bumper crop, blight, crow and scarecrow. Check ripe and rotten side by side at game size before committing: telling stage 3 from stage 4 at a glance matters for play.
