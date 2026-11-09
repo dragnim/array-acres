@@ -143,6 +143,8 @@ body {
 .mixed-note { border: 1px solid var(--line); border-left: 4px solid var(--ripe); border-radius: 8px; padding: 10px 14px; margin: 0 0 14px; }
 .mixed-note p { margin: 0 0 10px; }
 .mixed-note[hidden] { display: none; }
+.site-footer { margin: 40px 0 8px; text-align: center; font-size: 0.85rem; color: var(--muted); }
+.site-footer a { color: inherit; text-underline-offset: 3px; }
 .mod-toggle[hidden] { display: none; }
 .mod-toggle[aria-pressed="true"] { background: var(--ripe); color: var(--bg); border-color: var(--ripe); }
 .mod-toggle[aria-disabled="true"] { opacity: 0.45; border-style: dashed; cursor: help; }
@@ -486,6 +488,9 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
       <p class="hint">Tap names, symbols and keys to build your code (on a tablet, ⌨ brings up the keyboard), or type symbols with a backtick prefix, so <kbd>`w</kbd> gives <kbd>⍵</kbd>. Hover a symbol, focus it with the keyboard or press and hold it to see what it does. Dashed outlines preview what <code>Harvest</code> would pick today, without using up a day. Ctrl+Enter or ⌘+Enter moves to the next day. Tab indents; press Esc then Tab to leave the editor.</p>
     </section>
   </main>
+
+  <!-- Which version this is, for bug reports, and where to send them. -->
+  <footer class="site-footer"><span id="buildInfo">Prototype</span> · <a href="https://github.com/dragnim/array-acres/issues" target="_blank" rel="noopener">Report a problem</a></footer>
 
   <!-- How to play, the farming guide and the season report share one side panel. -->
   <aside class="panel" id="panel" hidden aria-labelledby="panelTitle">
@@ -1570,6 +1575,10 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   const unlocked = () => godMode ? AcresCore.FULL : prog;
   const access = () => farm ? unlocked() : AcresCore.FULL;
   let running = false, timer = null, fn = null, scareFn = null, dirty = true, compiledSrc = '';
+  // The version players see in the footer, to quote in bug reports. Bump it with each release for testers.
+  const VERSION = '0.1';
+  $('buildInfo').textContent = `Array Acres prototype ${VERSION} · rules ${AcresCore.RULES.id}`;
+
   // Practice Farm can borrow Crowhurst's crows and Blightwick's blight, each once Gold has unlocked that
   // farm, so players can try their ideas on fresh fields. weather() is what the current farm plays with.
   const PRACTICE_MODS_KEY = 'acres:practice-mods';
