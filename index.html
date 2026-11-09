@@ -257,13 +257,13 @@ textarea {
 #code[hidden], .framed[hidden] { display: none; }
 .code-note { margin: 0 0 8px; color: var(--muted); font-size: 0.9rem; }
 .framed { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px 10px 0 0; padding: 10px 14px; }
-.scare-box { border-radius: 10px; margin-top: 12px; }
-.scare-box[hidden] { display: none; }
 .legend-space, .legend > div { min-height: 46px; }
-.frame-fn + .frame-fn { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.frame-fn + .frame-fn { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
 .frame-edge { display: block; font: 16px/1.5 var(--mono); color: var(--muted); user-select: none; }
-textarea.frame-body { min-height: 150px; border: 0; border-radius: 0; padding: 2px 0 2px 2ch; background: transparent; }
-textarea.frame-body.frame-scare { min-height: 90px; }
+/* The code box is always the same height. Alone, Harvest has 240px; split for crows, Harvest and Scare
+   share it: 288px of frame = two functions of 48px of edges each, plus 17px between them. */
+textarea.frame-body { height: 240px; min-height: 0; resize: none; border: 0; border-radius: 0; padding: 2px 0 2px 2ch; background: transparent; }
+.framed.split textarea.frame-body { height: calc((240px - 48px - 17px) / 2); }
 textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted); }
 .words { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; background: var(--surface); border: 1px solid var(--line); border-top: 0; }
 .words button { font: 15px/1 var(--mono); padding: 7px 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--code-bg); color: var(--ink); cursor: pointer; }
@@ -460,6 +460,12 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
           <textarea id="hBody" class="frame-body" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="The inside of Harvest"></textarea>
           <code class="frame-edge">}</code>
         </div>
+        <!-- On farms with crows the box splits: Harvest above, Scare below, in the same overall height, so nothing moves. -->
+        <div class="frame-fn" id="scareFrame" hidden>
+          <code class="frame-edge">Scare←{</code>
+          <textarea id="sBody" class="frame-body frame-scare" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="The inside of Scare, optional" placeholder="Optional: where to stand scarecrows"></textarea>
+          <code class="frame-edge">}</code>
+        </div>
       </div>
       <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" hidden></textarea>
       <div class="words" id="words" aria-label="Names you can use"></div>
@@ -479,12 +485,6 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
         </label>
       </div>
       <div id="msg" role="status"></div>
-      <!-- Below the controls, so it can appear for crows without moving a single button. -->
-      <div class="framed frame-fn scare-box" id="scareFrame" hidden>
-          <code class="frame-edge">Scare←{</code>
-          <textarea id="sBody" class="frame-body frame-scare" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="The inside of Scare, optional" placeholder="Optional: where to stand scarecrows"></textarea>
-          <code class="frame-edge">}</code>
-      </div>
       <p class="hint">Tap names, symbols and keys to build your code (on a tablet, ⌨ brings up the keyboard), or type symbols with a backtick prefix, so <kbd>`w</kbd> gives <kbd>⍵</kbd>. Hover a symbol, focus it with the keyboard or press and hold it to see what it does. Dashed outlines preview what <code>Harvest</code> would pick today, without using up a day. Ctrl+Enter or ⌘+Enter moves to the next day. Tab indents; press Esc then Tab to leave the editor.</p>
     </section>
   </main>
@@ -2873,7 +2873,8 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   function showView() {
     $('framed').hidden = view !== 'simple';
     codeEl.hidden = view !== 'full';
-    $('scareFrame').hidden = !hasCrows() || view !== 'simple';
+    $('scareFrame').hidden = !hasCrows();
+    $('framed').classList.toggle('split', hasCrows());
     $('viewToggle').textContent = view === 'simple' ? 'Code view' : 'Simple view';
     $('codeLabel').htmlFor = view === 'simple' ? 'hBody' : 'code';
   }
