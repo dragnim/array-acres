@@ -65,7 +65,7 @@ Every farm follows the rules above. Each has its own weather, its own fixed star
 - **The glow points at whatever the step talks about**, plots on the field included: the ripe and rotten plants, the 1s, the plants about to be picked too early, and the ones that were wasted. Each plot shows `Harvest`'s answer, 1 or 0, from the step where the player writes their first rule.
 - **A real ending:** finishing needs a season that picked exactly the ripe plants every day, as `⍵=Ripe` does. The season ends in the tutorial, not the report.
 - **Free play afterwards:** finishing unlocks Tutorial Farm to play freely, with the full interface, Previous day and the 1s and 0s still on. It's remembered between visits, with **Replay the tutorial** to go through it again.
-- **Previous day** undoes a day, and each day is explained in plain words under the controls: what was picked and scored, what was wasted or rotted, and what grew. Previous day is only on Tutorial Farm for now; elsewhere it's shown faded.
+- **Previous day** undoes a day, and each day is explained in plain words, inside the tutorial box during the lessons and under the controls in free play: what was picked, how many points it scored, what was wasted or rotted, and what grew. Previous day is only on Tutorial Farm for now; elsewhere it's shown faded.
 
 ### Middlebourne Farm
 
