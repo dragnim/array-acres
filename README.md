@@ -33,7 +33,7 @@ For testing, adding `?god` to the address (or pressing G) unlocks everything; `?
 
 ## Rules
 
-- The field is 8×8, and a season lasts 100 days.
+- The field is 8×8, and a season lasts 100 days, except on Tutorial Farm: 4×4 and 20 days.
 - Every plot holds a plant at one of five growth stages, in order: Seed, Sprout, Growing, Ripe and Rotten. Blightwick Farm adds one more, Blighted (see below). In code, compare `⍵` with the stage names, as in `⍵=Ripe` or `⍵≥Ripe`. Underneath they're numbers, 0 to 4 for the growth stages and 5 for Blighted, but you never need to use the numbers.
 - Harvesting a ripe plant scores 1. Four ripe plants in a 2×2 square, harvested on the same day, are a bumper crop and score 3 each.
 - Harvesting a sprout or a growing plant wastes it. Harvesting a seed or a rotten plant scores nothing, so clearing rot is free. Every harvested plot is replanted as a seed.
@@ -53,6 +53,15 @@ For testing, adding `?god` to the address (or pressing G) unlocks everything; `?
 ## The farms
 
 Every farm follows the rules above. Each has its own weather, its own fixed starting field and luck, and its own Bronze, Silver and Gold targets. Some add a mechanic of their own.
+
+### Tutorial Farm
+
+- **Size:** a 4×4 field and a 20-day season, the first farm a new player meets. The intro's **Play the tutorial** link starts it at any time.
+- **Weather:** sunshine 55%, rainfall 20%, like Middlebourne Farm.
+- **No medals and no leaderboard:** it's for learning.
+- **Steps:** a short guided tutorial replaces the note above the code. Each step moves on by itself once it's done: look at the field, write `⍵=Ripe`, play a day, see what harvesting too early does, undo it, and play the season. Back and Next skip around.
+- **Answers on the field:** each plot shows `Harvest`'s answer for it, 1 or 0, so you can see your code answering every plot at once.
+- **Previous day** undoes a day, so you can try different code on it, and each day is explained in plain words under the controls: what was harvested and scored, what was wasted or rotted, and what grew. Previous day is only on Tutorial Farm for now; elsewhere it's shown faded.
 
 ### Middlebourne Farm
 
@@ -114,17 +123,17 @@ The game is in `index.html`, in three scripts:
 
 The art is separate, in `assets/plants`: the plants, blight, crow and scarecrow, and the image shown when a link to the game is shared, with notes on how they were made in [its own README](assets/plants/README.md). If an image can't load, the page draws it in code instead, so the game never depends on them. The leaderboard's server code is in `leaderboard/`.
 
-A season is 100 days. There are five farms under ruleset `v2`. Middlebourne, Sunnyhill and Marshgate each have their own weather: sunshine sets how likely an unripe plant is to grow overnight, and rainfall how likely a ripe plant left in the ground is to rot. Crowhurst has Middlebourne's weather plus crows, which eat ripe plants at night unless a second function, `Scare`, stands scarecrows nearby. Blightwick has Middlebourne's weather plus blight, which spreads from plant to plant overnight. Each farm also has its own starting field and fixed luck, so the same farm and the same code always give the same score, and its own Bronze, Silver and Gold targets. Personal bests are kept in the browser, and Practice Farm plays random fields with Middlebourne Farm's weather. At the end of a season, a report shows what happened day by day, without suggesting what to change.
+A season is 100 days on an 8×8 field, except on Tutorial Farm, which is 4×4 and 20 days. There are six farms under ruleset `v2`. Middlebourne, Sunnyhill and Marshgate each have their own weather: sunshine sets how likely an unripe plant is to grow overnight, and rainfall how likely a ripe plant left in the ground is to rot. Crowhurst has Middlebourne's weather plus crows, which eat ripe plants at night unless a second function, `Scare`, stands scarecrows nearby. Blightwick has Middlebourne's weather plus blight, which spreads from plant to plant overnight. Each farm also has its own starting field and fixed luck, so the same farm and the same code always give the same score, and its own Bronze, Silver and Gold targets. Personal bests are kept in the browser, and Practice Farm plays random fields with Middlebourne Farm's weather. At the end of a season, a report shows what happened day by day, without suggesting what to change.
 
 ## Progression
 
-Medals unlock the game. A new player starts on Middlebourne Farm with only `⍵` and the comparisons `= ≠ < > ≤ ≥`. Bronze on Middlebourne Farm unlocks `∧ ∨ ~`, the `BumperCrops` helper and Sunnyhill Farm. Silver on Sunnyhill Farm unlocks the `Promising` helper and Marshgate Farm. Gold on any farm unlocks every symbol and the helpers' APL source, so players can see how they work and write better ones. It also unlocks Crowhurst Farm, an experiment: each night a flock of crows eats the ripe plants on a 3×3 patch, and players can write a second function, `Scare`, to stand up to two scarecrows that protect the plots around them. And it unlocks Blightwick Farm, also an experiment, where blight spreads between neighbouring plants. Practice Farm always has everything.
+Medals unlock the game. A new player starts with the tutorial on Tutorial Farm, with Middlebourne Farm also open, and only `⍵` and the comparisons `= ≠ < > ≤ ≥`. Bronze on Middlebourne Farm unlocks `∧ ∨ ~`, the `BumperCrops` helper and Sunnyhill Farm. Silver on Sunnyhill Farm unlocks the `Promising` helper and Marshgate Farm. Gold on any farm unlocks every symbol and the helpers' APL source, so players can see how they work and write better ones. It also unlocks Crowhurst Farm, an experiment: each night a flock of crows eats the ripe plants on a 3×3 patch, and players can write a second function, `Scare`, to stand up to two scarecrows that protect the plots around them. And it unlocks Blightwick Farm, also an experiment, where blight spreads between neighbouring plants. Practice Farm always has everything.
 
 Unlocks are worked out from personal bests, so there's nothing extra to save, and the in-game farming guide explains each tool with a small example as it unlocks.
 
 ## Leaderboard
 
-Every farm has a top 10, shown on the Leaderboard page and in each season report. When a season's score makes it, the player enters three initials, arcade style, and the score and the code that earned it go to a small Cloudflare Worker on the free plan (`leaderboard/worker.mjs`), which keeps everything in a D1 database (`leaderboard/schema.sql`). Nothing counts until it's checked: a scheduled GitHub Actions job (`leaderboard/verify.js`) replays each new entry's code with the game's own rules, and only a score the code really earns goes on the board.
+Every farm except Tutorial Farm has a top 10, shown on the Leaderboard page and in each season report. When a season's score makes it, the player enters three initials, arcade style, and the score and the code that earned it go to a small Cloudflare Worker on the free plan (`leaderboard/worker.mjs`), which keeps everything in a D1 database (`leaderboard/schema.sql`). Nothing counts until it's checked: a scheduled GitHub Actions job (`leaderboard/verify.js`) replays each new entry's code with the game's own rules, and only a score the code really earns goes on the board.
 
 - **Timing.** The job is set to run every 15 minutes, though GitHub sometimes runs scheduled jobs later. To check entries straight away, run the Leaderboard workflow from the Actions tab. GitHub pauses scheduled jobs in repositories with no commits for 60 days; if scores stop being checked, re-enable the workflow there.
 - **Limits.** Each set of initials has one entry waiting per farm, which a better score replaces. Entries left unchecked for a day expire. A sender can submit 10 scores an hour, remembered only as a keyed hash of their network address (HMAC with a server secret, `RATE_LIMIT_KEY` if set, otherwise the leaderboard token), and only for an hour. Each board holds 20 waiting entries at most, and each replay stops after 10 seconds, so one slow program can't hold up the rest.
@@ -177,7 +186,7 @@ Ideas, bug reports and pull requests are welcome. The [open issues](https://gith
 
 ## Next
 
-Human playtesting of the five farms and the unlock ladder, before adding another crop. A gentler Starter Farm, to come before Middlebourne Farm, is a candidate for later.
+Human playtesting of the six farms and the unlock ladder, before adding another crop.
 
 ## Credits
 
