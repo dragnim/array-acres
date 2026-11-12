@@ -660,7 +660,7 @@ test('every name and key button explains itself when you hover over it', async (
 });
 
 test('accessibility: axe finds no problems on the page, its panels, a played day, Crowhurst or the code view', async ({ browser }) => {
-  test.setTimeout(120000); // fourteen full scans, in both themes
+  test.setTimeout(150000); // sixteen full scans, in both themes
   for (const colorScheme of ['light', 'dark']) {
     // Reduced motion, so panels appear at once: mid-slide, their text is still faint and fails contrast.
     const context = await browser.newContext({ colorScheme, reducedMotion: 'reduce' });
@@ -673,6 +673,8 @@ test('accessibility: axe finds no problems on the page, its panels, a played day
       const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']).analyze();
       expect(violations.map(v => `${colorScheme} ${where}: ${v.id} at ${v.nodes.map(n => n.target.join(' ')).join(', ')}`)).toEqual([]);
     };
+    await check('tutorial');                // a new player starts on the tutorial, with its locked controls
+    await page.selectOption('#farm', 'middlebourne-farm');
     await check('main');
     for (const panel of ['openAbout', 'openHelp', 'openGuide', 'openBoard']) { await page.click(`#${panel}`); await check(panel); await page.click('#closePanel'); }
     await page.click('#step');
@@ -907,82 +909,91 @@ test('the footer shows the version and rules for bug reports, with a link to rep
   await expect(page.getByRole('link', { name: 'Report a problem' })).toHaveAttribute('href', 'https://github.com/dragnim/array-acres/issues');
 });
 
-test('new players start the tutorial: steps that wait until they’re done, glows that follow, and an ending that needs ⍵=Ripe', async ({ browser }) => {
+test('the tutorial: twelve steps, each with only its own controls working and a glow on whatever it talks about, then free play', async ({ browser }) => {
   const page = await browser.newPage();
   await page.goto(PAGE);
-  await page.evaluate(() => localStorage.setItem('acres:help-seen', '1'));
+  await page.evaluate(() => { localStorage.clear(); localStorage.setItem('acres:help-seen', '1'); });
   await page.reload();
-  const step = page.locator('#tutStep'), passed = page.locator('#tutTexts p.current.passed'), next = page.locator('#tutNext');
+  const step = page.locator('#tutStep'), next = page.locator('#tutNext');
   const glowing = id => expect(page.locator(`#${id}`)).toHaveClass(/tut-glow/);
+  const plots = list => expect(page.locator('#field')).toHaveAttribute('data-tut-plots', list);
+  const at = n => expect(step).toHaveText(`Tutorial, step ${n} of 12`);
   await expect(page.locator('#farm')).toHaveValue('tutorial-farm');
   await expect(page.locator('#farm option').first()).toHaveText('Tutorial Farm');
-  await expect(page.locator('#targets')).toBeHidden(); // no medals on the tutorial
-  await expect(page.locator('#glyphs')).toBeHidden();  // only what a beginner needs
+  await expect(page.locator('#targets')).toBeHidden();
+  await expect(page.locator('#glyphs')).toBeHidden();
   await expect(page.locator('#words button')).toHaveText(['⍵', '=', '≥', 'Seed', 'Sprout', 'Growing', 'Ripe', 'Rotten']);
-  await expect(page.locator('#fieldText')).toContainText('Row 2: Sprout; Growing; Ripe; Rotten.'); // every stage on show
-  await expect(step).toHaveText('Tutorial, step 1 of 6');
-  await glowing('field');
-  await expect(next).toBeEnabled();                           // step 1 is just reading
+  // 1: the farm. Nothing works yet but Next and Restart.
+  await at(1); await glowing('field');
+  for (const id of ['step', 'run', 'prevDay']) await expect(page.locator(`#${id}`)).toBeDisabled();
+  await expect(page.locator('#words')).toHaveClass(/tut-locked/);
+  await expect(page.locator('#field')).toHaveAttribute('data-answers', 'off'); // no 1s and 0s until step 4
   await next.click();
-  await expect(next).toBeDisabled();                          // the others wait until they're done
-  await glowing('framed');
-  for (const word of ['⍵', '=', 'Ripe']) await page.locator('#words button', { hasText: new RegExp(`^${word}$`) }).click();
-  await expect(passed).toContainText('Correct.');
-  await expect(next).toBeEnabled();
+  // 2: the stages, with the ripe plants and the rotten one glowing.
+  await at(2); await plots('0,3 1,2 1,3 2,1 3,0');
+  await next.click();
+  // 3: ⍵.
+  await at(3); await glowing('framed');
+  await next.click();
+  // 4: the glow leads from ⍵ to = to Ripe; Next waits until it's done.
+  await at(4); await expect(next).toBeDisabled();
+  for (const word of ['⍵', '=', 'Ripe']) {
+    const button = page.locator('#words button', { hasText: new RegExp(`^${word}$`) });
+    await expect(button).toHaveClass(/tut-glow/);
+    await button.click();
+  }
+  await expect(next).toBeEnabled(); await glowing('tutNext');
   await expect(page.locator('#field')).toHaveAttribute('data-answers', 'on');
   await next.click();
-  await glowing('step');
-  await page.click('#step');
-  await expect(page.locator('#msg')).toHaveText(/^Day 1: you harvested 4 plots, scoring 4\. \d+ plants? grew a stage overnight\.$/);
+  // 5: the 1s glow.
+  await at(5); await plots('0,3 1,2 2,1 3,0');
   await next.click();
-  await expect(step).toHaveText('Tutorial, step 4 of 6');
+  // 6 and 7: Next day, and nothing else, works.
+  await at(6); await glowing('step'); await expect(page.locator('#run')).toBeDisabled();
+  await page.click('#step');
+  await expect(page.locator('#msg')).toHaveText(/^Day 1: you harvested 4 plots, scoring 4\. 15 plants grew a stage overnight\.$/);
+  await next.click();
+  await at(7); await plots('0,2 1,1 2,0 2,2 3,1');
   await page.click('#step');
   await next.click();
-  // Step 5: the glow follows the player, from the code to Next day to Previous day.
-  await expect(step).toHaveText('Tutorial, step 5 of 6');
-  await glowing('framed');
-  await page.locator('#hBody').fill('⍵≥Growing');
-  await glowing('step');
+  // 8 to 10: pick too early, see the waste, undo it.
+  await at(8); await page.locator('#hBody').fill('⍵≥Growing');
+  await next.click();
+  await at(9); await glowing('step');
   await page.click('#step');
   await expect(page.locator('#msg')).toContainText('harvested too early and wasted');
-  await glowing('prevDay');
-  await expect(next).toBeDisabled();                          // not done until it's undone
+  await next.click();
+  await at(10); await glowing('prevDay'); await expect(page.locator('#step')).toBeDisabled();
   await page.click('#prevDay');
-  await expect(page.locator('#msg')).toHaveText('Back to the start of day 3.');
-  await expect(passed).toContainText('Undone.');
+  await expect(page.locator('#sWasted')).toHaveText('0');
   await next.click();
-  // Step 6: a season that harvests nothing, or not every ripe plant, doesn't finish the tutorial.
-  await expect(step).toHaveText('Tutorial, step 6 of 6');
-  await page.locator('#hBody').fill('0');
-  await page.click('#run');
-  await expect(page.locator('#msg')).toContainText('some days left ripe plants unharvested', { timeout: 30000 });
-  await expect(next).toBeDisabled();
-  await page.click('#restart');                               // on the last step, Restart replays the season there
-  await expect(step).toHaveText('Tutorial, step 6 of 6');
-  await expect(page.locator('#sTick')).toHaveText('0/20');
+  // 11: Play season only works once the rule is ⍵=Ripe again; a season that leaves ripe plants doesn't finish it.
+  await at(11); await expect(page.locator('#run')).toBeDisabled();
   await page.locator('#hBody').fill('⍵=Ripe');
-  await glowing('run');
+  await expect(page.locator('#run')).toBeEnabled(); await glowing('run');
   await page.click('#run');
-  await expect(page.locator('#msg')).toHaveText('Season complete. You scored 64, with nothing wasted.', { timeout: 30000 });
-  await expect(page.locator('#panel')).toBeHidden();         // the tutorial ends in its own box, not the report
-  await expect(passed).toContainText('320 decisions, without a single loop');
-  await expect(next).toHaveText('Go to Middlebourne');
+  await expect(page.locator('#msg')).toHaveText('Season complete. You scored 99, with nothing wasted.', { timeout: 30000 });
+  await expect(page.locator('#panel')).toBeHidden();
   await next.click();
-  await expect(page.locator('#farm')).toHaveValue('middlebourne-farm');
-  await expect(page.locator('#glyphs')).toBeVisible();       // the full interface is back
-  await expect(page.locator('#prevDay')).toHaveAttribute('aria-disabled', 'true');
-  await page.locator('#prevDay').click({ force: true });
-  await expect(page.locator('#msg')).toHaveText('Previous day is only on Tutorial Farm, for now.');
-  // The intro's link starts it again, and Restart before the last step starts it over.
-  await page.click('#playTutorial');
-  await expect(page.locator('#farm')).toHaveValue('tutorial-farm');
-  await expect(step).toHaveText('Tutorial, step 1 of 6');
+  // 12: done. Play freely unlocks the farm, remembered between visits.
+  await at(12);
+  await expect(next).toHaveText('Play freely');
+  await expect(page.locator('#tutSkip')).toHaveText('Go to Middlebourne');
   await next.click();
-  await page.click('#restart');
-  await expect(step).toHaveText('Tutorial, step 1 of 6');
-  // Skip tutorial, for players who know APL already.
+  await expect(step).toHaveText('Tutorial complete');
+  for (const id of ['step', 'run', 'prevDay']) await expect(page.locator(`#${id}`)).toBeEnabled();
+  await expect(page.locator('#glyphs')).toBeVisible();
+  await page.reload();
+  await expect(step).toHaveText('Tutorial complete');
+  await expect(next).toHaveText('Replay the tutorial');
+  await next.click();
+  await at(1);
+  // Skip tutorial, for players who know APL already; the intro's link starts it again.
   await page.getByRole('button', { name: 'Skip tutorial' }).click();
   await expect(page.locator('#farm')).toHaveValue('middlebourne-farm');
+  await expect(page.locator('#prevDay')).toHaveAttribute('aria-disabled', 'true');
+  await page.click('#playTutorial');
+  await at(1);
   await page.close();
 });
 
@@ -998,9 +1009,9 @@ test('nothing moves between the tutorial’s steps, on desktop, tablet or phone'
     await page.reload();
     await page.selectOption('#farm', 'tutorial-farm');
     const first = await where(page);
-    for (let i = 2; i <= 6; i++) {
+    for (let i = 2; i <= 12; i++) {
       await page.click('#tutNext');
-      await expect(page.locator('#tutStep')).toHaveText(`Tutorial, step ${i} of 6`);
+      await expect(page.locator('#tutStep')).toHaveText(`Tutorial, step ${i} of 12`);
       expect(await where(page), `step ${i} at ${width}px`).toEqual(first);
     }
     await page.close();
