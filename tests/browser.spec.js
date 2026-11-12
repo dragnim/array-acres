@@ -1132,6 +1132,7 @@ test('the title screen: at the start of each visit, with ways in for new and ret
   await expect(page.locator('#welcomeTitle svg')).toHaveAttribute('aria-label', 'Array Acres');
   await expect(start).toBeFocused();
   await expect(page.locator('#welcomeStages img')).toHaveCount(4);
+  await expect(page.locator('.welcome-more')).toContainText('Write one APL function, Harvest.');
   expect(await page.evaluate(() => document.querySelector('.wrap').inert)).toBe(true); // the page behind can't be reached
   const scan = async () => {
     const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']).analyze();
@@ -1229,4 +1230,23 @@ test('the theme follows the device unless the player switches it, and switching 
     expect(await background()).toBe(devices);
     await context.close();
   }
+});
+
+test('on the title screen, the ripe plant shakes and rots after about ten seconds, and is ripe again next time', async ({ browser }) => {
+  test.setTimeout(60000);
+  const context = await browser.rawNewContext();
+  const page = await context.newPage();
+  await page.goto(PAGE);
+  const plant = page.locator('#welcomeStages img').nth(3);
+  await expect(plant).toHaveAttribute('data-stage', 'ripe');
+  await page.waitForTimeout(9000);
+  await expect(plant).toHaveAttribute('data-stage', 'ripe'); // still waiting
+  await expect(plant).toHaveClass(/rotting/, { timeout: 6000 }); // the shake
+  await expect(plant).toHaveAttribute('data-stage', 'rotten');
+  const rotten = await page.locator('#words button', { hasText: /Rotten$/ }).locator('img').getAttribute('src');
+  expect(await plant.getAttribute('src')).toBe(rotten); // the game's own rotten plant
+  await page.click('#welcomeStart');
+  await page.click('#openWelcome');
+  await expect(plant).toHaveAttribute('data-stage', 'ripe');
+  await context.close();
 });
