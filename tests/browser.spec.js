@@ -88,7 +88,7 @@ test('preview and diagnostics follow the code and the field', async ({ page }) =
   // Play out the season.
   await page.selectOption('#speed', '30');
   await page.click('#run');
-  await expect(page.locator('#msg')).toHaveText(/^Season complete\. You scored \d+\.$/, { timeout: 30000 });
+  await expect(page.locator('#msg')).toHaveText(/^Season complete\. You scored \d+ points\.$/, { timeout: 30000 });
   await expect(day).toHaveText('100/100');
 
   // The season report appears, agrees with the scoreboard, and switches chart views.
@@ -862,14 +862,14 @@ test('changing code mid-season is allowed, but the mixed score sets no best or m
   await expect(page.locator('#msg')).toHaveText(/^Your code changed on day 3: this season’s score now mixes two programs/);
   await page.selectOption('#speed', '30');
   await page.click('#run');
-  await expect(page.locator('#msg')).toHaveText(/Season complete\. You scored \d+, with your code changed on day 3\./, { timeout: 60000 });
+  await expect(page.locator('#msg')).toHaveText(/Season complete\. You scored \d+ points, with your code changed on day 3\./, { timeout: 60000 });
   await expect(page.locator('#mixedNote')).toBeVisible();
   await expect(page.locator('#compare')).toBeHidden();
   await expect(page.locator('#lbSection')).toBeHidden();
   await expect(page.locator('#sBest')).toHaveText('–'); // no personal best from a mixed season
   // Restart with this code plays the current program from day 1, and that season counts.
   await page.click('#restartSame');
-  await expect(page.locator('#msg')).toHaveText('Season complete. You scored 1213.', { timeout: 60000 });
+  await expect(page.locator('#msg')).toHaveText('Season complete. You scored 1213 points.', { timeout: 60000 });
   await expect(page.locator('#mixedNote')).toBeHidden();
   await expect(page.locator('#sBest')).toHaveText('1213');
 });
@@ -951,7 +951,9 @@ test('the tutorial: twelve steps, each with only its own controls working and a 
   // 6 and 7: Next day, and nothing else, works.
   await at(6); await glowing('step'); await expect(page.locator('#run')).toBeDisabled();
   await page.click('#step');
-  await expect(page.locator('#msg')).toHaveText(/^Day 1: you harvested 4 plots, scoring 4\. 15 plants grew a stage overnight\.$/);
+  // What happened is told inside the tutorial box, and scores say points.
+  await expect(page.locator('#tutMsg')).toHaveText(/^Day 1: you harvested 4 plots, scoring 4 points\. 15 plants grew a stage overnight\.$/);
+  await expect(page.locator('#msg')).toHaveText('');
   await next.click();
   await at(7); await plots('0,2 1,1 2,0 2,2 3,1');
   await page.click('#step');
@@ -961,7 +963,7 @@ test('the tutorial: twelve steps, each with only its own controls working and a 
   await next.click();
   await at(9); await glowing('step');
   await page.click('#step');
-  await expect(page.locator('#msg')).toContainText('harvested too early and wasted');
+  await expect(page.locator('#tutMsg')).toContainText('harvested too early and wasted');
   await next.click();
   await at(10); await glowing('prevDay'); await expect(page.locator('#step')).toBeDisabled();
   await page.click('#prevDay');
@@ -972,7 +974,7 @@ test('the tutorial: twelve steps, each with only its own controls working and a 
   await page.locator('#hBody').fill('⍵=Ripe');
   await expect(page.locator('#run')).toBeEnabled(); await glowing('run');
   await page.click('#run');
-  await expect(page.locator('#msg')).toHaveText('Season complete. You scored 99, with nothing wasted.', { timeout: 30000 });
+  await expect(page.locator('#tutMsg')).toHaveText('Season complete. You scored 99 points, with nothing wasted.', { timeout: 30000 });
   await expect(page.locator('#panel')).toBeHidden();
   await next.click();
   // 12: done. Play freely unlocks the farm, remembered between visits.
