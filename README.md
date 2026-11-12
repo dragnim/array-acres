@@ -57,13 +57,15 @@ Every farm follows the rules above. Each has its own weather, its own fixed star
 ### Tutorial Farm
 
 - **Size:** a 4×4 field and a 20-day season, the first farm a new player meets. The intro's **Play the tutorial** link starts it at any time.
-- **Field:** drawn by hand rather than from the seed, so every stage is on show, Rotten included. The seed still sets the luck overnight.
-- **Weather:** sunshine 55%, rainfall 20%, like Middlebourne Farm.
+- **Field:** drawn by hand rather than from the seed, so every stage is on show, Rotten included.
+- **Weather:** sunshine and rainfall are both 100%, so every plant grows one stage each night and a ripe plant left a night always rots. Everything happens exactly as the tutorial says; its last step explains that real farms have weather.
 - **No medals and no leaderboard:** it's for learning.
-- **Six steps**, in place of the note above the code: meet the array, ask it a question with `⍵=Ripe`, see the 1/0 answer, watch the same question give new answers as the field changes, change the question to `⍵≥Growing` and undo the waste, then play the season. Next waits until each step's task is done (the first step is just reading), then the step says so and Next glows, so there's time to take it in. Back goes back, Restart or choosing the farm again starts over (on the last step, Restart just replays the season), and **Skip tutorial** goes straight to Middlebourne Farm. The season ends in the tutorial, not the report, and finishing needs a season that harvested exactly the ripe plants every day, as `⍵=Ripe` does.
-- **A simpler interface:** only the names the steps use (`⍵ = ≥` and the stages), and the thing each step needs glows, following along as the player works through it. The symbol bar, code view, Show numbers and speed come back on the other farms.
-- **Answers on the field:** each plot shows `Harvest`'s answer for it, 1 or 0, so you can see your code answering every plot at once.
-- **Previous day** undoes a day, so you can try different code on it, and each day is explained in plain words under the controls: what was harvested and scored, what was wasted or rotted, and what grew. Previous day is only on Tutorial Farm for now; elsewhere it's shown faded.
+- **Twelve short steps**, in place of the note above the code: the farm, the stages, `⍵`, asking `⍵=Ripe`, the grid of 1s and 0s it gives back, picking with Next day, the same rule answering a changed field, picking too early with `⍵≥Growing`, seeing the waste, undoing it with Previous day, and playing the season.
+- **Locked to the lesson:** only the controls the current step asks for work; everything else is faded, and Next waits until the step's task is done (reading steps aside). Restart starts over, except on the season step, where it replays the season. **Skip tutorial** goes straight to Middlebourne Farm.
+- **The glow points at whatever the step talks about**, plots on the field included: the ripe and rotten plants, the 1s, the plants about to be picked too early, and the ones that were wasted. Each plot shows `Harvest`'s answer, 1 or 0, from the step where the player writes their first rule.
+- **A real ending:** finishing needs a season that picked exactly the ripe plants every day, as `⍵=Ripe` does. The season ends in the tutorial, not the report.
+- **Free play afterwards:** finishing unlocks Tutorial Farm to play freely, with the full interface, Previous day and the 1s and 0s still on. It's remembered between visits, with **Replay the tutorial** to go through it again.
+- **Previous day** undoes a day, and each day is explained in plain words under the controls: what was picked and scored, what was wasted or rotted, and what grew. Previous day is only on Tutorial Farm for now; elsewhere it's shown faded.
 
 ### Middlebourne Farm
 
