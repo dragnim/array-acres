@@ -923,8 +923,8 @@ test('the tutorial: twelve steps, each with only its own controls working and a 
   await expect(page.locator('#targets')).toBeHidden();
   await expect(page.locator('#glyphs')).toBeHidden();
   await expect(page.locator('#words button')).toHaveText(['⍵', '=', '≥', 'Seed', 'Sprout', 'Growing', 'Ripe', 'Rotten']);
-  // 1: the farm. Nothing works yet but Next and Restart.
-  await at(1); await glowing('field');
+  // 1: the farm. Nothing works yet but Next and Restart; on a reading step, Next glows too.
+  await at(1); await glowing('field'); await glowing('tutNext');
   for (const id of ['step', 'run', 'prevDay']) await expect(page.locator(`#${id}`)).toBeDisabled();
   await expect(page.locator('#words')).toHaveClass(/tut-locked/);
   await expect(page.locator('#field')).toHaveAttribute('data-answers', 'off'); // no 1s and 0s until step 4
@@ -933,10 +933,10 @@ test('the tutorial: twelve steps, each with only its own controls working and a 
   await at(2); await plots('0,3 1,2 1,3 2,1 3,0');
   await next.click();
   // 3: ⍵.
-  await at(3); await glowing('framed');
+  await at(3); await glowing('framed'); await glowing('tutNext');
   await next.click();
   // 4: the glow leads from ⍵ to = to Ripe; Next waits until it's done.
-  await at(4); await expect(next).toBeDisabled();
+  await at(4); await expect(next).toBeDisabled(); await expect(next).not.toHaveClass(/tut-glow/); // not until it's done
   for (const word of ['⍵', '=', 'Ripe']) {
     const button = page.locator('#words button', { hasText: new RegExp(`^${word}$`) });
     await expect(button).toHaveClass(/tut-glow/);
