@@ -13,7 +13,8 @@ const AxeBuilder = require('@axe-core/playwright').default;
 // (Set by visiting once, not with an init script: init scripts that touch storage can lose it on reload.)
 const returning = async page => {
   await page.goto(PAGE);
-  await page.evaluate(() => { localStorage.setItem('acres:help-seen', '1'); localStorage.setItem('acres:editor', 'full'); });
+  // A returning player: How to play already seen, the code view, and Middlebourne Farm as their last farm.
+  await page.evaluate(() => { localStorage.setItem('acres:help-seen', '1'); localStorage.setItem('acres:editor', 'full'); localStorage.setItem('acres:farm', 'middlebourne-farm'); });
   await page.reload();
 };
 // The leaderboard is a real server; tests use a stand-in board instead.
@@ -269,7 +270,7 @@ test('the rules on the page state the numbers the game actually uses', async ({ 
   for (const f of AcresCore.FARMS) {
     await page.selectOption('#farm', f.id);
     const rules = await page.locator('#rules').innerText();
-    for (const claim of [`${R.size}×${R.size}`, `${R.days} days`, `${pct(f.sunshine)} chance to grow`, `${pct(f.rainfall)} chance to rot`, `scores ${R.bonus} instead`])
+    for (const claim of [`${f.size}×${f.size}`, `${f.days} days`, `${pct(f.sunshine)} chance to grow`, `${pct(f.rainfall)} chance to rot`, `scores ${R.bonus} instead`])
       expect(rules).toContain(claim);
   }
 });
@@ -887,7 +888,7 @@ test('buttons never move: not when pressing Crows or Blight, and not when switch
       await page.click(`#${id}`);
       same(before, await where(page), `pressing ${id} at ${width}px`);
     }
-    for (const farm of ['middlebourne-farm', 'crowhurst-farm', 'blightwick-farm', 'practice']) {
+    for (const farm of ['middlebourne-farm', 'crowhurst-farm', 'blightwick-farm', 'tutorial-farm', 'practice']) {
       const before = await where(page);
       await page.selectOption('#farm', farm);
       same(before, await where(page), `switching to ${farm} at ${width}px`);
@@ -903,4 +904,53 @@ test('the page has its own icon: the ripe plant, built into the page', async ({ 
 test('the footer shows the version and rules for bug reports, with a link to report a problem', async ({ page }) => {
   await expect(page.locator('#buildInfo')).toHaveText(/^Array Acres prototype \d+\.\d+ · rules v2$/);
   await expect(page.getByRole('link', { name: 'Report a problem' })).toHaveAttribute('href', 'https://github.com/dragnim/array-acres/issues');
+});
+
+test('new players start the tutorial: Tutorial Farm, steps that move on as they go, Previous day, and each day explained', async ({ browser }) => {
+  const page = await browser.newPage();
+  await page.goto(PAGE);
+  await page.evaluate(() => { localStorage.setItem('acres:help-seen', '1'); localStorage.setItem('acres:editor', 'simple'); });
+  await page.reload();
+  const step = page.locator('#tutStep');
+  await expect(page.locator('#farm')).toHaveValue('tutorial-farm');
+  await expect(page.locator('#farm option').first()).toHaveText('Tutorial Farm');
+  await expect(page.locator('#targets')).toBeHidden(); // no medals on the tutorial
+  await expect(page.locator('#fieldText')).toContainText('Day 0 of 20.');
+  await expect(page.locator('#fieldText')).not.toContainText('Row 5: ');
+  await expect(step).toHaveText('Tutorial, step 1 of 6');
+  await page.click('#tutNext');
+  await expect(step).toHaveText('Tutorial, step 2 of 6');
+  for (const word of ['⍵', '=', 'Ripe']) await page.locator('#words button', { hasText: new RegExp(`^${word}$`) }).click();
+  await expect(step).toHaveText('Tutorial, step 3 of 6'); // moves on by itself once ⍵=Ripe is in
+  await expect(page.locator('#field')).toHaveAttribute('data-answers', 'on');
+  await page.click('#step');
+  await expect(step).toHaveText('Tutorial, step 4 of 6');
+  await expect(page.locator('#msg')).toHaveText(/^Day 1: you harvested \d+ plots?, scoring \d+\. \d+ plants? grew a stage overnight\.$/);
+  await page.locator('#hBody').fill('⍵=Growing');
+  await page.click('#step');
+  await expect(step).toHaveText('Tutorial, step 5 of 6');
+  await expect(page.locator('#msg')).toContainText('harvested too early and wasted');
+  // Previous day undoes it exactly.
+  await page.click('#prevDay');
+  await expect(page.locator('#msg')).toHaveText('Back to the start of day 2.');
+  await expect(page.locator('#sTick')).toHaveText('1/20');
+  await expect(page.locator('#sWasted')).toHaveText('0');
+  await page.locator('#hBody').fill('⍵=Ripe');
+  await page.selectOption('#speed', '30');
+  await page.click('#run');
+  await expect(page.locator('#msg')).toHaveText('Season complete. You scored 59.', { timeout: 30000 });
+  await expect(step).toHaveText('Tutorial, step 6 of 6');
+  await expect(page.locator('#lbSection')).toBeHidden(); // no leaderboard on the tutorial
+  await page.click('#closePanel');
+  await page.getByRole('button', { name: 'Go to Middlebourne Farm' }).click();
+  await expect(page.locator('#farm')).toHaveValue('middlebourne-farm');
+  await expect(page.locator('#fieldText')).toContainText('Row 8: ');
+  await expect(page.locator('#prevDay')).toHaveAttribute('aria-disabled', 'true'); // only on the tutorial
+  await page.locator('#prevDay').click({ force: true });
+  await expect(page.locator('#msg')).toHaveText('Previous day is only on Tutorial Farm, for now.');
+  // The intro's link starts it again.
+  await page.click('#playTutorial');
+  await expect(page.locator('#farm')).toHaveValue('tutorial-farm');
+  await expect(step).toHaveText('Tutorial, step 1 of 6');
+  await page.close();
 });
