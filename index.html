@@ -227,6 +227,8 @@ button.link { font: inherit; font-weight: inherit; background: none; border: 0; 
 .field-stage.bump { animation: bump 260ms ease-out; }
 @keyframes bump { 30% { transform: scale(1.015); } }
 .stats { display: flex; flex-wrap: wrap; gap: 6px 24px; margin-top: 12px; font-variant-numeric: tabular-nums; }
+/* On phones, the four stats always sit in two rows of two, so longer labels on some farms can't add a row. */
+@media (max-width: 480px) { .stats { display: grid; grid-template-columns: 1fr 1fr; } }
 .stat { display: flex; flex-direction: column; }
 .stat[hidden] { display: none; }
 .stat span { font-size: 0.85rem; color: var(--muted); }
@@ -464,7 +466,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
   <main class="game">
     <section class="plot" aria-label="Field">
       <div class="field-head">
-        <span class="field-title">Today’s field, <code>⍵</code></span>
+        <span class="field-title"><span id="fieldTitle">Your field on day 1</span>, <code>⍵</code></span>
         <button type="button" class="small-button" id="showNumbers" aria-pressed="false">Show numbers</button>
         <button type="button" class="small-button" id="showAnswers" aria-pressed="false" title="Show Harvest’s answer for each plot, 1 or 0">Show answers</button>
       </div>
@@ -476,7 +478,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
       <p id="fieldText" class="sr-only"></p>
       <p id="announce" class="sr-only" aria-live="polite"></p>
       <div class="stats">
-        <div class="stat"><span>Day</span><strong id="sTick">0/100</strong></div>
+        <div class="stat"><span>Days played</span><strong id="sTick">0/100</strong></div>
         <div class="stat"><span>Score</span><strong id="sScore">0</strong></div>
         <div class="stat"><span>Wasted</span><strong id="sWasted">0</strong></div>
         <div class="stat"><span id="bestLabel">Personal best</span><strong id="sBest">–</strong></div>
@@ -1708,43 +1710,43 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   try { tutFree = localStorage.getItem(TUT_DONE_KEY) === '1'; } catch (e) {}
   const tut = { step: 0, wasted: false, wastedAt: [], undone: false, done: false };
   const TUTORIAL = [
-    { text: 'This is your farm: 16 plots in a 4 by 4 grid. Each plot holds one plant.',
+    { text: '<b>Welcome to your first farm!</b> Your field has 16 plots, set out in a 4 by 4 grid, and each plot holds one plant.',
       glow: () => ({ els: [$('field')] }) },
-    { text: 'Plants grow in stages, one step each night: a Seed becomes a Sprout, a Sprout becomes Growing, and Growing becomes Ripe. Ripe plants are ready to pick, and each one scores 1 point. But a ripe plant left for a night turns Rotten. A rotten plant blocks its plot until you pick it, which clears the plot but scores no points.',
+    { text: 'Your plants grow one stage each night: a Seed becomes a Sprout, a Sprout becomes Growing, and Growing becomes Ripe. Ripe plants are ready to pick, and each one scores you 1 point. Leave one a night too long, though, and it turns Rotten. A rotten plant blocks its plot until you pick it, which clears the plot but scores no points.',
       glow: () => ({ plots: plotsWhere(v => v === RIPE || v === ROT) }) },
-    { text: 'In your APL code, the whole field has one name: <code>⍵</code>, the Greek letter omega. You’ll write a rule that looks at <code>⍵</code> and decides which plots to pick.',
+    { text: 'Here’s the clever part: in your APL code, your whole field has one name, <code>⍵</code>, the Greek letter omega. You’ll write a rule that looks at <code>⍵</code> and decides which plots to pick.',
       glow: () => ({ els: [wordBtn('⍵'), $('framed')] }) },
-    { text: 'Let’s ask the field a question: which plants are ripe? Tap <code>⍵</code>, then <code>=</code>, then <code>Ripe</code>.',
-      allow: ['code'], done: () => previewIs(isRipe()), success: 'That’s it.',
+    { text: 'Let’s ask your field a question: which plants are ripe? Tap <code>⍵</code>, then <code>=</code>, then <code>Ripe</code>.',
+      allow: ['code'], done: () => previewIs(isRipe()), success: 'That’s it!',
       glow: () => {
         const c = $('hBody').value.replace(/\s/g, '');
         const want = c === '' || c === '0' ? '⍵' : c === '⍵' ? '=' : c === '⍵=' ? 'Ripe' : null;
         return { els: [want ? wordBtn(want) : $('framed')] };
       } },
-    { text: 'Your rule <code>⍵=Ripe</code> asked every plot at once. 1 means yes, it’s ripe; 0 means no, it’s at a different stage. Your answer is a grid of 16 answers, the same shape as the field.',
+    { text: 'Your rule <code>⍵=Ripe</code> just asked all 16 plots at once! 1 means yes, it’s ripe; 0 means no, it’s at a different stage. Your answer is a grid of 16, the same shape as your field.',
       glow: () => ({ plots: onesAt() }) },
-    { text: 'Every plot marked 1 will be picked. Press <b>Next day</b> to pick them and move on to the next day. Then watch the farm grow overnight.',
-      allow: ['step'], done: () => state.day >= 1, success: 'Picked. What happened is shown below.',
+    { text: 'Harvest time! Every plot marked 1 gets picked. Press <b>Next day</b> to pick them, then watch your plants grow overnight.',
+      allow: ['step'], done: () => state.day >= 1, success: 'Picked! What happened is shown below.',
       glow: () => ({ els: [$('step')], plots: onesAt() }) },
-    { text: 'Every plant grew one stage overnight. Your rule hasn’t changed, but the field has, so the 1s are in new places. Press <b>Next day</b> again.',
+    { text: 'Look: every plant grew a stage overnight. Your rule hasn’t changed, but your field has, so the 1s have moved. Press <b>Next day</b> again.',
       allow: ['step'], done: () => state.day >= 2, success: 'Same rule, new field, new answer.',
       glow: () => ({ els: [$('step')], plots: onesAt() }) },
-    { text: 'What if you pick too early? Change your rule to <code>⍵≥Growing</code>. <code>≥</code> means “at least”, so this asks: is this plant at least Growing?',
-      allow: ['code'], done: () => previewIs(atLeastGrowing()), success: 'Now look at the field.',
+    { text: 'What if you’re too eager? Change your rule to <code>⍵≥Growing</code>. <code>≥</code> means “at least”, so it asks: is this plant at least Growing?',
+      allow: ['code'], done: () => previewIs(atLeastGrowing()), success: 'Now look at your field.',
       glow: () => ({ els: [$('framed'), wordBtn('≥'), wordBtn('Growing')] }) },
-    { text: 'Now the Growing plants are marked 1 too. Press <b>Next day</b> to pick them.',
-      allow: ['step'], done: () => tut.wasted, success: 'Picked.',
+    { text: 'Now your Growing plants get a 1 too. Press <b>Next day</b> to pick them, and see what happens.',
+      allow: ['step'], done: () => tut.wasted, success: 'Picked!',
       glow: () => ({ els: [$('step')], plots: onesAt().filter(([r, c]) => state.field[r][c] === 2) }) },
-    { text: 'Those plants were picked too soon, so they score nothing: they’re wasted. Press <b>Previous day</b> to undo it.',
-      allow: ['prevDay'], done: () => tut.undone && state.wasted === 0, success: 'Undone: the field is back as it was.',
+    { text: 'Oops! Those plants were picked too soon, so they’re wasted and score you nothing. Press <b>Previous day</b> to undo it.',
+      allow: ['prevDay'], done: () => tut.undone && state.wasted === 0, success: 'Undone: your field is back as it was.',
       glow: () => ({ els: [$('prevDay')], plots: tut.undone ? [] : tut.wastedAt }) },
-    { text: 'Put your rule back to <code>⍵=Ripe</code>, then press <b>Play season</b> to let it run by itself for the rest of the season.',
-      allow: ['code', 'run'], season: true, done: () => tut.done, success: 'The season is over.',
+    { text: 'Phew. Put your rule back to <code>⍵=Ripe</code>, then press <b>Play season</b> and let it farm the rest of the season by itself.',
+      allow: ['code', 'run'], season: true, done: () => tut.done, success: 'Your season is over.',
       glow: () => ({ els: [previewIs(isRipe()) ? $('run') : $('framed')] }) },
-    { text: 'You did it! Your one line of APL decided all 16 plots, every day for 20 days: 320 decisions, without a single loop. Real farms have weather, so growth and rot are a matter of chance there. Play this farm freely, or go on to Middlebourne Farm and earn medals.',
+    { text: '<b>You did it!</b> Your one line of APL made a decision for all 16 plots, every day for 20 days: 320 decisions, without a single loop. Your first farm has perfect weather, but on other farms growth and rot are a matter of chance. Keep playing here, or head to Middlebourne Farm and start earning medals.',
       final: true, glow: () => ({ els: [$('tutNext'), $('tutSkip')] }) },
   ];
-  const FREE_TEXT = 'Tutorial complete. Tutorial Farm is yours to play freely: write any rule, step through the days, and use <b>Previous day</b> to try again.';
+  const FREE_TEXT = '<b>Tutorial complete!</b> Your first farm is all yours now: try any rule you like, step through the days, and use <b>Previous day</b> to try again.';
   // Every step's text, its success line and the free-play note are in the page at once, stacked in one space with
   // only the current one visible, so the space is always as tall as the longest and nothing moves between steps.
   $('tutTexts').replaceChildren(...[...TUTORIAL, { text: FREE_TEXT }].map(t => {
@@ -1821,7 +1823,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   }
   function startTutorial() { tut.step = 0; tut.wasted = false; tut.wastedAt = []; tut.undone = false; tut.done = false; tutShown = ''; }
   // Each step starts from a fixed point: the days played so far (r: picked with ⍵=Ripe, g: with ⍵≥Growing) and
-  // the rule in the box. Back, Next and Restart put the farm exactly there by replaying those days, so the field
+  // the rule in the box. Back, Next and Restart put the field exactly there by replaying those days, so the field
   // always matches the step, however the player got to it.
   const STEP_STATES = [
     ['', '0'], ['', '0'], ['', '0'], ['', '0'],             // 1 to 4: day 0, the starter rule
@@ -1978,13 +1980,15 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     else runPreview();
   }
 
+  // Which day the field is on: "your field on day 1" before anything is played, and so on to the season's end.
+  const fieldDay = () => state.day < TICKS ? `Your field on day ${state.day + 1}` : 'Your field at the end of the season';
   // A text version of the field for screen readers: every plot's stage, row by row, with what Harvest
   // would pick and where scarecrows will stand. The field points to it with aria-describedby.
   const fieldTextEl = $('fieldText');
   function describeField(picks, scare) {
     const rows = state.field.map((row, r) => `Row ${r + 1}: ${row.map((v, c) =>
       STAGE_NAMES[v] + (picks && picks[r][c] ? ', picked' : '') + (scare && scare[r][c] ? ', scarecrow' : '')).join('; ')}.`);
-    const text = `Day ${state.day} of ${TICKS}. ${rows.join(' ')}`;
+    const text = `${fieldDay()}${state.day < TICKS ? ` of ${TICKS}` : `, after ${TICKS} days`}. ${rows.join(' ')}`;
     if (fieldTextEl.textContent !== text) fieldTextEl.textContent = text;
   }
   // After Next day, screen readers hear what happened: points, waste, rot and crows, and the score.
@@ -2097,6 +2101,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
 
   function updateStats() {
     $('sTick').textContent = `${state.day}/${TICKS}`;
+    $('fieldTitle').textContent = fieldDay();
     $('sScore').textContent = state.score;
     $('sWasted').textContent = state.wasted;
     const b = farm ? bests[AcresCore.bestKey(RULES.id, farm.id)] : null;
@@ -3392,7 +3397,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   // Restart on Tutorial Farm starts the tutorial again, except on its last step, which plays the season afresh.
   $('restart').addEventListener('click', () => {
     stop();
-    // In a lesson, Restart puts the farm back to the start of the current step.
+    // In a lesson, Restart puts the field back to the start of the current step.
     if (lessonOn()) { applyStepState(tut.step); renderTutorial(); return; }
     reset(); renderTutorial(); setMsg('');
   });
@@ -3401,7 +3406,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   $('tutNext').addEventListener('click', () => {
     if (tutFree) { tutFree = false; stop(); startTutorial(); reset(); renderTutorial(); setMsg(''); return; } // Replay the tutorial
     if (!TUTORIAL[tut.step].final) { tut.step++; applyStepState(tut.step); renderTutorial(); return; }
-    finishTutorial(); stop(); reset(); renderTutorial(); setMsg('Tutorial Farm is yours: play it any way you like.'); // Play freely
+    finishTutorial(); stop(); reset(); renderTutorial(); setMsg('Your first farm is all yours: play it any way you like.'); // Play freely
   });
   $('tutSkip').addEventListener('click', () => { stop(); chooseFarm('middlebourne-farm'); reset(); setMsg(''); });
   $('playTutorial').addEventListener('click', e => {
