@@ -1717,7 +1717,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     { text: 'Here’s the clever part: in your APL code, your whole field has one name, <code>⍵</code>, the Greek letter omega. You’ll write a rule that looks at <code>⍵</code> and decides which plots to pick.',
       glow: () => ({ els: [wordBtn('⍵'), $('framed')] }) },
     { text: 'Let’s ask your field a question: which plants are ripe? Tap <code>⍵</code>, then <code>=</code>, then <code>Ripe</code>.',
-      allow: ['code'], done: () => previewIs(isRipe()), success: 'That’s it!',
+      allow: ['code'], done: () => previewIs(isRipe()), success: 'That’s it! Look at your field: each ripe plant now shows a 1, and a dashed outline marks every plot your rule would pick.',
       glow: () => {
         const c = $('hBody').value.replace(/\s/g, '');
         const want = c === '' || c === '0' ? '⍵' : c === '⍵' ? '=' : c === '⍵=' ? 'Ripe' : null;
