@@ -1808,6 +1808,38 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     });
   }
   function startTutorial() { tut.step = 0; tut.wasted = false; tut.wastedAt = []; tut.undone = false; tut.done = false; tutShown = ''; }
+  // Each step starts from a fixed point: the days played so far (r: picked with ⍵=Ripe, g: with ⍵≥Growing) and
+  // the rule in the box. Back, Next and Restart put the farm exactly there by replaying those days, so the field
+  // always matches the step, however the player got to it.
+  const STEP_STATES = [
+    ['', '0'], ['', '0'], ['', '0'], ['', '0'],             // 1 to 4: day 0, the starter rule
+    ['', '⍵=Ripe'], ['', '⍵=Ripe'],                         // 5 and 6: day 0, ⍵=Ripe written
+    ['r', '⍵=Ripe'], ['rr', '⍵=Ripe'],                      // 7 and 8: after day 1, after day 2
+    ['rr', '⍵≥Growing'], ['rrg', '⍵≥Growing'],              // 9: the new rule; 10: after the wasteful day
+    ['rr', '⍵≥Growing'],                                    // 11: the wasteful day undone
+    ['r'.repeat(20), '⍵=Ripe'],                             // 12: the season played
+  ];
+  function applyStepState(i) {
+    const [days, rule] = STEP_STATES[i];
+    stop(); reset();
+    let before = null, mask = null;
+    for (const d of days) {
+      before = state.field.map(row => row.slice());
+      mask = state.field.map(row => row.map(v => +(d === 'r' ? v === RIPE : v >= 2)));
+      pastDays.push({ mask, scare: null });
+      AcresCore.advance(state, mask, null);
+    }
+    tut.wasted = i === 9 || i === 10; tut.undone = i === 10; tut.done = i === 11;
+    tut.wastedAt = i === 9 ? before.flatMap((row, r) => row.flatMap((v, c) => mask[r][c] && (v === 1 || v === 2) ? [[r, c]] : [])) : [];
+    // The rule in the box, and its preview straight away.
+    hBody.value = rule; codeEl.value = joinProgram(hBody.value, sBody.value); dirty = true;
+    try { localStorage.setItem(STORE_KEY, codeEl.value); } catch (e) {}
+    clearTimeout(previewTimer); previewTimer = null;
+    updateStats(); runPreview();
+    setMsg(i === 10 ? `Back to the start of day ${state.day + 1}.`
+      : i === 11 ? `Season complete. You scored ${points(state.score)}, with nothing wasted.`
+      : days ? narrate(before, mask) : '');
+  }
   function finishTutorial() { tutFree = true; try { localStorage.setItem(TUT_DONE_KEY, '1'); } catch (e) {} }
   // A day in plain words: what was harvested and scored, what was wasted or rotted, and what grew.
   function narrate(before, mask) {
@@ -3367,14 +3399,15 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   // Restart on Tutorial Farm starts the tutorial again, except on its last step, which plays the season afresh.
   $('restart').addEventListener('click', () => {
     stop();
-    if (lessonOn()) { if (TUTORIAL[tut.step].season) tut.done = false; else startTutorial(); }
+    // In a lesson, Restart puts the farm back to the start of the current step.
+    if (lessonOn()) { applyStepState(tut.step); renderTutorial(); return; }
     reset(); renderTutorial(); setMsg('');
   });
   $('newField').addEventListener('click', () => { stop(); seed = newSeed(); reset(); setMsg('New field planted.'); });
-  $('tutBack').addEventListener('click', () => { if (tut.step > 0) { tut.step--; renderTutorial(); } });
+  $('tutBack').addEventListener('click', () => { if (tut.step > 0) { tut.step--; applyStepState(tut.step); renderTutorial(); } });
   $('tutNext').addEventListener('click', () => {
     if (tutFree) { tutFree = false; stop(); startTutorial(); reset(); renderTutorial(); setMsg(''); return; } // Replay the tutorial
-    if (!TUTORIAL[tut.step].final) { tut.step++; renderTutorial(); return; }
+    if (!TUTORIAL[tut.step].final) { tut.step++; applyStepState(tut.step); renderTutorial(); return; }
     finishTutorial(); stop(); reset(); renderTutorial(); setMsg('Tutorial Farm is yours: play it any way you like.'); // Play freely
   });
   $('tutSkip').addEventListener('click', () => { stop(); chooseFarm('middlebourne-farm'); reset(); setMsg(''); });
