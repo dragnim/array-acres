@@ -19,7 +19,22 @@ const returning = async page => {
 };
 // The leaderboard is a real server; tests use a stand-in board instead.
 const LEADERBOARD = 'https://array-acres-leaderboard.long-tree-e1ed.workers.dev';
-test.beforeEach(async ({ page }) => {
+// The title screen opens at the start of each visit. Tests start mid-visit, past it, except the title screen's own
+// test, which uses browser.rawNewContext.
+const pastTitle = () => { try { sessionStorage.setItem('acres:welcomed', '1'); } catch (e) {} };
+test.beforeAll(({ browser }) => {
+  if (browser.rawNewContext) return;
+  const raw = browser.newContext.bind(browser);
+  browser.rawNewContext = raw;
+  browser.newContext = async options => { const context = await raw(options); await context.addInitScript(pastTitle); return context; };
+  browser.newPage = async options => {
+    const context = await browser.newContext(options), page = await context.newPage(), close = page.close.bind(page);
+    page.close = async (...args) => { await close(...args); await context.close(); };
+    return page;
+  };
+});
+test.beforeEach(async ({ context, page }) => {
+  await context.addInitScript(pastTitle);
   await page.route(`${LEADERBOARD}/**`, route => route.fulfill({ json: { entries: [], pending: [] } }));
   await returning(page);
 });
@@ -453,7 +468,7 @@ test('Crowhurst Farm: scarecrows from Scare, a limit of two, and crows in the re
 test('G turns god mode on and off, unlocking every farm for testing', async ({ page }) => {
   const crowhurst = page.locator('#farm option[value="crowhurst-farm"]'), badge = page.locator('#godBadge');
   await expect(crowhurst).toBeDisabled();
-  await page.locator('h1').click();
+  await page.locator('.topbar .intro').click(); // somewhere outside the code
   await page.keyboard.press('g');
   await expect(badge).toBeVisible();
   await expect(crowhurst).toBeEnabled();
@@ -467,7 +482,7 @@ test('G turns god mode on and off, unlocking every farm for testing', async ({ p
   // It stays on after a reload, and G again turns it off, back to a farm you have unlocked.
   await page.reload();
   await expect(badge).toBeVisible();
-  await page.locator('h1').click();
+  await page.locator('.topbar .intro').click(); // somewhere outside the code
   await page.keyboard.press('g');
   await expect(badge).toBeHidden();
   await expect(crowhurst).toBeDisabled();
@@ -1107,41 +1122,74 @@ test('free play on Tutorial Farm: Previous day undoes several days, and a new ru
   await expect(page.locator('#sWasted')).toHaveText('0');
 });
 
-test('a first visit opens on the welcome: the logo, Start the tutorial or Skip the tutorial, and only once', async ({ browser }) => {
-  const context = await browser.newContext({ reducedMotion: 'reduce' }); // the stages are still, so the scan sees them as players do
+test('the title screen: at the start of each visit, with crows, ways in for new and returning players, and links', async ({ browser }) => {
+  const context = await browser.rawNewContext({ reducedMotion: 'reduce' }); // the stages are still, so the scan sees them as players do
   const page = await context.newPage();
   await page.goto(PAGE);
-  const welcome = page.locator('#welcome');
-  await expect(welcome).toBeVisible();
+  const title = page.locator('#welcome'), start = page.locator('#welcomeStart'), second = page.locator('#welcomeSkip');
+  await expect(title).toBeVisible();
   await expect(page.locator('#welcomeTitle svg')).toHaveAttribute('aria-label', 'Array Acres');
-  await expect(page.locator('#welcomeStart')).toBeFocused();
+  await expect(start).toBeFocused();
   await expect(page.locator('#welcomeStages img')).toHaveCount(4);
+  await expect(page.locator('.welcome-crow')).toHaveCount(0); // no crows when motion is reduced
   expect(await page.evaluate(() => document.querySelector('.wrap').inert)).toBe(true); // the page behind can't be reached
-  const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']).analyze();
-  expect(violations.map(v => `${v.id} at ${v.nodes.map(n => n.target.join(' ')).join(', ')}`)).toEqual([]);
-  // Tab stays on the two buttons.
-  await page.keyboard.press('Tab'); await expect(page.locator('#welcomeSkip')).toBeFocused();
-  await page.keyboard.press('Tab'); await expect(page.locator('#welcomeStart')).toBeFocused();
-  // Start the tutorial: the welcome closes onto step 1, with nothing on top.
-  await page.click('#welcomeStart');
-  await expect(welcome).toBeHidden();
+  const scan = async () => {
+    const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']).analyze();
+    expect(violations.map(v => `${v.id} at ${v.nodes.map(n => n.target.join(' ')).join(', ')}`)).toEqual([]);
+  };
+  await scan();
+  // A new player: start or skip the tutorial. Tab stays inside the title screen.
+  await expect(start).toHaveText('Start the tutorial');
+  await expect(second).toHaveText('Skip the tutorial');
+  await expect(page.locator('.welcome-links a')).toHaveAttribute('href', 'https://github.com/dragnim/array-acres');
+  await page.keyboard.press('Shift+Tab'); await expect(page.locator('.welcome-links a')).toBeFocused();
+  await page.keyboard.press('Tab'); await expect(start).toBeFocused();
+  await start.click();
+  await expect(title).toBeHidden();
   await expect(page.locator('#tutStep')).toHaveText('Tutorial, step 1 of 12');
   await expect(page.locator('#panel')).toBeHidden();
   expect(await page.evaluate(() => document.querySelector('.wrap').inert)).toBe(false);
-  // Only once.
+  // Not on a reload, but the logo in the header opens it again; Escape carries on.
   await page.reload();
-  await expect(welcome).toBeHidden();
-  // Skip the tutorial: straight to Middlebourne Farm, with How to play open. Escape is the same as Start.
-  await page.evaluate(() => localStorage.clear());
+  await expect(title).toBeHidden();
+  await page.click('#openWelcome');
+  await expect(title).toBeVisible();
+  await expect(start).toHaveText('Continue the tutorial');
+  await page.keyboard.press('Escape');
+  await expect(title).toBeHidden();
+  // A returning player's next visit (a new tab): carry on where they were, or play the tutorial again.
+  await page.evaluate(() => localStorage.setItem('acres:farm', 'middlebourne-farm'));
+  const next = await context.newPage();
+  await next.goto(PAGE);
+  await expect(next.locator('#welcome')).toBeVisible();
+  await expect(next.locator('#welcomeStart')).toHaveText('Continue on Middlebourne Farm');
+  await expect(next.locator('#welcomeSkip')).toHaveText('Play the tutorial');
+  // The links: the leaderboard and What is APL? open their panels.
+  await next.click('#welcomeBoard');
+  await expect(next.locator('#welcome')).toBeHidden();
+  await expect(next.locator('#panelTitle')).toHaveText('Leaderboard');
+  await next.click('#openWelcome');
+  await next.click('#welcomeAbout');
+  await expect(next.locator('#panelTitle')).toHaveText('What is APL?');
+  await next.click('#openWelcome');
+  await next.click('#welcomeSkip');
+  await expect(next.locator('#farm')).toHaveValue('tutorial-farm');
+  await expect(next.locator('#tutStep')).toHaveText('Tutorial, step 1 of 12');
+  // Skip the tutorial, on a first visit: Middlebourne Farm, with How to play open.
+  await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
   await page.reload();
-  await page.click('#welcomeSkip');
-  await expect(welcome).toBeHidden();
+  await second.click();
   await expect(page.locator('#farm')).toHaveValue('middlebourne-farm');
   await expect(page.locator('#panelTitle')).toHaveText('How to play');
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await page.keyboard.press('Escape');
-  await expect(welcome).toBeHidden();
-  await expect(page.locator('#tutStep')).toHaveText('Tutorial, step 1 of 12');
+  await context.close();
+});
+
+test('crows fly across the title screen now and then, unless motion is reduced', async ({ browser }) => {
+  const context = await browser.rawNewContext();
+  const page = await context.newPage();
+  await page.goto(PAGE);
+  await expect(page.locator('.welcome-crow').first()).toBeAttached({ timeout: 6000 });
+  await page.click('#welcomeStart');
+  await expect(page.locator('.welcome-crow')).toHaveCount(0); // gone with the title screen
   await context.close();
 });
