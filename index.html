@@ -117,7 +117,7 @@ body {
 .wrap { max-width: var(--page-w); margin: 0 auto; padding: clamp(16px, 4vw, 40px); }
 .topbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px 24px; }
 .topbar .farm-bar { grid-column: 1 / -1; }
-.topbar .intro { grid-column: 1 / -1; margin: -4px 0 0; max-width: 62ch; color: var(--muted); font-size: 1.05rem; }
+.topbar .intro { grid-column: 1 / -1; margin: -4px 0 0; max-width: 90ch; color: var(--muted); font-size: 1.05rem; }
 .topbar h1 {
   font-size: clamp(1.7rem, 4vw, 2.3rem);
   font-weight: 800;
@@ -401,7 +401,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
 <div class="wrap">
   <header class="topbar">
     <h1>Array Acres</h1>
-    <p class="intro">Write one APL function, <code>Harvest</code>. Every day it’s given today’s field as <code>⍵</code> and gives back 1s and 0s: 1 means harvest that plot, 0 means leave it. Score as much as you can in 100 days.</p>
+    <p class="intro">Learn to think in arrays, the APL way: ask one question of the whole field at once. Write one APL function, <code>Harvest</code>. Every day it’s given today’s field as <code>⍵</code> and gives back 1s and 0s: 1 means harvest that plot, 0 means leave it. Score as much as you can in 100 days.</p>
     <div class="farm-bar">
       <label for="farm">Farm</label>
       <select id="farm">
