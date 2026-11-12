@@ -1106,3 +1106,42 @@ test('free play on Tutorial Farm: Previous day undoes several days, and a new ru
   await expect(page.locator('#msg')).toHaveText('Season complete. You scored 99 points.', { timeout: 30000 });
   await expect(page.locator('#sWasted')).toHaveText('0');
 });
+
+test('a first visit opens on the welcome: the logo, Start the tutorial or Skip the tutorial, and only once', async ({ browser }) => {
+  const context = await browser.newContext({ reducedMotion: 'reduce' }); // the stages are still, so the scan sees them as players do
+  const page = await context.newPage();
+  await page.goto(PAGE);
+  const welcome = page.locator('#welcome');
+  await expect(welcome).toBeVisible();
+  await expect(page.locator('#welcomeTitle svg')).toHaveAttribute('aria-label', 'Array Acres');
+  await expect(page.locator('#welcomeStart')).toBeFocused();
+  await expect(page.locator('#welcomeStages img')).toHaveCount(4);
+  expect(await page.evaluate(() => document.querySelector('.wrap').inert)).toBe(true); // the page behind can't be reached
+  const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']).analyze();
+  expect(violations.map(v => `${v.id} at ${v.nodes.map(n => n.target.join(' ')).join(', ')}`)).toEqual([]);
+  // Tab stays on the two buttons.
+  await page.keyboard.press('Tab'); await expect(page.locator('#welcomeSkip')).toBeFocused();
+  await page.keyboard.press('Tab'); await expect(page.locator('#welcomeStart')).toBeFocused();
+  // Start the tutorial: the welcome closes onto step 1, with nothing on top.
+  await page.click('#welcomeStart');
+  await expect(welcome).toBeHidden();
+  await expect(page.locator('#tutStep')).toHaveText('Tutorial, step 1 of 12');
+  await expect(page.locator('#panel')).toBeHidden();
+  expect(await page.evaluate(() => document.querySelector('.wrap').inert)).toBe(false);
+  // Only once.
+  await page.reload();
+  await expect(welcome).toBeHidden();
+  // Skip the tutorial: straight to Middlebourne Farm, with How to play open. Escape is the same as Start.
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.click('#welcomeSkip');
+  await expect(welcome).toBeHidden();
+  await expect(page.locator('#farm')).toHaveValue('middlebourne-farm');
+  await expect(page.locator('#panelTitle')).toHaveText('How to play');
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.keyboard.press('Escape');
+  await expect(welcome).toBeHidden();
+  await expect(page.locator('#tutStep')).toHaveText('Tutorial, step 1 of 12');
+  await context.close();
+});
