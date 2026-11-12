@@ -273,6 +273,10 @@ textarea {
 .note-slot[data-mode="tutorial"] .code-note, .note-slot[data-mode="note"] .tutorial { visibility: hidden; }
 .tut-texts { display: grid; }
 .tut-texts p { margin: 4px 0 8px; color: var(--ink); visibility: hidden; }
+/* What happened, inside the tutorial box: three lines are kept for it, so nothing below moves. */
+.tut-msg { margin: 0 0 8px; padding-left: 10px; border-left: 3px solid var(--line); color: var(--muted); min-height: 4.5em; }
+@media (max-width: 640px) { .tut-msg { min-height: 7.5em; } }
+.tut-msg:empty { border-left-color: transparent; }
 .note-slot[data-mode="tutorial"] .tut-texts p.current { visibility: visible; }
 /* The step's label on its own line, then Back and Next, so a longer last button never moves anything. */
 .tut-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
@@ -496,6 +500,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
         <div class="tutorial" id="tutorial">
           <div class="tut-head"><span class="tut-step" id="tutStep"></span><button type="button" class="small-button" id="tutBack">Back</button><button type="button" class="small-button" id="tutNext">Next</button><button type="button" class="link-button" id="tutSkip">Skip tutorial</button></div>
           <div class="tut-texts" id="tutTexts" aria-live="polite"></div>
+          <p class="tut-msg" id="tutMsg" role="status"></p>
         </div>
       </div>
       <div class="framed" id="framed">
@@ -1704,10 +1709,10 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
         const want = c === '' || c === '0' ? '⍵' : c === '⍵' ? '=' : c === '⍵=' ? 'Ripe' : null;
         return { els: [want ? wordBtn(want) : $('framed')] };
       } },
-    { text: 'Your rule <code>⍵=Ripe</code> asked every plot at once. 1 means yes, it’s ripe; 0 means no. Your answer is a grid of 16 answers, the same shape as the field.',
+    { text: 'Your rule <code>⍵=Ripe</code> asked every plot at once. 1 means yes, it’s ripe; 0 means no, it’s at a different stage. Your answer is a grid of 16 answers, the same shape as the field.',
       glow: () => ({ plots: onesAt() }) },
     { text: 'Every plot marked 1 will be picked. Press <b>Next day</b> to pick them and move on to the next day. Then watch the farm grow overnight.',
-      allow: ['step'], done: () => state.day >= 1, success: 'Picked. The message under the buttons says what happened.',
+      allow: ['step'], done: () => state.day >= 1, success: 'Picked. What happened is shown below.',
       glow: () => ({ els: [$('step')], plots: onesAt() }) },
     { text: 'Every plant grew one stage overnight. Your rule hasn’t changed, but the field has, so the 1s are in new places. Press <b>Next day</b> again.',
       allow: ['step'], done: () => state.day >= 2, success: 'Same rule, new field, new answer.',
@@ -1742,9 +1747,11 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   function renderTutorial() {
     const on = !!(farm && farm.tutorial), mode = !on ? 'off' : tutFree ? 'free' : 'lesson';
     $('noteSlot').dataset.mode = on ? 'tutorial' : 'note';
+    msgToTutorial = mode === 'lesson';
     if (mode !== tutMode) {
       // A lesson shows only what a beginner needs: the names it uses, the field, and the day buttons.
       tutMode = mode;
+      $('tutMsg').textContent = '';
       document.body.classList.toggle('tutorial-mode', mode === 'lesson');
       if (mode === 'lesson' && view !== 'simple') setView('simple');
       renderWords();
@@ -1812,7 +1819,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
       const from = mask[r][c] ? 0 : before[r][c];
       if (from < RIPE && after[r][c] === from + 1) grew++;
     }
-    const parts = [picked ? `you harvested ${n(picked, 'plot')}, scoring ${d.points}` : 'you harvested nothing'];
+    const parts = [picked ? `you harvested ${n(picked, 'plot')}, scoring ${points(d.points)}` : 'you harvested nothing'];
     if (d.wasted) parts.push(`${n(d.wasted, 'plant was', 'plants were')} harvested too early and wasted`);
     if (d.rotted) parts.push(`${n(d.rotted, 'ripe plant')} you left rotted overnight`);
     parts.push(`${n(grew, 'plant')} grew a stage overnight`);
@@ -1835,9 +1842,15 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     fieldChanged();
   }
 
+  // Scores always say points: "4 points", "1 point".
+  const points = k => `${k} point${k === 1 ? '' : 's'}`;
+  // In the tutorial's lessons, messages appear in the tutorial box, with everything else the tutorial says.
+  let msgToTutorial = false;
   function setMsg(text, isError) {
-    msgEl.textContent = text || '';
-    msgEl.classList.toggle('error', !!isError);
+    const el = msgToTutorial ? $('tutMsg') : msgEl;
+    (msgToTutorial ? msgEl : $('tutMsg')).textContent = '';
+    el.textContent = text || '';
+    el.classList.toggle('error', !!isError);
   }
   // A helper used like a stage (⍵=BumperCrops) gives back a function, not an answer; say so in plain terms.
   function friendlier(message) {
@@ -1993,9 +2006,9 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
       }
       updateStats();
       stop();
-      setMsg(mixedDay ? `Season complete. You scored ${state.score}, with your code changed on day ${mixedDay}.` : `Season complete. You scored ${state.score}.`);
+      setMsg(mixedDay ? `Season complete. You scored ${points(state.score)}, with your code changed on day ${mixedDay}.` : `Season complete. You scored ${points(state.score)}.`);
       if (farm && farm.tutorial && tutFree) {
-        setMsg(`Season complete. You scored ${state.score}.`);
+        setMsg(`Season complete. You scored ${points(state.score)}.`);
         return false;
       }
       if (farm && farm.tutorial) {
@@ -2010,7 +2023,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
         }
         tut.done = ripeOnly && state.score > 0;
         if (tut.done) finishTutorial(), tutFree = false; // remembered as finished; free play starts from the last step
-        setMsg(tut.done ? `Season complete. You scored ${state.score}, with nothing wasted.`
+        setMsg(tut.done ? `Season complete. You scored ${points(state.score)}, with nothing wasted.`
           : state.wasted ? `Season complete, but ${state.wasted} plant${state.wasted === 1 ? ' was' : 's were'} wasted. Put back ⍵=Ripe and press Restart to play the season again.`
           : `Season complete, but some days left ripe plants unharvested. Put back ⍵=Ripe and press Restart to play the season again.`);
         renderTutorial();
@@ -3379,9 +3392,10 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     reset();
     for (const d of keep) AcresCore.advance(state, d.mask, d.scare);
     pastDays = keep;
+    if (lessonOn() && tut.wasted) tut.undone = true; // before the redraw, so the tutorial sees it at once
     updateStats(); fieldChanged();
-    if (lessonOn() && tut.wasted) tut.undone = true;
     setMsg(`Back to the start of day ${state.day + 1}.`);
+    if (lessonOn()) renderTutorial();
   });
   $('restartSame').addEventListener('click', () => { stop(); reset(); closePanel(false); start(); });
   // Switching crows or blight plants a new field with them on or off.
