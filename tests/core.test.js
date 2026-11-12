@@ -562,10 +562,12 @@ for (const [src, want] of limits) check(`limit: ${src}`, ev(src), want);
   check('tutorial: every other farm is still 8×8 with a 100-day season',
     AcresCore.FARMS.filter(f => !f.tutorial).every(f => f.size === 8 && f.days === 100), true);
   const st0 = AcresCore.newSeason(TF.seed, TF);
-  check('tutorial: its field is 4×4 and starts with every kind of plant on show',
-    [st0.field.length, st0.field.every(r => r.length === 4), new Set(st0.field.flat()).size, st0.days], [4, true, 4, 20]);
+  check('tutorial: its 4×4 field is drawn by hand, with every stage on show, Rotten included',
+    [st0.field, new Set(st0.field.flat()).size, st0.days], [[[0, 1, 2, 3], [1, 2, 3, 4], [2, 3, 2, 0], [3, 2, 1, 0]], 5, 20]);
+  st0.field[0][0] = 9;
+  check('tutorial: a season gets its own copy of that field', AcresCore.newSeason(TF.seed, TF).field[0][0], 0);
   const play = src => { const fn = AcresCore.compileHarvest(src), st = AcresCore.newSeason(TF.seed, TF); while (st.day < st.days) AcresCore.advance(st, AcresCore.runHarvest(fn, st.field)); return [st.score, st.wasted, st.day]; };
-  check('tutorial: ⍵=Ripe plays 20 days, scores 59 and wastes nothing', play('Harvest←{⍵=Ripe}'), [59, 0, 20]);
+  check('tutorial: ⍵=Ripe plays 20 days, scores 64 and wastes nothing', play('Harvest←{⍵=Ripe}'), [64, 0, 20]);
   check('tutorial: ⍵=Growing wastes plants, as the tutorial shows', play('Harvest←{⍵=Growing}')[1] > 0, true);
   let err = '';
   try { AcresCore.runHarvest(AcresCore.compileHarvest('Harvest←{8 8⍴1}'), st0.field); } catch (e) { err = e.message; }

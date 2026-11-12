@@ -141,6 +141,7 @@ body {
 /* Things that come and go with the farm keep their space, so switching farms doesn't shift the page:
    the medals (on real farms) and New field (on Practice Farm) share one slot of fixed height. */
 .farm-slot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 38px; }
+.farm-slot > button { height: 38px; } /* a whole number of pixels, so the bar is exactly as tall on every farm */
 /* Narrower screens: the slot always has its own row, so farms with and without medals line up the same. */
 @media (max-width: 1240px) { .farm-slot { flex-basis: 100%; } }
 /* Narrow screens: the weather has its own row too, since Crowhurst and Blightwick add a third chip. */
@@ -276,6 +277,14 @@ textarea {
 /* The step's label on its own line, then Back and Next, so a longer last button never moves anything. */
 .tut-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 .tut-step { font-weight: 600; flex-basis: 100%; }
+.tut-success { display: block; margin-top: 4px; color: var(--ripe); font-weight: 600; visibility: hidden; }
+.note-slot[data-mode="tutorial"] .tut-texts p.current.passed .tut-success { visibility: visible; }
+/* The thing the current step needs glows, drawing the eye without moving anything. */
+.tut-glow { outline: 3px solid var(--ripe); outline-offset: 3px; border-radius: 8px; animation: tut-pulse 1.6s ease-in-out infinite; }
+@keyframes tut-pulse { 50% { outline-color: transparent; } }
+@media (prefers-reduced-motion: reduce) { .tut-glow { animation: none; } }
+/* Tutorial Farm keeps only what a beginner needs. */
+.tutorial-mode #glyphs, .tutorial-mode #viewToggle, .tutorial-mode #showNumbers, .tutorial-mode .speed, .tutorial-mode .hint { display: none; }
 .intro a { color: var(--ink); text-underline-offset: 3px; }
 #prevDay[aria-disabled="true"] { opacity: 0.45; border-style: dashed; cursor: help; }
 .framed { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px 10px 0 0; padding: 10px 14px; }
@@ -480,7 +489,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
         <p class="code-note" id="codeNote"><code>⍵</code> is today’s field. Compare it with a stage, like <code>⍵=Ripe</code>, to get a yes (1) or no (0) for every plot: <code>Harvest</code> harvests the 1s. The stages come in order: Seed, Sprout, Growing, Ripe, Rotten.</p>
         <div class="tutorial" id="tutorial">
           <div class="tut-head"><span class="tut-step" id="tutStep"></span><button type="button" class="small-button" id="tutBack">Back</button><button type="button" class="small-button" id="tutNext">Next</button></div>
-          <div class="tut-texts" id="tutTexts"></div>
+          <div class="tut-texts" id="tutTexts" aria-live="polite"></div>
         </div>
       </div>
       <div class="framed" id="framed">
@@ -1287,8 +1296,8 @@ const AcresCore = (() => {
   // Last, optional: the field's size and the season's length (8×8 and 100 days unless a farm says otherwise),
   // and tutorial: true for the small first farm, which has no medals, no leaderboard and doesn't count as "any farm".
   const farm = (id, name, sunshine, rainfall, seed, bronze, silver, gold, crows = 0, boardVersion = 0, blight = null,
-    { size = RULES.size, days = RULES.days, tutorial = false } = {}) =>
-    Object.freeze({ id, name, sunshine, rainfall, seed, crows, boardVersion, blight, size, days, tutorial, rules: RULES.id, targets: Object.freeze({ bronze, silver, gold }) });
+    { size = RULES.size, days = RULES.days, tutorial = false, field = null } = {}) =>
+    Object.freeze({ id, name, sunshine, rainfall, seed, crows, boardVersion, blight, size, days, tutorial, field, rules: RULES.id, targets: Object.freeze({ bronze, silver, gold }) });
   const BLIGHT = Object.freeze({ spread: 0.5, start: 3, outbreak: 0.1 });
   const FARMS = Object.freeze([
     farm('middlebourne-farm', 'Middlebourne Farm', 0.55, 0.20, 16574467, 1200, 1350, 1500),
@@ -1299,9 +1308,12 @@ const AcresCore = (() => {
     // show which). Experimental, like Crowhurst.
     farm('blightwick-farm', 'Blightwick Farm', 0.55, 0.20, 252000756, 1050, 1300, 1450, 0, 1, BLIGHT),
     // The tutorial: the first farm a new player meets (listed first in the menu), a 4×4 field and a 20-day
-    // season, small enough to read every answer. Its field was chosen so ⍵=Ripe scores well and wastes nothing.
+    // season, small enough to read every answer. Its starting field is drawn by hand rather than from the seed,
+    // so every stage is on show, Rotten included; the seed still sets the luck overnight, and with seed 1 four
+    // neighbouring plants ripen together during the season, a first glimpse of bumper crops.
     // No medals (so no targets), no leaderboard, and it doesn't count as "any farm" for gold.
-    farm('tutorial-farm', 'Tutorial Farm', 0.55, 0.20, 246489, 0, 0, 0, 0, 0, null, { size: 4, days: 20, tutorial: true }),
+    farm('tutorial-farm', 'Tutorial Farm', 0.55, 0.20, 1, 0, 0, 0, 0, 0, null, { size: 4, days: 20, tutorial: true,
+      field: Object.freeze([[0, 1, 2, 3], [1, 2, 3, 4], [2, 3, 2, 0], [3, 2, 1, 0]].map(Object.freeze)) }),
   ]);
   // Practice Farm: Middlebourne Farm's weather on a new random field each time, with no targets.
   const PRACTICE = Object.freeze({ id: 'practice', name: 'Practice Farm', sunshine: 0.55, rainfall: 0.20 });
@@ -1334,7 +1346,9 @@ const AcresCore = (() => {
   // A season on a farm: the farm's weather, starting from the field its seed produces.
   function newSeason(seed, weather = PRACTICE) {
     const rng = mulberry32(seed), N = weather.size || RULES.size;
-    const field = Array.from({ length: N }, () => Array.from({ length: N }, () => Math.floor(rng() * 4)));
+    // A farm may give its starting field (Tutorial Farm does); otherwise the seed draws it.
+    const field = weather.field ? weather.field.map(r => [...r])
+      : Array.from({ length: N }, () => Array.from({ length: N }, () => Math.floor(rng() * 4)));
     const st = { seed, rng, field, size: N, days: weather.days || RULES.days, day: 0, score: 0, wasted: 0, eaten: 0, blighted: 0, marks: null, history: [],
       sunshine: weather.sunshine, rainfall: weather.rainfall, crows: weather.crows || 0, blight: weather.blight || null,
       crowPatches: [], eatenAt: [], rottedAt: [], blightedAt: [] };
@@ -1657,39 +1671,64 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   });
   syncNumbersButton();
 
-  // Tutorial Farm: guided steps above the code, each moving on by itself once it's done (Back and Next skip
-  // around), Previous day to undo a day, and each day explained under the controls.
+  // Tutorial Farm: six guided steps above the code. When a step's task is done it says so and waits for Next,
+  // so the player can take in what happened; Back and Next also skip around. The thing each step needs (the
+  // field, the code, a button) glows. Previous day undoes a day, and each day is explained under the controls.
   const isRipe = () => state.field.map(r => r.map(v => +(v === RIPE)));
+  const tut = { step: 0, wasted: false, done: false };
   const TUTORIAL = [
-    { text: 'This is <code>⍵</code>, your field: 16 plots, each at a stage. Seeds become sprouts, then growing plants, then ripe plants. Ripe plants left too long rot.' },
-    { text: 'Write <code>⍵=Ripe</code> in the box below: type it, or tap <code>⍵</code>, <code>=</code> and <code>Ripe</code>. Each plot then shows your answer: 1 means harvest it, 0 means leave it.',
-      done: () => preview.mask && !preview.stale && JSON.stringify(preview.mask) === JSON.stringify(isRipe()) && state.field.flat().includes(RIPE) },
-    { text: 'Press <b>Next day</b>. The plots marked 1 are harvested, then everything grows overnight. The message under the buttons says what happened.',
-      done: () => state.day >= 1 },
-    { text: 'Now try harvesting too early: change your code to <code>⍵=Growing</code>, and press <b>Next day</b>.',
-      done: () => state.wasted > 0 },
-    { text: 'Those plants were wasted: they’d have ripened if you’d waited. Press <b>Previous day</b> to undo it, change your code back to <code>⍵=Ripe</code>, then press <b>Play season</b>.',
-      done: () => state.day >= TICKS },
-    { text: 'You’ve written your first APL: one question, answered for every plot at once. Next: Middlebourne Farm, 8×8, with medals to earn.', last: true },
+    { text: '<b>Meet the array.</b> This whole 4×4 field is one array, called <code>⍵</code>. Each of its 16 plots holds a plant at one stage: Seed, Sprout, Growing, Ripe or Rotten. Your code looks at all 16 plots at once.',
+      glow: 'field' },
+    { text: '<b>Ask the field a question.</b> Which plants are ripe? Enter <code>⍵=Ripe</code> below, by typing or tapping <code>⍵</code>, <code>=</code> and <code>Ripe</code>. <code>⍵</code> is the whole field, <code>=</code> asks “is equal to?”, and <code>Ripe</code> is the stage to look for.',
+      glow: 'framed', done: () => preview.mask && !preview.stale && JSON.stringify(preview.mask) === JSON.stringify(isRipe()),
+      success: 'Correct. Look at the field: every plot now shows your answer.' },
+    { text: '<b>See the answer.</b> Your code answered all 16 plots at once: 1 means “yes, this plot is ripe”, 0 means “no”. The answer is another 4×4 array, the same shape as the field, and every 1 will be harvested. Press <b>Next day</b>.',
+      glow: 'step', done: () => state.day >= 1, success: 'Done. The message under the buttons says what happened.' },
+    { text: '<b>Watch the rule run.</b> Your 1s were harvested, then the field changed overnight: plants grew, and ripe plants can rot. Your code hasn’t changed, but <code>⍵</code> has, so <code>⍵=Ripe</code> gives a new answer for today. Press <b>Next day</b> again.',
+      glow: 'step', done: () => state.day >= 2, success: 'Same question, new field, new answer.' },
+    { text: '<b>Change the question.</b> Try <code>⍵≥Growing</code>: <code>≥</code> asks “at least?”, so Growing, Ripe and Rotten plants all answer 1. Press <b>Next day</b> to see what harvesting growing plants does, then <b>Previous day</b> to undo it.',
+      glow: 'prevDay', done: () => tut.wasted && state.wasted === 0, success: 'Undone. Growing plants harvested early score nothing: they’re wasted.' },
+    { text: '<b>Your first strategy.</b> Put back <code>⍵=Ripe</code> and press <b>Play season</b>: the same question is asked of every day’s field, automatically, to the end of the season.',
+      glow: 'run', done: () => tut.done, last: true,
+      success: 'You’ve written your first APL farming strategy! Next is Middlebourne Farm: an 8×8 field, medals to earn, and reasons to be choosier about when you harvest.' },
   ];
-  let tutStep = 0;
-  // Every step's text is in the page at once, stacked in one space with only the current one visible, so the
-  // space is always as tall as the longest step (or the usual note) and nothing below ever moves.
-  $('tutTexts').replaceChildren(...TUTORIAL.map(t => { const p = document.createElement('p'); p.innerHTML = t.text; return p; }));
+  // Every step's text, and its success line, is in the page at once, stacked in one space with only the
+  // current one visible, so the space is always as tall as the longest step and nothing moves between steps.
+  $('tutTexts').replaceChildren(...TUTORIAL.map(t => {
+    const p = document.createElement('p');
+    p.innerHTML = `${t.text}${t.success ? ` <span class="tut-success">✓ ${t.success}</span>` : ''}`;
+    return p;
+  }));
+  const GLOWS = { field: () => $('field').closest('.plot-frame') || $('field'), framed: () => $('framed'), step: () => $('step'), prevDay: () => $('prevDay'), run: () => $('run') };
+  let tutMode = null;
   function renderTutorial() {
     const on = !!(farm && farm.tutorial);
     $('noteSlot').dataset.mode = on ? 'tutorial' : 'note';
-    const t = TUTORIAL[tutStep];
-    $('tutStep').textContent = `Tutorial, step ${tutStep + 1} of ${TUTORIAL.length}`;
-    [...$('tutTexts').children].forEach((p, i) => p.classList.toggle('current', i === tutStep));
-    $('tutBack').disabled = tutStep === 0;
+    if (on !== tutMode) {
+      // Tutorial Farm shows only what a beginner needs: the names it uses, the field, and the day buttons.
+      tutMode = on;
+      document.body.classList.toggle('tutorial-mode', on);
+      if (on && view !== 'simple') setView('simple');
+      renderWords();
+    }
+    const t = TUTORIAL[tut.step], ok = !!(t.done && t.done());
+    $('tutStep').textContent = `Tutorial, step ${tut.step + 1} of ${TUTORIAL.length}`;
+    [...$('tutTexts').children].forEach((p, i) => { p.classList.toggle('current', i === tut.step); p.classList.toggle('passed', i === tut.step && ok); });
+    $('tutBack').disabled = tut.step === 0;
     $('tutNext').textContent = t.last ? 'Go to Middlebourne Farm' : 'Next';
+    $('tutNext').classList.toggle('ready', ok);
+    [...Object.values(GLOWS).map(g => g()), $('tutNext')].forEach(e => e.classList.remove('tut-glow'));
+    if (on && !ok && t.glow) GLOWS[t.glow]().classList.add('tut-glow');
+    if (on && ok) $('tutNext').classList.add('tut-glow');
   }
+  // Called whenever the field is redrawn: shows a step's success as soon as its task is done.
+  let tutShown = '';
   function tutorialCheck() {
     if (!(farm && farm.tutorial)) return;
-    const t = TUTORIAL[tutStep];
-    if (t.done && t.done()) { tutStep++; renderTutorial(); }
+    const t = TUTORIAL[tut.step], key = `${tut.step}:${!!(t.done && t.done())}`;
+    if (key !== tutShown) { tutShown = key; renderTutorial(); }
   }
+  function startTutorial() { tut.step = 0; tut.wasted = false; tut.done = false; tutShown = ''; }
   // A day in plain words: what was harvested and scored, what was wasted or rotted, and what grew.
   function narrate(before, mask) {
     const d = state.history[state.history.length - 1], after = state.field, N = before.length;
@@ -1855,6 +1894,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     crowsAte(state.eatenAt, state.crowPatches);
     setMsg(mixedDay ? `Your code changed on day ${mixedDay}: this season’s score now mixes two programs, so it won’t count for medals or your best.`
       : farm && farm.tutorial ? narrate(before, mask) : '');
+    if (farm && farm.tutorial && state.history[state.history.length - 1].wasted) tut.wasted = true;
     updateStats();
     fieldChanged();
 
@@ -1878,6 +1918,14 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
       updateStats();
       stop();
       setMsg(mixedDay ? `Season complete. You scored ${state.score}, with your code changed on day ${mixedDay}.` : `Season complete. You scored ${state.score}.`);
+      if (farm && farm.tutorial) {
+        // The tutorial ends in its own box, not the season report. A season that wasted plants doesn't count.
+        tut.done = state.wasted === 0;
+        setMsg(tut.done ? `Season complete. You scored ${state.score}, with nothing wasted.`
+          : `Season complete, but ${state.wasted} plant${state.wasted === 1 ? ' was' : 's were'} wasted. Press Restart and try ⍵=Ripe for the whole season.`);
+        renderTutorial();
+        return false;
+      }
       showReport(result);
       if (mixedDay) $('lbSection').hidden = true; else showLeaderboard(state.score);
       return false;
@@ -1984,7 +2032,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     try { localStorage.setItem(FARM_KEY, farmEl.value); } catch (e) {}
   }
 
-  farmEl.addEventListener('change', () => { stop(); chooseFarm(farmEl.value); reset(); setMsg(''); });
+  farmEl.addEventListener('change', () => { stop(); if (farmEl.value === 'tutorial-farm') startTutorial(); chooseFarm(farmEl.value); reset(); renderTutorial(); setMsg(''); });
 
   // Progression: locked farms, locked symbols, and the farming guide.
   function describeUnlock(u) {
@@ -3089,6 +3137,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     '=': 'Equals: 1 where both sides match. ⍵=Ripe finds the ripe plants',
     '<': 'Less than: ⍵<Ripe finds plants that aren’t ripe yet',
     '>': 'Greater than: ⍵>Growing finds ripe and rotten plants',
+    '≥': 'At least: ⍵≥Growing finds growing, ripe and rotten plants',
     '(': 'Brackets: work this part out first, as in (⍵=Rotten)∨⍵=Ripe',
     ')': 'Brackets: work this part out first, as in (⍵=Rotten)∨⍵=Ripe',
     Seed: 'Seed: a newly planted plot. Stages go Seed, Sprout, Growing, Ripe, Rotten',
@@ -3107,7 +3156,10 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     const acc = access(), helpers = ['BumperCrops', 'Promising', 'Squares'];
     // Blighted is always there too, so nothing shifts, but faded where blight doesn't grow.
     const noBlight = 'Blighted plants only grow on Blightwick Farm, or on Practice Farm with blight on';
-    $('words').replaceChildren(...['⍵', '=', '<', '>', '(', ')', ...AcresCore.STAGE_NAMES, ...helpers].map(w => {
+    // On Tutorial Farm, only the names its steps use.
+    const names = farm && farm.tutorial ? ['⍵', '=', '≥', 'Seed', 'Sprout', 'Growing', 'Ripe', 'Rotten']
+      : ['⍵', '=', '<', '>', '(', ')', ...AcresCore.STAGE_NAMES, ...helpers];
+    $('words').replaceChildren(...names.map(w => {
       const b = document.createElement('button');
       const u = helpers.includes(w) && !acc.helpers.has(w) ? AcresCore.unlockFor('helper', w) : null;
       const away = w === 'Blighted' && !weather().blight;
@@ -3193,16 +3245,16 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   // Controls
   runBtn.addEventListener('click', () => running ? stop() : start());
   $('step').addEventListener('click', nextDay);
-  $('restart').addEventListener('click', () => { stop(); reset(); setMsg(''); });
+  $('restart').addEventListener('click', () => { stop(); if (farm && farm.tutorial) startTutorial(); reset(); renderTutorial(); setMsg(''); });
   $('newField').addEventListener('click', () => { stop(); seed = newSeed(); reset(); setMsg('New field planted.'); });
-  $('tutBack').addEventListener('click', () => { if (tutStep > 0) { tutStep--; renderTutorial(); } });
+  $('tutBack').addEventListener('click', () => { if (tut.step > 0) { tut.step--; renderTutorial(); } });
   $('tutNext').addEventListener('click', () => {
-    if (!TUTORIAL[tutStep].last) { tutStep++; renderTutorial(); return; }
+    if (!TUTORIAL[tut.step].last) { tut.step++; renderTutorial(); return; }
     stop(); chooseFarm('middlebourne-farm'); reset(); setMsg('');
   });
   $('playTutorial').addEventListener('click', e => {
     e.preventDefault();
-    stop(); chooseFarm('tutorial-farm'); reset(); tutStep = 0; renderTutorial(); setMsg('');
+    stop(); startTutorial(); chooseFarm('tutorial-farm'); reset(); renderTutorial(); setMsg('');
   });
   // Previous day: replay the season up to the day before, from its own seed, so it's exactly as it was.
   $('prevDay').addEventListener('click', () => {
