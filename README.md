@@ -29,7 +29,7 @@ You write one function, `Harvest`. Every day of the season, the game gives it to
 
 At Gold, the farming guide shows each helper's APL code, so you can see how it works and write your own.
 
-For testing, adding `?god` to the address (or pressing G) unlocks everything; `?god=off` turns it off. The footer shows the version and ruleset, such as *prototype 0.1 · rules v2*, to quote in bug reports, with a link to report a problem.
+For testing, adding `?god` to the address (or pressing G) unlocks everything; `?god=off` turns it off. The footer shows the version and ruleset, such as *prototype 0.2 · rules v2*, to quote in bug reports, with a link to report a problem.
 
 ## Rules
 
