@@ -956,6 +956,12 @@ test('the tutorial: twelve steps, each with only its own controls working and a 
   await expect(page.locator('#msg')).toHaveText('');
   await next.click();
   await at(7); await plots('0,2 1,1 2,0 2,2 3,1');
+  // Back and Next move the farm with the steps: back to step 6 undoes day 1, and the rule stays ⍵=Ripe.
+  await page.click('#tutBack');
+  await at(6); await expect(page.locator('#sTick')).toHaveText('0/20'); await expect(next).toBeDisabled();
+  await page.click('#step');
+  await next.click();
+  await at(7); await expect(page.locator('#sTick')).toHaveText('1/20');
   await page.click('#step');
   await next.click();
   // 8 to 10: pick too early, see the waste, undo it.
@@ -977,7 +983,18 @@ test('the tutorial: twelve steps, each with only its own controls working and a 
   await expect(page.locator('#tutMsg')).toHaveText('Season complete. You scored 99 points, with nothing wasted.', { timeout: 30000 });
   await expect(page.locator('#panel')).toBeHidden();
   await next.click();
-  // 12: done. Play freely unlocks the farm, remembered between visits.
+  // 12: done. Back from here un-plays the season; Restart puts a step back to its start.
+  await at(12);
+  await page.click('#tutBack');
+  await at(11); await expect(page.locator('#sTick')).toHaveText('2/20'); await expect(page.locator('#hBody')).toHaveValue('⍵≥Growing');
+  await page.locator('#hBody').fill('⍵=Ripe');
+  await page.click('#restart');
+  await expect(page.locator('#hBody')).toHaveValue('⍵≥Growing');
+  await page.locator('#hBody').fill('⍵=Ripe');
+  await page.click('#run');
+  await expect(page.locator('#tutMsg')).toHaveText('Season complete. You scored 99 points, with nothing wasted.', { timeout: 30000 });
+  await next.click();
+  // Play freely unlocks the farm, remembered between visits.
   await at(12);
   await expect(next).toHaveText('Play freely');
   await expect(page.locator('#tutSkip')).toHaveText('Go to Middlebourne');
