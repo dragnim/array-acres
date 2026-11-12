@@ -293,7 +293,7 @@ textarea {
 /* Tutorial Farm keeps only what a beginner needs. */
 .tut-locked { opacity: 0.4; pointer-events: none; }
 .tutorial-mode .controls button:disabled { opacity: 0.4; cursor: not-allowed; }
-.tutorial-mode #glyphs, .tutorial-mode #viewToggle, .tutorial-mode #showNumbers, .tutorial-mode #showAnswers, .tutorial-mode .speed, .tutorial-mode .hint { display: none; }
+.tutorial-mode #glyphs, .tutorial-mode #viewToggle, .tutorial-mode #resetCode, .tutorial-mode #showNumbers, .tutorial-mode #showAnswers, .tutorial-mode .speed, .tutorial-mode .hint { display: none; }
 .intro a { color: var(--ink); text-underline-offset: 3px; }
 #prevDay[aria-disabled="true"] { opacity: 0.45; border-style: dashed; cursor: help; }
 .framed { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px 10px 0 0; padding: 10px 14px; }
@@ -1588,6 +1588,10 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   const PREVIEW_DELAY = 400;
   const STAGE_NAMES = AcresCore.STAGE_NAMES;
   const STORE_KEY = 'allotment:apl';
+  // Tutorial Farm keeps its own code, so the lessons never touch the player's own program.
+  const TUT_CODE_KEY = 'acres:tutorial-code';
+  let codeMode = 'main';
+  const codeKey = () => codeMode === 'tutorial' ? TUT_CODE_KEY : STORE_KEY;
 
   // The notes that explain it sit beside the code box, so the starter is just the function.
   const DEFAULT_CODE = 'Harvest←{0}\n';
@@ -1767,7 +1771,8 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
       tutMode = mode;
       $('tutMsg').textContent = '';
       document.body.classList.toggle('tutorial-mode', mode === 'lesson');
-      if (mode === 'lesson' && view !== 'simple') setView('simple');
+      if (mode === 'lesson' && view !== 'simple') setView('simple', false);
+      if (mode !== 'lesson') { let pref = 'simple'; try { if (localStorage.getItem(VIEW_KEY) === 'full') pref = 'full'; } catch (e) {} if (view !== pref) setView(pref, false); }
       renderWords();
     }
     const t = TUTORIAL[tut.step], ok = mode === 'lesson' && !!(t.done && t.done());
@@ -1833,8 +1838,9 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     ['rr', '⍵≥Growing'],                                    // 11: the wasteful day undone
     ['r'.repeat(20), '⍵=Ripe'],                             // 12: the season played
   ];
-  function applyStepState(i) {
+  function applyStepState(i, announce = false) {
     const [days, rule] = STEP_STATES[i];
+    const ruleChanged = announce && hBody.value.replace(/\s+/g, '') !== rule.replace(/\s+/g, '');
     stop(); reset();
     let before = null, mask = null;
     for (const d of days) {
@@ -1847,12 +1853,13 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     tut.wastedAt = i === 9 ? before.flatMap((row, r) => row.flatMap((v, c) => mask[r][c] && (v === 1 || v === 2) ? [[r, c]] : [])) : [];
     // The rule in the box, and its preview straight away.
     hBody.value = rule; codeEl.value = joinProgram(hBody.value, sBody.value); dirty = true;
-    try { localStorage.setItem(STORE_KEY, codeEl.value); } catch (e) {}
+    try { localStorage.setItem(codeKey(), codeEl.value); } catch (e) {}
     clearTimeout(previewTimer); previewTimer = null;
     updateStats(); runPreview();
-    setMsg(i === 10 ? `Back to the start of day ${state.day + 1}.`
+    const said = i === 10 ? `Back to the start of day ${state.day + 1}.`
       : i === 11 ? `Season complete. You scored ${points(state.score)}, with nothing wasted.`
-      : days ? narrate(before, mask) : '');
+      : days ? narrate(before, mask) : '';
+    setMsg(ruleChanged ? `${said} Your rule was reset to match this step.`.trim() : said);
   }
   function finishTutorial() { tutFree = true; try { localStorage.setItem(TUT_DONE_KEY, '1'); } catch (e) {} }
   // A day in plain words: what was harvested and scored, what was wasted or rotted, and what grew.
@@ -2136,6 +2143,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   function chooseFarm(id) {
     // A locked farm falls back to the first farm.
     farm = id === 'practice' ? null : AcresCore.FARMS.find(f => f.id === id && unlocked().farms.has(f.id)) || AcresCore.FARMS[0];
+    switchCode(farm && farm.tutorial ? 'tutorial' : 'main');
     dirty = true;
     farmEl.value = farm ? farm.id : 'practice';
     seed = farm ? farm.seed : newSeed();
@@ -2188,7 +2196,9 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     stop();
     // Choosing Tutorial Farm: the lessons from the start, or free play once they've been finished.
     if (farmEl.value === 'tutorial-farm') { try { tutFree = localStorage.getItem(TUT_DONE_KEY) === '1'; } catch (e) {} startTutorial(); }
-    chooseFarm(farmEl.value); reset(); renderTutorial(); setMsg('');
+    chooseFarm(farmEl.value);
+    if (lessonOn()) applyStepState(tut.step); else { reset(); setMsg(''); }
+    renderTutorial();
   });
 
   // Progression: locked farms, locked symbols, and the farming guide.
@@ -2231,7 +2241,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
 
   // Each entry explains one tool with a small example. Locked entries show only what unlocks them.
   const GUIDE = [
-    { title: '⍵', text: '⍵ is today’s field: the stage of every plot, 8 by 8. Compare it with a stage, like `⍵=Sprout`, to ask the same question of every plot at once. The stages come in order, `Seed`, `Sprout`, `Growing`, `Ripe`, `Rotten`, so `⍵≥Ripe` means ripe or rotten.', snippets: [['⍵=Sprout', 'the sprouts']] },
+    { title: '⍵', text: '⍵ is today’s field: the stage of every plot (8 by 8 on most farms). Compare it with a stage, like `⍵=Sprout`, to ask the same question of every plot at once. The stages come in order, `Seed`, `Sprout`, `Growing`, `Ripe`, `Rotten`, so `⍵≥Ripe` means ripe or rotten.', snippets: [['⍵=Sprout', 'the sprouts']] },
     { title: '= ≠ < > ≤ ≥', glyph: '=', text: 'Compare. These ask a question of every plot at once, and answer 1 for yes and 0 for no.', snippets: [['⍵=Rotten', 'the rotten plants'], ['⍵≤Sprout', 'seeds and sprouts'], ['⍵≠Seed', 'everything except seeds']] },
     { title: '∧ ∨ ~', glyph: '∧', text: 'Combine answers. ∧ means “and”: 1 only where both answers are 1. ∨ means “or”: 1 where either is. ~ means “not”: it turns 1s into 0s and 0s into 1s.', snippets: [['(⍵=Sprout)∨⍵=Growing', 'everything still growing'], ['(⍵≥Growing)∧⍵≤Ripe', 'growing or ripe plants'], ['~⍵=Rotten', 'everything except rotten plants']] },
     { title: 'Reading right to left', glyph: '∨', text: 'APL works from right to left: each symbol applies to everything on its right. So `⍵=Rotten∨⍵=Ripe` really means `⍵=(Rotten∨(⍵=Ripe))`, which isn’t what it looks like, and gives no error to warn you. Put brackets around the question on the left, `(⍵=Rotten)∨⍵=Ripe`, and each side is asked on its own. The question on the right needs no brackets, because it’s worked out first anyway. Compare the two with Show me.', snippets: [['(⍵=Rotten)∨⍵=Ripe', 'rotten or ripe plants'], ['⍵=Rotten∨⍵=Ripe', 'without the brackets: not what it looks like']] },
@@ -2710,9 +2720,9 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   function renderRules() {
     const pct = p => `${Math.round(p * 100)}%`, B = RULES.bonus, w = weather(), N = w.size || RULES.size;
     const items = [
-      `The field is ${N}×${N} and a season lasts ${w.days || RULES.days} days. Each plot holds one plant at one of five growth stages, in order: \`Seed\`, \`Sprout\`, \`Growing\`, \`Ripe\` and \`Rotten\`.${w.blight ? ' Here a plant can also be \`Blighted\`: see Blight, below.' : ''} A season starts with every plot at a random stage from \`Seed\` to \`Ripe\`.`,
+      `The field is ${N}×${N} and a season lasts ${w.days || RULES.days} days. Each plot holds one plant at one of five growth stages, in order: \`Seed\`, \`Sprout\`, \`Growing\`, \`Ripe\` and \`Rotten\`.${w.blight ? ' Here a plant can also be \`Blighted\`: see Blight, below.' : ''} ${w.field ? 'A season starts with the same hand-drawn field every time, with every stage on show.' : 'A season starts with every plot at a random stage from \`Seed\` to \`Ripe\`.'}`,
       'Each day, your `Harvest` function is given today’s field as ⍵ and gives back a yes or no for every plot: 1 means harvest that plot, 0 means leave it. Every harvested plot is cleared and replanted as a seed.',
-      `A harvested ripe plant scores 1. If it’s part of a 2×2 square of ripe plants that are all harvested that day, a bumper crop, it scores ${B} instead and is outlined in gold the next day. A plant in more than one such square still scores ${B}. Squares don’t wrap around the edges of the field.`,
+      `A harvested ripe plant scores 1. If it’s part of a 2×2 square of ripe plants that are all harvested that day, a bumper crop, it scores ${B} instead. Squares of ripe plants are outlined in gold, so you can spot them. A plant in more than one such square still scores ${B}. Squares don’t wrap around the edges of the field.`,
       'Harvesting a sprout or a growing plant wastes it. Harvesting a seed or a rotten plant scores nothing, so clearing rot is free.',
       `Then the field grows overnight, depending on the farm’s weather. Sunshine: every seed, sprout and growing plant, including newly replanted seeds, has a ${pct(w.sunshine)} chance to grow one stage. Rainfall: every ripe plant left unharvested has a ${pct(w.rainfall)} chance to rot. Rotten plants stay until harvested. No plot changes by more than one stage a night${w.crows ? ', except where crows eat' : ''}.`,
       'Every night, each plant still has the stated chance to grow or rot, but each farm’s starting field and luck are set: on any given night, each plot’s chance comes out the same way every time you play. So the same code always scores the same, and only a change to your code can change the result. Practice Farm has Middlebourne Farm’s weather: Restart replays the same field and luck, and New field brings a new field with new luck.',
@@ -3151,15 +3161,16 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     $('viewToggle').textContent = view === 'simple' ? 'Code view' : 'Simple view';
     $('codeLabel').htmlFor = view === 'simple' ? 'hBody' : 'code';
   }
-  function setView(next) {
+  // remember: false for the tutorial's lessons, which show the simple view without changing the player's choice.
+  function setView(next, remember = true) {
     if (next === 'simple' && !fillFrames()) {
-      setMsg('This program has more than Harvest and Scare in it, so it can only be edited in the code view.');
+      if (remember) setMsg('This program has more than Harvest and Scare in it, so it can only be edited in the code view.');
       return;
     }
     view = next;
-    try { localStorage.setItem(VIEW_KEY, view); } catch (e) {}
+    if (remember) try { localStorage.setItem(VIEW_KEY, view); } catch (e) {}
     showView();
-    editorEl().focus();
+    if (remember) editorEl().focus();
   }
   $('viewToggle').addEventListener('click', () => setView(view === 'simple' ? 'full' : 'simple'));
   // The skip link goes to whichever code box is showing.
@@ -3344,6 +3355,18 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   let saved = null;
   try { saved = localStorage.getItem(STORE_KEY); } catch (e) {}
   codeEl.value = saved || DEFAULT_CODE;
+  // Moving onto or off Tutorial Farm swaps between its code and the player's own program.
+  function switchCode(mode) {
+    if (mode === codeMode) return;
+    codeMode = mode;
+    let code = null;
+    try { code = localStorage.getItem(codeKey()); } catch (e) {}
+    codeEl.value = code || DEFAULT_CODE;
+    if (view === 'simple' && !fillFrames()) view = 'full';
+    if (view === 'simple') fillFrames();
+    dirty = true;
+    showView();
+  }
   // Code that doesn't fit the simple view opens in the full view.
   if (view === 'simple' && !fillFrames()) view = 'full';
   setKeyboard(keyboard, false); // on load, without moving the cursor (or the page) to the code
@@ -3380,7 +3403,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
       }
       if (el !== codeEl) codeEl.value = joinProgram(hBody.value, sBody.value);
       dirty = true;
-      try { localStorage.setItem(STORE_KEY, codeEl.value); } catch (err) {}
+      try { localStorage.setItem(codeKey(), codeEl.value); } catch (err) {}
       codeChanged();
     });
     el.addEventListener('keydown', e => {
@@ -3398,20 +3421,20 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   $('restart').addEventListener('click', () => {
     stop();
     // In a lesson, Restart puts the field back to the start of the current step.
-    if (lessonOn()) { applyStepState(tut.step); renderTutorial(); return; }
+    if (lessonOn()) { applyStepState(tut.step, true); renderTutorial(); return; }
     reset(); renderTutorial(); setMsg('');
   });
   $('newField').addEventListener('click', () => { stop(); seed = newSeed(); reset(); setMsg('New field planted.'); });
-  $('tutBack').addEventListener('click', () => { if (tut.step > 0) { tut.step--; applyStepState(tut.step); renderTutorial(); } });
+  $('tutBack').addEventListener('click', () => { if (tut.step > 0) { tut.step--; applyStepState(tut.step, true); renderTutorial(); } });
   $('tutNext').addEventListener('click', () => {
-    if (tutFree) { tutFree = false; stop(); startTutorial(); reset(); renderTutorial(); setMsg(''); return; } // Replay the tutorial
-    if (!TUTORIAL[tut.step].final) { tut.step++; applyStepState(tut.step); renderTutorial(); return; }
+    if (tutFree) { tutFree = false; stop(); startTutorial(); applyStepState(0); renderTutorial(); return; } // Replay the tutorial
+    if (!TUTORIAL[tut.step].final) { tut.step++; applyStepState(tut.step, true); renderTutorial(); return; }
     finishTutorial(); stop(); reset(); renderTutorial(); setMsg('Your first farm is all yours: play it any way you like.'); // Play freely
   });
   $('tutSkip').addEventListener('click', () => { stop(); chooseFarm('middlebourne-farm'); reset(); setMsg(''); });
   $('playTutorial').addEventListener('click', e => {
     e.preventDefault();
-    stop(); tutFree = false; startTutorial(); chooseFarm('tutorial-farm'); reset(); renderTutorial(); setMsg('');
+    stop(); tutFree = false; startTutorial(); chooseFarm('tutorial-farm'); applyStepState(0); renderTutorial();
   });
   // Previous day: replay the season up to the day before, from its own seed, so it's exactly as it was.
   $('prevDay').addEventListener('click', () => {
@@ -3452,11 +3475,11 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   // New players start on Tutorial Farm; returning players keep the farm they last played.
   chooseFarm(savedFarm === 'practice' ? 'practice' : savedFarm || AcresCore.FARMS.find(f => f.tutorial).id);
   $('godBadge').hidden = !godMode;
-  // A first visit opens How to play.
+  // A first visit opens How to play, unless it starts on the tutorial, which explains things itself.
   try {
-    if (!localStorage.getItem('acres:help-seen')) { localStorage.setItem('acres:help-seen', '1'); setTimeout(() => openPanel('help')); }
+    if (!localStorage.getItem('acres:help-seen')) { localStorage.setItem('acres:help-seen', '1'); if (!lessonOn()) setTimeout(() => openPanel('help')); }
   } catch (e) {}
-  reset();
+  if (lessonOn()) applyStepState(tut.step); else reset();
   sizeCanvas();
   // On touch screens, with no G key: opening the game with ?god turns god mode on, and ?god=off turns it off.
   { const g = new URLSearchParams(location.search).get('god'); if (g !== null && (g !== 'off') !== godMode) setGodMode(g !== 'off'); }
