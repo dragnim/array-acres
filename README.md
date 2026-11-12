@@ -10,7 +10,7 @@ This is an early prototype. The APL runs on a small interpreter written in JavaS
 
 Play it at https://dragnim.github.io/array-acres/, or open `index.html` in a browser: there's no build step and nothing to install. Only the leaderboard needs an internet connection.
 
-A first visit opens on a welcome: the logo, the game's purpose in one line, the four growth stages growing in, and two ways in, **Start the tutorial** and **Skip the tutorial** (which goes to Middlebourne Farm with How to play open). Returning players go straight to their last farm.
+Each visit opens on the title screen: the logo, the game's purpose in one line, the four growth stages growing in, and crows flying across now and then (not when motion is reduced). A new player can **Start the tutorial** or **Skip the tutorial** (which goes to Middlebourne Farm with How to play open); a returning player can carry on where they were, for example **Continue on Middlebourne Farm**, or **Play the tutorial** again. Links below lead to the leaderboard, What is APL? and the source code. It shows once per visit (once per browser tab, not on every reload), and the logo in the header opens it again.
 
 ## How to play
 
