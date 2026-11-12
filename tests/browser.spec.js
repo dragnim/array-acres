@@ -1122,7 +1122,7 @@ test('free play on Tutorial Farm: Previous day undoes several days, and a new ru
   await expect(page.locator('#sWasted')).toHaveText('0');
 });
 
-test('the title screen: at the start of each visit, with crows, ways in for new and returning players, and links', async ({ browser }) => {
+test('the title screen: at the start of each visit, with ways in for new and returning players, and links', async ({ browser }) => {
   const context = await browser.rawNewContext({ reducedMotion: 'reduce' }); // the stages are still, so the scan sees them as players do
   const page = await context.newPage();
   await page.goto(PAGE);
@@ -1131,7 +1131,6 @@ test('the title screen: at the start of each visit, with crows, ways in for new 
   await expect(page.locator('#welcomeTitle svg')).toHaveAttribute('aria-label', 'Array Acres');
   await expect(start).toBeFocused();
   await expect(page.locator('#welcomeStages img')).toHaveCount(4);
-  await expect(page.locator('.welcome-crow')).toHaveCount(0); // no crows when motion is reduced
   expect(await page.evaluate(() => document.querySelector('.wrap').inert)).toBe(true); // the page behind can't be reached
   const scan = async () => {
     const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']).analyze();
@@ -1181,15 +1180,5 @@ test('the title screen: at the start of each visit, with crows, ways in for new 
   await second.click();
   await expect(page.locator('#farm')).toHaveValue('middlebourne-farm');
   await expect(page.locator('#panelTitle')).toHaveText('How to play');
-  await context.close();
-});
-
-test('crows fly across the title screen now and then, unless motion is reduced', async ({ browser }) => {
-  const context = await browser.rawNewContext();
-  const page = await context.newPage();
-  await page.goto(PAGE);
-  await expect(page.locator('.welcome-crow').first()).toBeAttached({ timeout: 6000 });
-  await page.click('#welcomeStart');
-  await expect(page.locator('.welcome-crow')).toHaveCount(0); // gone with the title screen
   await context.close();
 });
