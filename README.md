@@ -2,7 +2,7 @@
 
 **Farm the whole field. All at once.**
 
-A programming puzzle game where your farm is an array and APL is your toolkit. Each day, your `Harvest` function receives the whole field as a matrix and returns a boolean matrix of plots to harvest. Simple code works; cleverer array reasoning scores more.
+A programming puzzle game where your field is an array and APL is your toolkit. Each day, your `Harvest` function receives the whole field as a matrix and returns a boolean matrix of plots to harvest. Simple code works; cleverer array reasoning scores more.
 
 This is an early prototype. The APL runs on a small interpreter written in JavaScript, covering a subset of Dyalog APL, so the game can be tried in any browser. If it proves fun and valuable as a teaching tool, the plan is to move it to proper Dyalog APL.
 
@@ -60,8 +60,8 @@ Every farm follows the rules above. Each has its own weather, its own fixed star
 - **Field:** drawn by hand rather than from the seed, so every stage is on show, Rotten included.
 - **Weather:** sunshine and rainfall are both 100%, so every plant grows one stage each night and a ripe plant left a night always rots. Everything happens exactly as the tutorial says; its last step explains that real farms have weather.
 - **No medals and no leaderboard:** it's for learning.
-- **Twelve short steps**, in place of the note above the code: the farm, the stages, `⍵`, asking `⍵=Ripe`, the grid of 1s and 0s it gives back, picking with Next day, the same rule answering a changed field, picking too early with `⍵≥Growing`, seeing the waste, undoing it with Previous day, and playing the season.
-- **Locked to the lesson:** only the controls the current step asks for work; everything else is faded, and Next waits until the step's task is done (reading steps aside). The farm always matches the step: each step starts from a fixed point (the days played so far and the rule in the box), and Back, Next and Restart put the farm exactly there, so going back a step also undoes its days. **Skip tutorial** goes straight to Middlebourne Farm.
+- **Twelve short steps**, in place of the note above the code: your field, the stages, `⍵`, asking `⍵=Ripe`, the grid of 1s and 0s it gives back, picking with Next day, the same rule answering a changed field, picking too early with `⍵≥Growing`, seeing the waste, undoing it with Previous day, and playing the season.
+- **Locked to the lesson:** only the controls the current step asks for work; everything else is faded, and Next waits until the step's task is done (reading steps aside). The field always matches the step: each step starts from a fixed point (the days played so far and the rule in the box), and Back, Next and Restart put the field exactly there, so going back a step also undoes its days. **Skip tutorial** goes straight to Middlebourne Farm.
 - **The glow points at whatever the step talks about**, plots on the field included: the ripe and rotten plants, the 1s, the plants about to be picked too early, and the ones that were wasted. Each plot shows `Harvest`'s answer, 1 or 0, from the step where the player writes their first rule.
 - **A real ending:** finishing needs a season that picked exactly the ripe plants every day, as `⍵=Ripe` does. The season ends in the tutorial, not the report.
 - **Free play afterwards:** finishing unlocks Tutorial Farm to play freely, with the full interface, Previous day and the 1s and 0s still on. It's remembered between visits, with **Replay the tutorial** to go through it again.
@@ -72,7 +72,7 @@ Every farm follows the rules above. Each has its own weather, its own fixed star
 - **Weather:** sunshine 55%, rainfall 20%.
 - **Medals:** Bronze 1200, Silver 1350, Gold 1500.
 - **Unlocks:** open from the start. Bronze here unlocks `∧ ∨ ~`, the `BumperCrops` helper and Sunnyhill Farm.
-- **Character:** mild weather, and the farm everyone starts on.
+- **Character:** mild weather, and the first farm with medals, where players go after the tutorial.
 
 ### Sunnyhill Farm
 

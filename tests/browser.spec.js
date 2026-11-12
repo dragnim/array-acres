@@ -304,7 +304,7 @@ test('the field can show its numbers, exactly as Harvest sees them, once Gold un
   await expect(btn).toBeHidden();
   await page.selectOption('#farm', 'practice');
   await expect(btn).toBeVisible();
-  await expect(page.locator('.field-title')).toHaveText('Today’s field, ⍵');
+  await expect(page.locator('.field-title')).toHaveText('Your field on day 1, ⍵');
   await expect(field).toHaveAttribute('data-numbers', 'off');
   await btn.click();
   await expect(field).toHaveAttribute('data-numbers', 'on');
@@ -693,12 +693,12 @@ test('screen readers get the field as text, and hear what each day brought', asy
   await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
   const text = page.locator('#fieldText');
   await expect(page.locator('#field')).toHaveAttribute('aria-describedby', 'fieldText');
-  await expect(text).toContainText('Day 0 of 100. Row 1: ');
+  await expect(text).toContainText('Your field on day 1 of 100. Row 1: ');
   await expect(text).toContainText('Row 8: ');
   await expect(text).toContainText('Ripe, picked');
   await page.click('#step');
   await expect(page.locator('#announce')).toHaveText(/^Day 1: \d+ points?.*\. Score \d+\.$/);
-  await expect(text).toContainText('Day 1 of 100.');
+  await expect(text).toContainText('Your field on day 2 of 100.');
 });
 
 test('keyboard and touch: a skip link to the code, explanations on focus and long press, and the panel keeps focus on small screens', async ({ browser }) => {
