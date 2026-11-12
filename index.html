@@ -231,11 +231,6 @@ button.link { font: inherit; font-weight: inherit; background: none; border: 0; 
 .stat[hidden] { display: none; }
 .stat span { font-size: 0.85rem; color: var(--muted); }
 .stat strong { font-size: 1.45rem; font-weight: 600; }
-.legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 16px; margin-top: 14px; font-size: 0.9rem; color: var(--muted); }
-.legend div { display: flex; align-items: center; gap: 8px; }
-.legend canvas { flex: none; }
-.legend canvas { width: 40px; height: 40px; border-radius: 6px; background: var(--soil-2); }
-.legend code { font-family: var(--mono); color: var(--ink); font-weight: 600; }
 .rules { margin: 0; padding-left: 1.3em; font-size: 0.92rem; color: var(--muted); max-width: 62ch; }
 .rules li { margin: 4px 0; }
 .editor .label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
@@ -244,7 +239,8 @@ button.link { font: inherit; font-weight: inherit; background: none; border: 0; 
 .label-tools { display: flex; align-items: baseline; gap: 12px; }
 .small-button { font: inherit; font-size: 0.85rem; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 2px 9px; cursor: pointer; }
 .small-button:hover { border-color: var(--muted); }
-.field-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 2px 10px; }
+.field-head { display: flex; align-items: center; gap: 8px; margin: 0 2px 10px; }
+.field-head .field-title { margin-right: auto; }
 .field-title { font-weight: 600; }
 .field-title code { font-family: var(--mono); font-size: 1.05em; }
 p code, li code { font-family: var(--mono); font-size: 0.95em; color: var(--ink); }
@@ -270,7 +266,8 @@ textarea {
 /* The note above the code, or on Tutorial Farm its steps, in a slot of fixed height, so nothing below moves. */
 .note-slot { display: grid; font-size: 0.9rem; }
 .note-slot > *, .tut-texts > * { grid-area: 1 / 1; }
-.note-slot[data-mode="tutorial"] .code-note, .note-slot[data-mode="note"] .tutorial { visibility: hidden; }
+/* Only one of the two takes space: the usual note on the farms, the tutorial on Tutorial Farm. */
+.note-slot[data-mode="tutorial"] .code-note, .note-slot[data-mode="note"] .tutorial { display: none; }
 .tut-texts { display: grid; }
 .tut-texts p { margin: 4px 0 8px; color: var(--ink); visibility: hidden; }
 /* What happened, inside the tutorial box: three lines are kept for it, so nothing below moves. */
@@ -294,11 +291,10 @@ textarea {
 /* Tutorial Farm keeps only what a beginner needs. */
 .tut-locked { opacity: 0.4; pointer-events: none; }
 .tutorial-mode .controls button:disabled { opacity: 0.4; cursor: not-allowed; }
-.tutorial-mode #glyphs, .tutorial-mode #viewToggle, .tutorial-mode #showNumbers, .tutorial-mode .speed, .tutorial-mode .hint { display: none; }
+.tutorial-mode #glyphs, .tutorial-mode #viewToggle, .tutorial-mode #showNumbers, .tutorial-mode #showAnswers, .tutorial-mode .speed, .tutorial-mode .hint { display: none; }
 .intro a { color: var(--ink); text-underline-offset: 3px; }
 #prevDay[aria-disabled="true"] { opacity: 0.45; border-style: dashed; cursor: help; }
 .framed { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px 10px 0 0; padding: 10px 14px; }
-.legend-space, .legend > div { min-height: 46px; }
 .frame-fn + .frame-fn { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
 .frame-edge { display: block; font: 16px/1.5 var(--mono); color: var(--muted); user-select: none; }
 /* The code box is always the same height. Alone, Harvest has 240px; split for crows, Harvest and Scare
@@ -309,6 +305,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
 .words { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; background: var(--surface); border: 1px solid var(--line); border-top: 0; }
 .words button { font: 15px/1 var(--mono); padding: 7px 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--code-bg); color: var(--ink); cursor: pointer; }
 .words button:hover { border-color: var(--muted); }
+.word-pic { width: 20px; height: 20px; margin: -3px 6px -3px -2px; vertical-align: middle; object-fit: contain; }
 .words button[aria-disabled="true"] { opacity: 0.45; border-style: dashed; cursor: help; }
 .keys { padding-top: 0; }
 .keys button { min-width: 2.4em; }
@@ -469,6 +466,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
       <div class="field-head">
         <span class="field-title">Today’s field, <code>⍵</code></span>
         <button type="button" class="small-button" id="showNumbers" aria-pressed="false">Show numbers</button>
+        <button type="button" class="small-button" id="showAnswers" aria-pressed="false" title="Show Harvest’s answer for each plot, 1 or 0">Show answers</button>
       </div>
       <p class="example-note" id="exampleNote" hidden>Showing what <code id="exampleCode"></code> would harvest today: <span id="exampleCount"></span>. <button type="button" class="link" id="exampleBack">Back to your code</button></p>
       <div class="field-stage">
@@ -483,7 +481,6 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
         <div class="stat"><span>Wasted</span><strong id="sWasted">0</strong></div>
         <div class="stat"><span id="bestLabel">Personal best</span><strong id="sBest">–</strong></div>
       </div>
-      <div class="legend" id="legend"></div>
     </section>
 
     <section class="editor">
@@ -1681,6 +1678,21 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     render();
   });
   syncNumbersButton();
+  // Show answers: Harvest's answer for each plot, 1 or 0, on any farm (Tutorial Farm always shows them).
+  let showAnswers = false;
+  try { showAnswers = localStorage.getItem('acres:answers') === 'on'; } catch (e) {}
+  const answersBtn = $('showAnswers');
+  function syncAnswersButton() {
+    answersBtn.setAttribute('aria-pressed', String(showAnswers));
+    answersBtn.textContent = showAnswers ? 'Hide answers' : 'Show answers';
+  }
+  answersBtn.addEventListener('click', () => {
+    showAnswers = !showAnswers;
+    syncAnswersButton();
+    try { localStorage.setItem('acres:answers', showAnswers ? 'on' : 'off'); } catch (e) {}
+    render();
+  });
+  syncAnswersButton();
 
   // Tutorial Farm: twelve short steps above the code. Each step's controls are the only ones that work (the
   // rest are faded), and everything the step talks about glows, plots on the field included. A step with a task
@@ -1698,7 +1710,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   const TUTORIAL = [
     { text: 'This is your farm: 16 plots in a 4 by 4 grid. Each plot holds one plant.',
       glow: () => ({ els: [$('field')] }) },
-    { text: 'Plants grow in stages, one step each night: a Seed becomes a Sprout, a Sprout becomes Growing, and Growing becomes Ripe. Ripe plants are ready to pick, and each one scores 1 point. But a ripe plant left for a night turns Rotten. Rotten plants score nothing and stay put, blocking the plot, until you pick them to clear it.',
+    { text: 'Plants grow in stages, one step each night: a Seed becomes a Sprout, a Sprout becomes Growing, and Growing becomes Ripe. Ripe plants are ready to pick, and each one scores 1 point. But a ripe plant left for a night turns Rotten. A rotten plant blocks its plot until you pick it, which clears the plot but scores no points.',
       glow: () => ({ plots: plotsWhere(v => v === RIPE || v === ROT) }) },
     { text: 'In your APL code, the whole field has one name: <code>⍵</code>, the Greek letter omega. You’ll write a rule that looks at <code>⍵</code> and decides which plots to pick.',
       glow: () => ({ els: [wordBtn('⍵'), $('framed')] }) },
@@ -2164,7 +2176,6 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     $('farmInfo').textContent = !farm ? 'Random fields, every symbol and helper unlocked.' : farm.tutorial ? 'A small field to learn on, without medals.' : '';
     renderRules();
     refreshProgress();
-    if (COL) drawLegend();
     try { localStorage.setItem(FARM_KEY, farmEl.value); } catch (e) {}
   }
 
@@ -2415,12 +2426,12 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) drawPlot(fctx, at(c), at(r), s, state.field[r][c], 0, null, inSheaf[r][c]);
     drawBumperCrops(fctx, squares, tiling, at, s, gap);
     // In the lessons, the 1s and 0s appear from step 4, when the player writes their first rule.
-    const answers = farm && farm.tutorial && !example && preview.mask && !preview.stale && !(lessonOn() && tut.step < 3) ? preview.mask : null;
+    const answers = !example && preview.mask && !preview.stale && (farm && farm.tutorial ? !(lessonOn() && tut.step < 3) : showAnswers) ? preview.mask : null;
     cv.dataset.answers = answers ? 'on' : 'off';
     for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
       const p = example ? (example.mask[r][c] ? 'live' : null)
         : preview.mask && preview.mask[r][c] ? (preview.stale ? 'stale' : 'live') : null;
-      drawOverlay(fctx, at(c), at(r), s, state.marks && state.marks[r][c], p);
+      drawOverlay(fctx, at(c), at(r), s, 0, p); // no lingering "just harvested" outline: the +1s and the day's message say it
       if (showNumbers && numbersUnlocked) drawNumber(fctx, at(c), at(r), s, state.field[r][c]);
       if (answers) drawAnswer(fctx, at(c), at(r), s, answers[r][c]);
       if (tutPlots.some(([tr, tc]) => tr === r && tc === c)) {
@@ -2769,62 +2780,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     c.restore();
   }
 
-  function drawLegend() {
-    const el = $('legend');
-    el.innerHTML = '';
-    const add = (html, v, marked, previewed, bare = false) => {
-      const item = document.createElement('div');
-      const c = document.createElement('canvas');
-      const dpr = window.devicePixelRatio || 1;
-      c.width = 40 * dpr; c.height = 40 * dpr;
-      c.setAttribute('aria-hidden', 'true');
-      const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
-      drawPlot(x, 0, 0, 40, v, marked, previewed, bare);
-      const label = document.createElement('span');
-      label.innerHTML = html;
-      item.append(c, label);
-      el.append(item);
-    };
-    STAGE_NAMES.forEach((name, v) => { if (v !== RULES.blighted || weather().blight) add(`<code>${name}</code>`, v, 0, null); });
-    {
-      const item = document.createElement('div'), c = document.createElement('canvas'), dpr = window.devicePixelRatio || 1;
-      c.width = 40 * dpr; c.height = 40 * dpr;
-      c.setAttribute('aria-hidden', 'true');
-      const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const s = 19, gap = 2, at = i => i * (s + gap);
-      for (let r = 0; r < 2; r++) for (let k = 0; k < 2; k++) drawPlot(x, at(k), at(r), s, RIPE, 0, null, true);
-      drawBumperCrops(x, [[0, 0]], [[0, 0]], at, s, gap);
-      const label = document.createElement('span');
-      label.textContent = 'bumper crop';
-      item.append(c, label);
-      el.append(item);
-    }
-    // Outlines alone, on bare soil, so they read as plot states rather than plants.
-    add('just harvested', 0, 1, null, true);
-    add('<code>Harvest</code> would pick', 0, 0, 'live', true);
-    if (hasCrows()) {
-      const icon = (label, draw) => {
-        const item = document.createElement('div'), c = document.createElement('canvas'), dpr = window.devicePixelRatio || 1;
-        c.width = 40 * dpr; c.height = 40 * dpr; c.setAttribute('aria-hidden', 'true');
-        const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
-        drawPlot(x, 0, 0, 40, 0, 0, null, true); draw(x);
-        const span = document.createElement('span'); span.innerHTML = label;
-        item.append(c, span); el.append(item);
-      };
-      icon('eaten by crows', x => drawEaten(x, 0, 0, 40));
-      icon('<code>Scare</code> places a scarecrow', x => drawScarecrow(x, 0, 0, 40, false));
-    }
-    // The key always takes the room of its largest version (blight and crows together), with invisible
-    // spaces for entries that don't apply, so it never changes size and nothing below it moves.
-    const LARGEST = STAGE_NAMES.length + 3 + 2;
-    while (el.children.length < LARGEST) {
-      const space = document.createElement('div');
-      space.className = 'legend-space'; space.setAttribute('aria-hidden', 'true');
-      el.append(space);
-    }
-  }
-
-  function refreshTheme() { readColors(); render(); drawLegend(); drawChart(); drawAplExample(); }
+  function refreshTheme() { readColors(); render(); drawChart(); drawAplExample(); if (artReady) { renderWords(); if (lessonOn()) { tutShown = ''; renderTutorial(); } } }
 
   // What is APL?: a tiny field, and what ⍵=Ripe gives back for it, drawn with the game's own plants.
   const APL_EXAMPLE = [[1, 3, 2], [3, 0, 3], [2, 1, 3]];
@@ -3256,9 +3212,10 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     tip.className = 'tip'; tip.setAttribute('role', 'tooltip'); tip.hidden = true;
     document.body.append(tip);
     const TIPPED = '.words button, .glyphs button';
-    const show = b => {
-      tip.textContent = b.title; tip.hidden = false;
-      const r = b.getBoundingClientRect(), t = tip.getBoundingClientRect();
+    const show = b => showAt(b.title, b.getBoundingClientRect());
+    const showAt = (text, r) => {
+      tip.textContent = text; tip.hidden = false;
+      const t = tip.getBoundingClientRect();
       tip.style.left = `${Math.max(8, Math.min(innerWidth - t.width - 8, r.left + r.width / 2 - t.width / 2))}px`;
       tip.style.top = `${r.top - t.height - 8 < 8 ? r.bottom + 8 : r.top - t.height - 8}px`;
     };
@@ -3275,6 +3232,39 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     });
     document.addEventListener('pointerup', () => { clearTimeout(press); if (longPressed) setTimeout(hide, 1800); });
     document.addEventListener('pointercancel', () => { clearTimeout(press); hide(); });
+    // Plots explain themselves: hover over one, or press and hold it on a touch screen, to see its stage and
+    // anything else about it. This takes the place of a key.
+    const plotAt = e => {
+      const box = cv.getBoundingClientRect(), w = cv.clientWidth, gap = Math.max(2, w * 0.008), s = (w - gap * (SIZE + 1)) / SIZE;
+      const c = Math.floor((e.clientX - box.left - gap) / (s + gap)), row = Math.floor((e.clientY - box.top - gap) / (s + gap));
+      if (c < 0 || row < 0 || c >= SIZE || row >= SIZE) return null;
+      const left = box.left + gap + c * (s + gap), top = box.top + gap + row * (s + gap);
+      return { row, c, rect: { left, top, width: s, height: s, right: left + s, bottom: top + s } };
+    };
+    const plotText = (row, c) => {
+      const parts = [`Row ${row + 1}, column ${c + 1}: ${AcresCore.STAGE_NAMES[state.field[row][c]]}`];
+      if (AcresCore.ripeSquares(state.field).some(([r0, c0]) => row >= r0 && row <= r0 + 1 && c >= c0 && c <= c0 + 1)) parts.push('part of a bumper crop');
+      if (preview.mask && !preview.stale) parts.push(preview.mask[row][c] ? 'Harvest picks it (1)' : 'Harvest leaves it (0)');
+      if ((state.eatenAt || []).some(([r, cc]) => r === row && cc === c)) parts.push('eaten by crows last night');
+      if (preview.scare && preview.scare[row][c]) parts.push('a scarecrow will stand here');
+      return `${parts.join('. ')}.`;
+    };
+    let plotShown = null;
+    cv.addEventListener('pointermove', e => {
+      if (e.pointerType !== 'mouse') return;
+      const p = plotAt(e);
+      if (!p) { tip.hidden = true; plotShown = null; return; }
+      const key = `${p.row},${p.c},${state.day}`;
+      if (key !== plotShown) { plotShown = key; showAt(plotText(p.row, p.c), p.rect); }
+    });
+    cv.addEventListener('pointerleave', () => { tip.hidden = true; plotShown = null; });
+    let plotPress = null;
+    cv.addEventListener('pointerdown', e => {
+      if (e.pointerType === 'mouse') return;
+      const p = plotAt(e);
+      if (p) plotPress = setTimeout(() => showAt(plotText(p.row, p.c), p.rect), 450);
+    });
+    cv.addEventListener('pointerup', () => { if (plotPress) { clearTimeout(plotPress); plotPress = null; setTimeout(() => { tip.hidden = true; }, 1800); } });
     // A long press only explains; it doesn't also add the symbol.
     document.addEventListener('click', e => { if (longPressed && e.target.closest(TIPPED)) { e.stopImmediatePropagation(); e.preventDefault(); longPressed = false; } }, true);
   }
@@ -3314,6 +3304,9 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
       const u = helpers.includes(w) && !acc.helpers.has(w) ? AcresCore.unlockFor('helper', w) : null;
       const away = w === 'Blighted' && !weather().blight;
       b.type = 'button'; b.textContent = w; b.title = u ? `${w}: unlocks with ${AcresCore.needText(u)}` : away ? noBlight : WORD_TIPS[w];
+      // Each stage's button shows its picture, so the names players type are linked to what they see.
+      const v = AcresCore.STAGE_NAMES.indexOf(w);
+      if (v >= 0 && ART[v]) { const pic = document.createElement('img'); pic.src = ART[v].src; pic.alt = ''; pic.className = 'word-pic'; b.prepend(pic); }
       // A locked helper still answers a press, on any screen, by saying what unlocks it.
       if (u || away) b.setAttribute('aria-disabled', 'true');
       const text = w === 'Squares' ? 'Squares ' : helpers.includes(w) ? `${w} ⍵` : w;
@@ -3449,7 +3442,6 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   new ResizeObserver(sizeCanvas).observe(cv);
 
   readColors();
-  drawLegend();
   let savedFarm = null;
   try { savedFarm = localStorage.getItem(FARM_KEY); } catch (e) {}
   // New players start on Tutorial Farm; returning players keep the farm they last played.
