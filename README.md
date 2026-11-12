@@ -52,14 +52,16 @@ For testing, adding `?god` to the address (or pressing G) unlocks everything; `?
 
 ## The farms
 
-Every farm follows the rules above. Each has its own weather, its own fixed starting field and luck, and its own Bronze, Silver and Gold targets. Some add a mechanic of their own.
+Every farm follows the rules above. Each has its own weather, its own fixed starting field and luck, and, apart from Tutorial Farm, its own Bronze, Silver and Gold targets. Some add a mechanic of their own.
 
 ### Tutorial Farm
 
 - **Size:** a 4×4 field and a 20-day season, the first farm a new player meets. The intro's **Play the tutorial** link starts it at any time.
+- **Field:** drawn by hand rather than from the seed, so every stage is on show, Rotten included. The seed still sets the luck overnight.
 - **Weather:** sunshine 55%, rainfall 20%, like Middlebourne Farm.
 - **No medals and no leaderboard:** it's for learning.
-- **Steps:** a short guided tutorial replaces the note above the code. Each step moves on by itself once it's done: look at the field, write `⍵=Ripe`, play a day, see what harvesting too early does, undo it, and play the season. Back and Next skip around.
+- **Six steps**, in place of the note above the code: meet the array, ask it a question with `⍵=Ripe`, see the 1/0 answer, watch the same question give new answers as the field changes, change the question to `⍵≥Growing` and undo the waste, then play the season. When a step's task is done it says so and waits for Next, so there's time to take it in. Back and Next skip around, Restart or choosing the farm again starts over, and the season ends in the tutorial, not the report. A season that wastes plants doesn't finish it.
+- **A simpler interface:** only the names the steps use (`⍵ = ≥` and the stages), and the thing each step needs glows. The symbol bar, code view, Show numbers and speed come back on the other farms.
 - **Answers on the field:** each plot shows `Harvest`'s answer for it, 1 or 0, so you can see your code answering every plot at once.
 - **Previous day** undoes a day, so you can try different code on it, and each day is explained in plain words under the controls: what was harvested and scored, what was wasted or rotted, and what grew. Previous day is only on Tutorial Farm for now; elsewhere it's shown faded.
 
