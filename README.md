@@ -10,6 +10,8 @@ This is an early prototype. The APL runs on a small interpreter written in JavaS
 
 Play it at https://dragnim.github.io/array-acres/, or open `index.html` in a browser: there's no build step and nothing to install. Only the leaderboard needs an internet connection.
 
+A first visit opens on a welcome: the logo, the game's purpose in one line, the four growth stages growing in, and two ways in, **Start the tutorial** and **Skip the tutorial** (which goes to Middlebourne Farm with How to play open). Returning players go straight to their last farm.
+
 ## How to play
 
 You write one function, `Harvest`. Every day of the season, the game gives it today's field as `⍵`, and it gives back a yes (1) or no (0) for every plot: 1 harvests that plot, 0 leaves it. Your code works on the whole field at once, so one expression like `⍵=Ripe` decides all 64 plots.
@@ -127,7 +129,7 @@ The game is in `index.html`, in three scripts:
 - `acres-core`: the rules and simulation, with no access to the page, so the browser and the tests share one implementation.
 - The page script: drawing and effects, the editor (simple and code views, with buttons for tapping code in), the live preview and diagnostics, progression, and the side panel for What is APL?, How to play, the farming guide, the leaderboard and the season report.
 
-The art is separate, in `assets/plants`: the plants, blight, crow and scarecrow, and the image shown when a link to the game is shared, with notes on how they were made in [its own README](assets/plants/README.md). If an image can't load, the page draws it in code instead, so the game never depends on them. The leaderboard's server code is in `leaderboard/`.
+The logo is in `assets/logo.svg`. The page draws it from a copy inside `index.html` (a `<symbol>` near the top of the page), in the text colour, so it suits both themes; to change the logo, replace the paths in both. The art is separate, in `assets/plants`: the plants, blight, crow and scarecrow, and the image shown when a link to the game is shared, with notes on how they were made in [its own README](assets/plants/README.md). If an image can't load, the page draws it in code instead, so the game never depends on them. The leaderboard's server code is in `leaderboard/`.
 
 A season is 100 days on an 8×8 field, except on Tutorial Farm, which is 4×4 and 20 days. There are six farms under ruleset `v2`. Middlebourne, Sunnyhill and Marshgate each have their own weather: sunshine sets how likely an unripe plant is to grow overnight, and rainfall how likely a ripe plant left in the ground is to rot. Crowhurst has Middlebourne's weather plus crows, which eat ripe plants at night unless a second function, `Scare`, stands scarecrows nearby. Blightwick has Middlebourne's weather plus blight, which spreads from plant to plant overnight. Each farm also has its own starting field and fixed luck, so the same farm and the same code always give the same score, and its own Bronze, Silver and Gold targets. Personal bests are kept in the browser, and Practice Farm plays random fields with Middlebourne Farm's weather. At the end of a season, a report shows what happened day by day, without suggesting what to change.
 
