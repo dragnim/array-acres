@@ -128,12 +128,16 @@ body {
 .welcome-inner { display: grid; justify-items: center; gap: clamp(20px, 4vh, 36px); max-width: 760px; text-align: center; }
 .welcome-logo { margin: 0; line-height: 0; color: var(--ink); width: min(680px, 84vw); }
 .welcome-logo svg { width: 100%; height: auto; aspect-ratio: 4103 / 845; }
-.welcome-line { margin: 0; max-width: 34ch; color: var(--muted); font-size: clamp(1.1rem, 2.6vw, 1.35rem); line-height: 1.45; }
+.welcome-line { margin: 0; max-width: 34ch; color: var(--ink); font-size: clamp(1.1rem, 2.6vw, 1.35rem); line-height: 1.45; }
+.welcome-more { margin: calc(-1 * clamp(8px, 2vh, 18px)) 0 0; max-width: 52ch; color: var(--muted); font-size: 1rem; line-height: 1.55; }
+.welcome-more code { font-family: var(--mono); color: var(--ink); }
 .welcome-stages { display: flex; gap: clamp(10px, 3vw, 22px); align-items: flex-end; min-height: 72px; }
 .welcome-stages img { width: clamp(52px, 12vw, 72px); height: auto; opacity: 0; animation: welcome-grow 0.6s ease-out forwards; }
 .welcome-stages img:nth-child(2) { animation-delay: 0.35s; } .welcome-stages img:nth-child(3) { animation-delay: 0.7s; } .welcome-stages img:nth-child(4) { animation-delay: 1.05s; }
 @keyframes welcome-grow { from { opacity: 0; transform: translateY(10px) scale(0.85); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .welcome-stages img { animation: none; opacity: 1; } }
+.welcome-stages img.rotting { opacity: 1; transform-origin: 50% 90%; animation: welcome-shake 0.7s ease-in-out; }
+@keyframes welcome-shake { 15% { transform: rotate(-7deg); } 35% { transform: rotate(6deg); } 55% { transform: rotate(-4deg); } 75% { transform: rotate(3deg); } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .welcome-stages img, .welcome-stages img.rotting { animation: none; opacity: 1; } }
 .welcome-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
 .welcome-actions button { font: inherit; font-size: 1.05rem; padding: 12px 24px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
 .welcome-actions button:hover { border-color: var(--muted); }
@@ -463,6 +467,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
   <div class="welcome-inner">
     <h2 id="welcomeTitle" class="welcome-logo"><svg role="img" aria-label="Array Acres" viewBox="0 0 4103 845"><use href="#logo"/></svg></h2>
     <p class="welcome-line">Learn to think in arrays, the APL way: ask one question of the whole field at once.</p>
+    <p class="welcome-more">Write one APL function, <code>Harvest</code>. Every day it’s given today’s field as <code>⍵</code> and gives back 1s and 0s: 1 means harvest that plot, 0 means leave it. Score as much as you can in a season.</p>
     <div class="welcome-stages" id="welcomeStages" aria-hidden="true"></div>
     <div class="welcome-actions">
       <button type="button" class="welcome-start" id="welcomeStart">Start the tutorial</button>
@@ -478,7 +483,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
 <div class="wrap">
   <header class="topbar">
     <h1><button type="button" class="logo-button" id="openWelcome" title="Back to the title screen"><svg class="logo" role="img" aria-label="Array Acres" viewBox="0 0 4103 845"><use href="#logo"/></svg></button></h1>
-    <p class="intro">Learn to think in arrays, the APL way: ask one question of the whole field at once. Write one APL function, <code>Harvest</code>. Every day it’s given today’s field as <code>⍵</code> and gives back 1s and 0s: 1 means harvest that plot, 0 means leave it. Score as much as you can in a season. New to APL? <a href="#" id="playTutorial">Play the tutorial</a>.</p>
+    <p class="intro">Learn to think in arrays, the APL way: ask one question of the whole field at once. New to APL? <a href="#" id="playTutorial">Play the tutorial</a>.</p>
     <div class="farm-bar">
       <label for="farm">Farm</label>
       <select id="farm">
@@ -2837,11 +2842,12 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
 
   // The title screen: the logo, one line, the four stages growing in, and ways in. It opens at the start of each
   // visit (not on every reload: once per browser tab), and the logo in the header opens it again.
-  let welcomeNew = false, welcomeFrom = null;
+  let welcomeNew = false, welcomeFrom = null, rotTimer = null;
   function fillWelcomeArt() {
     const row = $('welcomeStages');
     if (row.children.length || !artReady) return;
     row.replaceChildren(...[0, 1, 2, 3].map(v => { const img = document.createElement('img'); img.src = ART[v].src; img.alt = ''; return img; }));
+    if (!$('welcome').hidden) startRotting();
   }
   function openWelcome(isNew = false) {
     welcomeNew = isNew;
@@ -2855,10 +2861,28 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     fillWelcomeArt();
     $('welcomeStart').focus();
     try { sessionStorage.setItem('acres:welcomed', '1'); } catch (e) {}
+    startRotting();
+  }
+  // The last of the four stages, the ripe plant, waits about ten seconds, shakes, and turns rotten: the whole life
+  // cycle in one row. It starts ripe again each time the title screen opens. With reduced motion, it just changes.
+  function startRotting() {
+    clearTimeout(rotTimer);
+    const ripe = $('welcomeStages').children[3];
+    if (!ripe) return;
+    ripe.classList.remove('rotting'); ripe.src = ART[3].src;
+    rotTimer = setTimeout(() => {
+      if ($('welcome').hidden) return;
+      const rot = () => { ripe.src = ART[4].src; ripe.dataset.stage = 'rotten'; };
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return rot();
+      ripe.classList.add('rotting');
+      setTimeout(rot, 450); // turns rotten as the shake settles
+    }, 1650 + 10000);
+    ripe.dataset.stage = 'ripe';
   }
   function closeWelcome() {
     $('welcome').hidden = true;
     document.querySelectorAll('.wrap, .skip-link').forEach(el => { el.inert = false; });
+    clearTimeout(rotTimer);
   }
   $('welcomeStart').addEventListener('click', () => {
     closeWelcome();
