@@ -334,16 +334,17 @@ test('the field can show its numbers, exactly as Harvest sees them, once Gold un
   await expect(field).toHaveAttribute('data-numbers', 'off');
 });
 
-test('How to play opens on a first visit (unless the tutorial is showing), and the side panel switches and closes', async ({ browser }) => {
+test('How to play opens when a new player skips the tutorial, and the side panel switches and closes', async ({ browser }) => {
   const page = await browser.newPage();
   await page.goto(PAGE);
   const panel = page.locator('#panel'), title = page.locator('#panelTitle');
-  // A new player starts on the tutorial, which explains things itself: no panel on top of it.
-  await expect(page.locator('#tutStep')).toHaveText('Tutorial, step 1 of 12');
-  await expect(panel).toBeHidden();
-  // A first visit that starts on another farm opens How to play.
+  // Every first visit opens the title screen, even one that would start on another farm.
+  await expect(page.locator('#welcome')).toBeVisible();
   await page.evaluate(() => { localStorage.clear(); localStorage.setItem('acres:farm', 'middlebourne-farm'); });
   await page.reload();
+  await expect(page.locator('#welcome')).toBeVisible();
+  await expect(page.locator('#welcomeStart')).toHaveText('Start the tutorial');
+  await page.click('#welcomeSkip');
 
   await expect(panel).toBeVisible();
   await expect(title).toHaveText('How to play');
@@ -1181,4 +1182,51 @@ test('the title screen: at the start of each visit, with ways in for new and ret
   await expect(page.locator('#farm')).toHaveValue('middlebourne-farm');
   await expect(page.locator('#panelTitle')).toHaveText('How to play');
   await context.close();
+});
+
+test('the title screen’s Play the tutorial never touches a returning player’s own program or view', async ({ browser }) => {
+  const mine = 'Harvest←{\n  ripe←⍵=Ripe\n  ripe∨⍵=Rotten\n}\nNote←{⍵}\n';
+  const context = await browser.rawNewContext();
+  await context.addInitScript(code => {
+    if (localStorage.getItem('acres:help-seen')) return;
+    localStorage.setItem('acres:help-seen', '1'); localStorage.setItem('acres:farm', 'middlebourne-farm');
+    localStorage.setItem('allotment:apl', code); localStorage.setItem('acres:editor', 'full');
+  }, mine);
+  const page = await context.newPage();
+  await page.goto(PAGE);
+  await expect(page.locator('#welcomeStart')).toHaveText('Continue on Middlebourne Farm');
+  await page.click('#welcomeSkip'); // Play the tutorial
+  await expect(page.locator('#tutStep')).toHaveText('Tutorial, step 1 of 12');
+  await expect(page.locator('#hBody')).toBeVisible();
+  await expect(page.locator('#hBody')).toHaveValue('0');
+  await page.click('#tutNext');
+  await page.selectOption('#farm', 'middlebourne-farm');
+  await expect(page.locator('#code')).toBeVisible();
+  await expect(page.locator('#code')).toHaveValue(mine);
+  expect(await page.evaluate(() => [localStorage.getItem('allotment:apl'), localStorage.getItem('acres:editor')])).toEqual([mine, 'full']);
+  await context.close();
+});
+
+test('the theme follows the device unless the player switches it, and switching back follows the device again', async ({ browser }) => {
+  for (const colorScheme of ['light', 'dark']) {
+    const context = await browser.newContext({ colorScheme }), page = await context.newPage();
+    await page.goto(PAGE);
+    await page.click('#welcomeStart'); // a first visit opens on the title screen
+    const html = page.locator('html'), button = page.locator('#themeToggle'), other = colorScheme === 'dark' ? 'light' : 'dark';
+    const background = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    const devices = await background();
+    await expect(html).not.toHaveAttribute('data-theme', /./);
+    await expect(button).toHaveAttribute('aria-label', `Switch to the ${other} theme`);
+    await button.click();
+    await expect(html).toHaveAttribute('data-theme', other);
+    expect(await background()).not.toBe(devices);
+    await page.reload(); // remembered, and applied before the page is drawn
+    await expect(html).toHaveAttribute('data-theme', other);
+    await expect(button).toHaveAttribute('aria-label', `Switch to the ${colorScheme} theme`);
+    await button.click(); // back to the device's own theme: the choice is forgotten
+    await expect(html).not.toHaveAttribute('data-theme', /./);
+    expect(await page.evaluate(() => localStorage.getItem('acres:theme'))).toBe(null);
+    expect(await background()).toBe(devices);
+    await context.close();
+  }
 });

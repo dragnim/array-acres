@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>/* A theme the player chose (otherwise the device's setting), applied before the page is drawn. */ try { const t = localStorage.getItem('acres:theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}</script>
 <title>Array Acres</title>
 <link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,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">
 <meta name="description" content="Array Acres is a farming puzzle game that teaches APL. Write one function that looks at the whole field at once, harvest your crops, chase bumper crops, outwit the crows, and learn array programming as you play, right in your browser.">
@@ -151,6 +152,8 @@ body {
   border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 7px 14px;
 }
 .panel-buttons button:hover { border-color: var(--muted); }
+.panel-buttons .theme-button { display: inline-grid; place-items: center; width: 42px; padding-left: 0; padding-right: 0; }
+.theme-button svg { width: 18px; height: 18px; }
 .panel-buttons button[aria-expanded="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .new-badge { margin-left: 7px; font-size: 0.72rem; font-weight: 700; background: var(--ripe); color: var(--medal-ink); border-radius: 999px; padding: 1px 7px; vertical-align: 1px; }
 .new-badge[hidden] { display: none; }
@@ -496,6 +499,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
       <button type="button" id="openHelp" aria-controls="panel" aria-expanded="false">How to play</button>
       <button type="button" id="openGuide" aria-controls="panel" aria-expanded="false">Farming guide<span class="new-badge" id="guideNew" hidden>New</span></button>
       <button type="button" id="openBoard" aria-controls="panel" aria-expanded="false">Leaderboard</button>
+      <button type="button" class="theme-button" id="themeToggle"></button>
     </div>
   </header>
 
@@ -2858,6 +2862,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   }
   $('welcomeStart').addEventListener('click', () => {
     closeWelcome();
+    if (welcomeNew && !lessonOn()) $('playTutorial').click(); // a new player's Start always begins the tutorial
     (welcomeNew || lessonOn() ? $('tutNext') : welcomeFrom && welcomeFrom.isConnected ? welcomeFrom : $('openWelcome')).focus();
   });
   $('welcomeSkip').addEventListener('click', () => {
@@ -3550,7 +3555,31 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     });
   }
 
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', refreshTheme);
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { refreshTheme(); syncThemeButton(); });
+  // Light or dark: the device's setting, unless the player switches. Switching back to the device's own theme
+  // forgets the choice, so the game follows the device again.
+  const THEME_KEY = 'acres:theme', themeBtn = $('themeToggle');
+  const systemDark = () => matchMedia('(prefers-color-scheme: dark)').matches;
+  const themeDark = () => { const t = document.documentElement.dataset.theme; return t ? t === 'dark' : systemDark(); };
+  const SUN = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>';
+  const MOON = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M20.2 14.6A8.4 8.4 0 0 1 9.4 3.8a8.4 8.4 0 1 0 10.8 10.8Z"/></svg>';
+  function syncThemeButton() {
+    const dark = themeDark(), label = dark ? 'Switch to the light theme' : 'Switch to the dark theme';
+    themeBtn.innerHTML = dark ? SUN : MOON;
+    themeBtn.setAttribute('aria-label', label); themeBtn.title = label;
+  }
+  themeBtn.addEventListener('click', () => {
+    const next = themeDark() ? 'light' : 'dark';
+    if ((next === 'dark') === systemDark()) {
+      delete document.documentElement.dataset.theme;
+      try { localStorage.removeItem(THEME_KEY); } catch (e) {}
+    } else {
+      document.documentElement.dataset.theme = next;
+      try { localStorage.setItem(THEME_KEY, next); } catch (e) {}
+    }
+    syncThemeButton();
+  });
+  syncThemeButton();
   new MutationObserver(refreshTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   new ResizeObserver(sizeCanvas).observe(cv);
 
@@ -3560,14 +3589,12 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   // New players start on Tutorial Farm; returning players keep the farm they last played.
   chooseFarm(savedFarm === 'practice' ? 'practice' : savedFarm || AcresCore.FARMS.find(f => f.tutorial).id);
   $('godBadge').hidden = !godMode;
-  // The title screen opens at the start of each visit (once per tab, not on every reload): a new player's version,
-  // over the tutorial it leads into, on a first visit. A first visit that starts on another farm, which only happens
-  // if a farm was saved without a visit being recorded, opens How to play instead.
+  // The title screen opens at the start of each visit (once per tab, not on every reload), and always on a first
+  // visit, with a new player's buttons.
   try {
     const isNew = !localStorage.getItem('acres:help-seen');
     if (isNew) localStorage.setItem('acres:help-seen', '1');
-    if (isNew && !lessonOn()) setTimeout(() => openPanel('help'));
-    else if (!sessionStorage.getItem('acres:welcomed')) openWelcome(isNew);
+    if (isNew || !sessionStorage.getItem('acres:welcomed')) openWelcome(isNew);
   } catch (e) {}
   if (lessonOn()) applyStepState(tut.step); else reset();
   sizeCanvas();
