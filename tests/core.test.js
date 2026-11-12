@@ -557,8 +557,8 @@ for (const [src, want] of limits) check(`limit: ${src}`, ev(src), want);
 // The other farms keep their 8×8 fields and 100 days, and their pinned scores above prove they play exactly as before.
 {
   const TF = AcresCore.FARMS.find(f => f.tutorial);
-  check('tutorial: Tutorial Farm is 4×4 with a 20-day season, on Middlebourne Farm’s weather',
-    [TF.name, TF.size, TF.days, TF.sunshine, TF.rainfall], ['Tutorial Farm', 4, 20, 0.55, 0.20]);
+  check('tutorial: Tutorial Farm is 4×4 with a 20-day season, and 100% sunshine and rainfall',
+    [TF.name, TF.size, TF.days, TF.sunshine, TF.rainfall], ['Tutorial Farm', 4, 20, 1, 1]);
   check('tutorial: every other farm is still 8×8 with a 100-day season',
     AcresCore.FARMS.filter(f => !f.tutorial).every(f => f.size === 8 && f.days === 100), true);
   const st0 = AcresCore.newSeason(TF.seed, TF);
@@ -567,7 +567,14 @@ for (const [src, want] of limits) check(`limit: ${src}`, ev(src), want);
   st0.field[0][0] = 9;
   check('tutorial: a season gets its own copy of that field', AcresCore.newSeason(TF.seed, TF).field[0][0], 0);
   const play = src => { const fn = AcresCore.compileHarvest(src), st = AcresCore.newSeason(TF.seed, TF); while (st.day < st.days) AcresCore.advance(st, AcresCore.runHarvest(fn, st.field)); return [st.score, st.wasted, st.day]; };
-  check('tutorial: ⍵=Ripe plays 20 days, scores 64 and wastes nothing', play('Harvest←{⍵=Ripe}'), [64, 0, 20]);
+  check('tutorial: ⍵=Ripe plays 20 days, scores 99 and wastes nothing', play('Harvest←{⍵=Ripe}'), [99, 0, 20]);
+  {
+    // Every plant grows one stage a night, and a ripe plant left a night rots, as the tutorial says.
+    const st = AcresCore.newSeason(TF.seed, TF);
+    AcresCore.advance(st, st.field.map(r => r.map(() => 0)));
+    check('tutorial: every plant grows one stage overnight, and ripe plants left a night rot',
+      st.field, [[1, 2, 3, 4], [2, 3, 4, 4], [3, 4, 3, 1], [4, 3, 2, 1]]);
+  }
   check('tutorial: ⍵=Growing wastes plants, as the tutorial shows', play('Harvest←{⍵=Growing}')[1] > 0, true);
   let err = '';
   try { AcresCore.runHarvest(AcresCore.compileHarvest('Harvest←{8 8⍴1}'), st0.field); } catch (e) { err = e.message; }
