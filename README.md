@@ -118,6 +118,7 @@ A new random field each time, with Middlebourne's weather and every symbol and h
 - **Screen readers** get a text version of the field: every plot's stage, row by row, with what `Harvest` would pick and where scarecrows will stand. Next day announces what happened, and errors and status changes are announced as they appear.
 - **Keyboard:** everything works without a mouse. The first Tab offers a skip link straight to the code, every name and symbol button explains itself on focus, and Ctrl+Enter (⌘+Enter) plays the next day.
 - **Touch:** every action can be tapped, and a long press on a button explains it.
+- **Light and dark:** the game follows the device's setting. The sun or moon button at the end of the header buttons switches to the other theme, and the choice is remembered; switching back to the device's own theme forgets it, so the game follows the device again.
 - **Comfort:** effects respect reduced motion, colours meet contrast standards in both themes, and on small screens the game behind an open panel is set aside, so focus stays in the panel. Buttons never move: switching farms or turning crows or blight on and off leaves every button where it was.
 - **Checked automatically:** every browser test run scans the page, its panels, a played day, Crowhurst and the code view with [axe](https://github.com/dequelabs/axe-core), in both themes.
 
