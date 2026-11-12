@@ -1770,7 +1770,8 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     // The glow: on the things the step talks about, or on Next once its task is done.
     document.querySelectorAll('.tut-glow').forEach(e => e.classList.remove('tut-glow'));
     const g = lesson && !ok && t.glow ? t.glow() : {};
-    (lesson && ok ? [$('tutNext')] : g.els || []).forEach(e => e && e.classList.add('tut-glow'));
+    // On a reading step, Next glows too, alongside what the step talks about: it's the thing to press.
+    (lesson && ok ? [$('tutNext')] : [...(g.els || []), ...(lesson && !t.done ? [$('tutNext')] : [])]).forEach(e => e && e.classList.add('tut-glow'));
     tutPlots = lesson && !ok ? g.plots || [] : [];
     // Glowing plots pulse on the field, unless motion is reduced.
     const pulse = tutPlots.length && !matchMedia('(prefers-reduced-motion: reduce)').matches;
