@@ -616,7 +616,7 @@ test('the game loads nothing from other sites, apart from the leaderboard', asyn
   expect(elsewhere).toEqual([]);
 });
 
-test('on big screens the field grows but the field, stats and key still fit without scrolling; smaller screens keep the old size', async ({ browser }) => {
+test('on big screens the field grows but the field and stats still fit without scrolling; smaller screens keep the old size', async ({ browser }) => {
   for (const [width, height, fits] of [[2560, 1300, true], [2560, 1150, true], [1440, 900, false], [1366, 768, false]]) {
     const page = await browser.newPage({ viewport: { width, height } });
     await page.goto(PAGE);
@@ -748,7 +748,6 @@ test('Blightwick Farm: blight in the field, the key, the name buttons, the guide
   await expect(blighted).toHaveAttribute('aria-disabled', 'true'); // always there, but faded where blight doesn't grow
   await page.selectOption('#farm', 'blightwick-farm');
   await expect(page.locator('#weather')).toContainText('Blight 50%');
-  await expect(page.locator('#legend')).toContainText('Blighted');
   await expect(blighted).not.toHaveAttribute('aria-disabled', 'true');
   await expect(page.locator('#fieldText')).toContainText('Blighted');
   expect(await page.locator('#rBlightStat').getAttribute('hidden')).toBeNull(); // shown in the report on Blightwick
@@ -764,7 +763,7 @@ test('Blightwick Farm: blight in the field, the key, the name buttons, the guide
 });
 
 test('switching from Practice Farm to a farm doesn’t shift the page, on desktop, tablet or phone', async ({ browser }) => {
-  const parts = ['.farm-bar', 'section.plot', '#field', '#legend', 'section.editor', '#words', '#run'];
+  const parts = ['.farm-bar', 'section.plot', '#field', 'section.editor', '#words', '#run'];
   for (const [width, height] of [[1561, 877], [820, 1180], [390, 844]]) {
     const page = await browser.newPage({ viewport: { width, height } });
     await page.goto(PAGE);
@@ -827,7 +826,7 @@ test('Practice Farm can borrow crows and blight, but only once Gold has unlocked
   await expect(page.locator('#weather')).not.toContainText('Crows');
   await crows.click();
   await expect(crows).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('#legend')).toContainText('eaten by crows'); // the pressed button shows crows are on; no extra chip
+  await expect(page.locator('#rules')).toContainText('Crows:'); // the pressed button shows crows are on; no extra chip
   await expect(page.locator('#weather')).not.toContainText('Crows');
   await expect(page.locator('#rules')).toContainText('Crows:');
   await expect(page.locator('#msg')).toHaveText('New field planted, with crows.');
@@ -835,7 +834,6 @@ test('Practice Farm can borrow crows and blight, but only once Gold has unlocked
   await expect(page.locator('#msg')).toHaveText('New field planted, with crows and blight.');
   await expect(page.locator('#rules')).toContainText('Blight:');
   await expect(page.locator('#words button', { hasText: /^Blighted$/ })).not.toHaveAttribute('aria-disabled', 'true');
-  await expect(page.locator('#legend')).toContainText('Blighted');
   // Scarecrows work on Practice too.
   await page.locator('#code').fill('Harvest←{⍵=Ripe}\nScare←{8 8⍴1,63⍴0}');
   await expect(page.locator('#field')).toHaveAttribute('data-scarecrows', '1');
@@ -1035,4 +1033,24 @@ test('nothing moves between the tutorial’s steps, on desktop, tablet or phone'
     }
     await page.close();
   }
+});
+
+test('no key: the stage buttons show their pictures, plots explain themselves, and Show answers works on any farm', async ({ page }) => {
+  await expect(page.locator('#legend')).toHaveCount(0);
+  for (const stage of ['Seed', 'Sprout', 'Growing', 'Ripe', 'Rotten'])
+    await expect(page.locator('#words button', { hasText: new RegExp(`${stage}$`) }).locator('img.word-pic')).toHaveCount(1);
+  await page.locator('#code').fill('Harvest←{⍵=Ripe}');
+  await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
+  // Hovering over a plot says what's there and what Harvest makes of it.
+  const box = await page.locator('#field').boundingBox();
+  await page.mouse.move(box.x + box.width / 16, box.y + box.height / 16);
+  await expect(page.locator('.tip')).toHaveText(/^Row 1, column 1: (Seed|Sprout|Growing|Ripe|Rotten)\. Harvest (picks|leaves) it \([01]\)\.$/);
+  await page.mouse.move(0, 0);
+  // Show answers puts the 1s and 0s on the field, and is remembered.
+  await expect(page.locator('#field')).toHaveAttribute('data-answers', 'off');
+  await page.click('#showAnswers');
+  await expect(page.locator('#field')).toHaveAttribute('data-answers', 'on');
+  await expect(page.locator('#showAnswers')).toHaveText('Hide answers');
+  await page.reload();
+  await expect(page.locator('#field')).toHaveAttribute('data-answers', 'on');
 });
