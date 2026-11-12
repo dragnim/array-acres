@@ -1643,7 +1643,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   const access = () => farm ? unlocked() : AcresCore.FULL;
   let running = false, timer = null, fn = null, scareFn = null, dirty = true, compiledSrc = '';
   // The version players see in the footer, to quote in bug reports. Bump it with each release for testers.
-  const VERSION = '0.1';
+  const VERSION = '0.2';
   $('buildInfo').textContent = `Array Acres prototype ${VERSION} · rules ${AcresCore.RULES.id}`;
 
   // Practice Farm can borrow Crowhurst's crows and Blightwick's blight, each once Gold has unlocked that
