@@ -319,10 +319,16 @@ test('the field can show its numbers, exactly as Harvest sees them, once Gold un
   await expect(field).toHaveAttribute('data-numbers', 'off');
 });
 
-test('How to play opens on a first visit, and the side panel switches and closes', async ({ browser }) => {
+test('How to play opens on a first visit (unless the tutorial is showing), and the side panel switches and closes', async ({ browser }) => {
   const page = await browser.newPage();
   await page.goto(PAGE);
   const panel = page.locator('#panel'), title = page.locator('#panelTitle');
+  // A new player starts on the tutorial, which explains things itself: no panel on top of it.
+  await expect(page.locator('#tutStep')).toHaveText('Tutorial, step 1 of 12');
+  await expect(panel).toBeHidden();
+  // A first visit that starts on another farm opens How to play.
+  await page.evaluate(() => { localStorage.clear(); localStorage.setItem('acres:farm', 'middlebourne-farm'); });
+  await page.reload();
 
   await expect(panel).toBeVisible();
   await expect(title).toHaveText('How to play');
@@ -920,6 +926,7 @@ test('the tutorial: twelve steps, each with only its own controls working and a 
   await expect(page.locator('#farm option').first()).toHaveText('Tutorial Farm');
   await expect(page.locator('#targets')).toBeHidden();
   await expect(page.locator('#glyphs')).toBeHidden();
+  await expect(page.locator('#resetCode')).toBeHidden(); // Restart puts a step's rule back instead
   await expect(page.locator('#words button')).toHaveText(['⍵', '=', '≥', 'Seed', 'Sprout', 'Growing', 'Ripe', 'Rotten']);
   // 1: the farm. Nothing works yet but Next and Restart; on a reading step, Next glows too.
   await at(1); await glowing('field'); await glowing('tutNext');
@@ -988,6 +995,7 @@ test('the tutorial: twelve steps, each with only its own controls working and a 
   await page.locator('#hBody').fill('⍵=Ripe');
   await page.click('#restart');
   await expect(page.locator('#hBody')).toHaveValue('⍵≥Growing');
+  await expect(page.locator('#tutMsg')).toContainText('Your rule was reset to match this step.');
   await page.locator('#hBody').fill('⍵=Ripe');
   await page.click('#run');
   await expect(page.locator('#tutMsg')).toHaveText('Season complete. You scored 99 points, with nothing wasted.', { timeout: 30000 });
@@ -1053,4 +1061,48 @@ test('no key: the stage buttons show their pictures, plots explain themselves, a
   await expect(page.locator('#showAnswers')).toHaveText('Hide answers');
   await page.reload();
   await expect(page.locator('#field')).toHaveAttribute('data-answers', 'on');
+});
+
+test('the tutorial never touches a returning player’s own program or their choice of the code view', async ({ page }) => {
+  const mine = 'Harvest←{\n  ripe←⍵=Ripe\n  ripe∨⍵=Rotten\n}\nNote←{⍵}\n';
+  await page.evaluate(code => { localStorage.setItem('allotment:apl', code); localStorage.setItem('acres:editor', 'full'); }, mine);
+  await page.reload();
+  await expect(page.locator('#code')).toHaveValue(mine);
+  // Into the tutorial: the simple view and the lesson's own starting rule.
+  await page.click('#playTutorial');
+  await expect(page.locator('#hBody')).toBeVisible();
+  await expect(page.locator('#hBody')).toHaveValue('0');
+  for (let i = 0; i < 3; i++) await page.click('#tutNext');
+  for (const word of ['⍵', '=', 'Ripe']) await page.locator('#words button', { hasText: new RegExp(`${word}$`) }).click();
+  await page.click('#tutNext'); await page.click('#tutNext');
+  await page.click('#step');
+  // Back to Middlebourne: the player's program and the code view, exactly as they were.
+  await page.selectOption('#farm', 'middlebourne-farm');
+  await expect(page.locator('#code')).toBeVisible();
+  await expect(page.locator('#code')).toHaveValue(mine);
+  expect(await page.evaluate(() => [localStorage.getItem('allotment:apl'), localStorage.getItem('acres:editor')])).toEqual([mine, 'full']);
+  await page.reload();
+  await expect(page.locator('#code')).toHaveValue(mine);
+});
+
+test('free play on Tutorial Farm: Previous day undoes several days, and a new rule carries the season on', async ({ page }) => {
+  await page.evaluate(() => { localStorage.setItem('acres:tutorial-done', '1'); localStorage.setItem('acres:editor', 'simple'); });
+  await page.reload();
+  await page.selectOption('#farm', 'tutorial-farm');
+  await expect(page.locator('#tutStep')).toHaveText('Tutorial complete');
+  await page.locator('#hBody').fill('⍵=Ripe');
+  await page.click('#step'); await page.click('#step');
+  await page.locator('#hBody').fill('⍵≥Growing');
+  await page.click('#step'); await page.click('#step');
+  await expect(page.locator('#sTick')).toHaveText('4/20');
+  await expect(page.locator('#sWasted')).not.toHaveText('0');
+  // Undo the two wasteful days, then carry on with ⍵=Ripe: the same as playing ⍵=Ripe all season.
+  await page.click('#prevDay'); await page.click('#prevDay');
+  await expect(page.locator('#sTick')).toHaveText('2/20');
+  await expect(page.locator('#sWasted')).toHaveText('0');
+  await expect(page.locator('#msg')).toHaveText('Back to the start of day 3.');
+  await page.locator('#hBody').fill('⍵=Ripe');
+  await page.click('#run');
+  await expect(page.locator('#msg')).toHaveText('Season complete. You scored 99 points.', { timeout: 30000 });
+  await expect(page.locator('#sWasted')).toHaveText('0');
 });
