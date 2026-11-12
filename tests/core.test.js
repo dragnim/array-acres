@@ -147,11 +147,12 @@ for (const [label, field, want] of fixed) check(`hybrid mask: ${label}`, AcresCo
 {
   const FARMS = AcresCore.FARMS, PRACTICE = AcresCore.PRACTICE;
   // Crowhurst Farm adds crows and Blightwick Farm adds blight; their own checks are in sections 12 and 13.
-  const PLAIN = FARMS.filter(f => !f.crows && !f.blight);
+  // Tutorial Farm is smaller and shorter; its own checks are in section 15.
+  const PLAIN = FARMS.filter(f => !f.crows && !f.blight && !f.tutorial);
   check('rules: the ruleset is v2 and cannot be changed', [RULES.id, Object.isFrozen(RULES)], ['v2', true]);
   const ids = FARMS.map(f => f.id);
-  check('farms: five farms with unique ids, all on rules v2 and fixed',
-    [ids.length, new Set(ids).size, FARMS.every(f => f.rules === RULES.id && Object.isFrozen(f))], [5, 5, true]);
+  check('farms: six farms with unique ids, all on rules v2 and fixed',
+    [ids.length, new Set(ids).size, FARMS.every(f => f.rules === RULES.id && Object.isFrozen(f))], [6, 6, true]);
   check('farms: each farm without crows has its own weather', new Set(PLAIN.map(f => `${f.sunshine}/${f.rainfall}`)).size, 3);
   check('farms: Practice Farm has Middlebourne Farm’s weather', [PRACTICE.sunshine, PRACTICE.rainfall], [FARMS[0].sunshine, FARMS[0].rainfall]);
   const onFarm = (src, f) => season(src, f.seed, null, f);
@@ -210,7 +211,7 @@ check('bumper crops: a square with a rotten or growing plant is not a bumper cro
 {
   const N = RULES.size, ripe = RULES.ripe, rot = RULES.rot;
   let starts = true, steps = true, waste = true, rates = true;
-  for (const f of AcresCore.FARMS.filter(f => !f.crows && !f.blight)) {
+  for (const f of AcresCore.FARMS.filter(f => !f.crows && !f.blight && !f.tutorial)) {
   let grew = 0, couldGrow = 0, rotted = 0, couldRot = 0;
   for (const src of [GREEDY, HYBRID, 'Harvest←{0}']) {
     const fn = AcresCore.compileHarvest(src);
@@ -261,8 +262,8 @@ check('bumper crops: a square with a rotten or growing plant is not a bumper cro
     catch (e) { return e.message; }
   };
   const p0 = AcresCore.progress({});
-  check('progress: a new player has Middlebourne Farm and the comparisons only',
-    [p0.earned, [...p0.glyphs].join(''), [...p0.helpers], [...p0.farms], p0.source], [['start'], '=≠<>≤≥', [], ['middlebourne-farm'], false]);
+  check('progress: a new player has Tutorial Farm, Middlebourne Farm and the comparisons only',
+    [p0.earned, [...p0.glyphs].join(''), [...p0.helpers], [...p0.farms], p0.source], [['start'], '=≠<>≤≥', [], ['tutorial-farm', 'middlebourne-farm'], false]);
   check('locks: a locked symbol says what unlocks it', msg('Harvest←{(⍵=3)∨⍵=4}', p0), 'LOCKED: ∨ unlocks with Bronze on Middlebourne Farm');
   check('locks: a locked helper says what unlocks it', msg('Harvest←{BumperCrops ⍵}', p0), 'LOCKED: BumperCrops unlocks with Bronze on Middlebourne Farm');
   check('locks: symbols in comments don’t count', msg('⍝ try ∨ later\nHarvest←{⍵=3}', p0), 'ok');
@@ -273,7 +274,7 @@ check('bumper crops: a square with a rotten or growing plant is not a bumper cro
   check('journey: harvesting ripe plants on Middlebourne Farm reaches Bronze', [s1, AcresCore.tierFor(F['middlebourne-farm'], s1)], [1213, 'bronze']);
   const p1 = AcresCore.progress({ 'v2:middlebourne-farm': { score: s1 } });
   check('journey: Bronze on Middlebourne Farm unlocks ∧ ∨ ~, BumperCrops and Sunnyhill Farm',
-    [p1.earned, [...p1.glyphs].includes('∨'), [...p1.helpers], [...p1.farms]], [['start', 'middlebourne-bronze'], true, ['BumperCrops'], ['middlebourne-farm', 'sunnyhill-farm']]);
+    [p1.earned, [...p1.glyphs].includes('∨'), [...p1.helpers], [...p1.farms]], [['start', 'middlebourne-bronze'], true, ['BumperCrops'], ['tutorial-farm', 'middlebourne-farm', 'sunnyhill-farm']]);
   const s2 = play('Harvest←{(⍵=4)∨BumperCrops ⍵}', F['sunnyhill-farm'], p1);
   check('journey: harvesting only bumper crops on Sunnyhill Farm reaches Silver', [s2, AcresCore.tierFor(F['sunnyhill-farm'], s2)], [1995, 'silver']);
   const p2 = AcresCore.progress({ 'v2:middlebourne-farm': { score: s1 }, 'v2:sunnyhill-farm': { score: s2 } });
@@ -281,7 +282,7 @@ check('bumper crops: a square with a rotten or growing plant is not a bumper cro
     [p2.earned.includes('sunnyhill-silver'), [...p2.helpers], p2.farms.has('marshgate-farm')], [true, ['BumperCrops', 'Promising'], true]);
   const smart = 'Harvest←{(⍵=4)∨(BumperCrops ⍵)∨(⍵=3)∧~Promising ⍵}';
   check('journey: the helpers reproduce the reference strategy and reach Gold on every farm',
-    AcresCore.FARMS.filter(f => !f.crows && !f.blight).map(f => { const sc = play(smart, f, p2); return [sc, AcresCore.tierFor(f, sc)]; }), [[1533, 'gold'], [2132, 'gold'], [1238, 'gold']]);
+    AcresCore.FARMS.filter(f => !f.crows && !f.blight && !f.tutorial).map(f => { const sc = play(smart, f, p2); return [sc, AcresCore.tierFor(f, sc)]; }), [[1533, 'gold'], [2132, 'gold'], [1238, 'gold']]);
   const p3 = AcresCore.progress({ 'v2:marshgate-farm': { score: 1200 } });
   check('journey: Gold on any farm unlocks every symbol and the helpers’ source',
     [p3.earned.includes('any-gold'), p3.glyphs.has('↑'), p3.helpers.has('Squares'), p3.source], [true, true, true, true]);
@@ -550,6 +551,27 @@ for (const [src, want] of limits) check(`limit: ${src}`, ev(src), want);
   ];
   const differ = DYALOG.filter(([e, want]) => ev(e) !== want).map(([e, want]) => `${e} gave ${ev(e)}, Dyalog gives ${want}`);
   check(`dyalog: ${DYALOG.length} expert edge cases give Dyalog's answers`, differ, []);
+}
+
+// 15. Tutorial Farm: a 4×4 field and a 20-day season, the first farm a new player meets, with no medals.
+// The other farms keep their 8×8 fields and 100 days, and their pinned scores above prove they play exactly as before.
+{
+  const TF = AcresCore.FARMS.find(f => f.tutorial);
+  check('tutorial: Tutorial Farm is 4×4 with a 20-day season, on Middlebourne Farm’s weather',
+    [TF.name, TF.size, TF.days, TF.sunshine, TF.rainfall], ['Tutorial Farm', 4, 20, 0.55, 0.20]);
+  check('tutorial: every other farm is still 8×8 with a 100-day season',
+    AcresCore.FARMS.filter(f => !f.tutorial).every(f => f.size === 8 && f.days === 100), true);
+  const st0 = AcresCore.newSeason(TF.seed, TF);
+  check('tutorial: its field is 4×4 and starts with every kind of plant on show',
+    [st0.field.length, st0.field.every(r => r.length === 4), new Set(st0.field.flat()).size, st0.days], [4, true, 4, 20]);
+  const play = src => { const fn = AcresCore.compileHarvest(src), st = AcresCore.newSeason(TF.seed, TF); while (st.day < st.days) AcresCore.advance(st, AcresCore.runHarvest(fn, st.field)); return [st.score, st.wasted, st.day]; };
+  check('tutorial: ⍵=Ripe plays 20 days, scores 59 and wastes nothing', play('Harvest←{⍵=Ripe}'), [59, 0, 20]);
+  check('tutorial: ⍵=Growing wastes plants, as the tutorial shows', play('Harvest←{⍵=Growing}')[1] > 0, true);
+  let err = '';
+  try { AcresCore.runHarvest(AcresCore.compileHarvest('Harvest←{8 8⍴1}'), st0.field); } catch (e) { err = e.message; }
+  check('tutorial: Harvest must answer with a 4×4 field here', /must return a 4×4 matrix/.test(err), true);
+  check('tutorial: it doesn’t count as "any farm" for Gold', AcresCore.progress({ 'v2:tutorial-farm': { score: 999 } }).farms.has('crowhurst-farm'), false);
+  check('tutorial: it’s open to a new player, alongside Middlebourne Farm', [...AcresCore.progress({}).farms], ['tutorial-farm', 'middlebourne-farm']);
 }
 
 console.log(failures ? `${failures} of ${checks} checks failed` : `All ${checks} checks passed`);
