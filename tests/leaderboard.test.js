@@ -36,7 +36,17 @@ function fakeD1() {
 }
 
 (async () => {
-  const { default: worker, SIZE, MAX_PENDING, SUBMITS_PER_HOUR } = await import('../leaderboard/worker.mjs');
+  const { default: worker, SIZE, MAX_PENDING, SUBMITS_PER_HOUR, RULESET, FARMS, VERSIONS } = await import('../leaderboard/worker.mjs');
+
+  // The Worker keeps its own copy of the ruleset, the farms with leaderboards and their board versions. It must
+  // match the game's exactly, or the leaderboard would accept or reject the wrong scores.
+  {
+    const core = loadCore();
+    check('worker: its ruleset is the game’s', RULESET, core.RULES.id);
+    check('worker: its boards are the game’s farms, apart from Tutorial Farm', FARMS, core.FARMS.filter(f => !f.tutorial).map(f => f.id));
+    check('worker: its board versions are the game’s', VERSIONS,
+      Object.fromEntries(core.FARMS.filter(f => f.boardVersion).map(f => [f.id, f.boardVersion])));
+  }
   let clock = Date.parse('2026-11-07T12:00:00Z');
   const env = { LEADERBOARD_TOKEN: 'test-token', DB: fakeD1(), now: () => clock };
   let ip = '192.0.2.1';

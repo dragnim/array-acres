@@ -583,5 +583,12 @@ for (const [src, want] of limits) check(`limit: ${src}`, ev(src), want);
   check('tutorial: it’s open to a new player, alongside Middlebourne Farm', [...AcresCore.progress({}).farms], ['tutorial-farm', 'middlebourne-farm']);
 }
 
+// 16. The version: package.json follows the game's version, as shown in its footer, so they can't drift apart.
+{
+  const game = (page.match(/const VERSION = '([^']+)';/) || [])[1];
+  const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
+  check('version: package.json matches the game’s version', pkg.split('.').slice(0, 2).join('.'), game);
+}
+
 console.log(failures ? `${failures} of ${checks} checks failed` : `All ${checks} checks passed`);
 process.exit(failures ? 1 : 0);

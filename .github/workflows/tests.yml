@@ -31,7 +31,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      # Chromium runs the full suite; Firefox and WebKit (Safari's engine) run the short smoke suite.
+      - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm run test:browser
       - name: Upload Playwright traces and screenshots
         if: failure()

@@ -926,7 +926,7 @@ test('the page has its own icon: the ripe plant, built into the page', async ({ 
 
 test('the footer shows the version and rules for bug reports, with a link to report a problem', async ({ page }) => {
   await expect(page.locator('#buildInfo')).toHaveText(/^Array Acres prototype \d+\.\d+ · rules v2$/);
-  await expect(page.getByRole('link', { name: 'Report a problem' })).toHaveAttribute('href', 'https://github.com/dragnim/array-acres/issues');
+  await expect(page.getByRole('link', { name: 'Report a problem' })).toHaveAttribute('href', /^https:\/\/github\.com\/dragnim\/array-acres\/issues\/new\?template=bug_report\.yml&/);
 });
 
 test('the tutorial: twelve steps, each with only its own controls working and a glow on whatever it talks about, then free play', async ({ browser }) => {
@@ -1249,4 +1249,34 @@ test('on the title screen, the ripe plant shakes and rots after about ten second
   await page.click('#openWelcome');
   await expect(plant).toHaveAttribute('data-stage', 'ripe');
   await context.close();
+});
+
+test('the tutorial step is saved: a reload or a trip to another farm resumes it, and Play the tutorial starts over', async ({ page }) => {
+  await page.goto(`${PAGE}?god`); // ?god lets Next skip ahead
+  await page.selectOption('#farm', 'tutorial-farm');
+  for (let i = 0; i < 7; i++) await page.click('#tutNext');
+  const at = async (step, day, rule) => {
+    await expect(page.locator('#tutStep')).toHaveText(`Tutorial, step ${step} of 12`);
+    await expect(page.locator('#sTick')).toHaveText(day);
+    await expect(page.locator('#hBody')).toHaveValue(rule);
+  };
+  await at(8, '2/20', '⍵=Ripe');
+  await page.reload();
+  await at(8, '2/20', '⍵=Ripe');
+  await page.selectOption('#farm', 'middlebourne-farm');
+  await page.selectOption('#farm', 'tutorial-farm');
+  await at(8, '2/20', '⍵=Ripe');
+  await page.click('#playTutorial');
+  await page.reload();
+  await at(1, '0/20', '0');
+});
+
+test('Report a problem opens the bug-report form with the version and where the player is filled in', async ({ page }) => {
+  const report = async () => Object.fromEntries(new URL(await page.locator('#reportLink').getAttribute('href')).searchParams);
+  expect(await report()).toEqual({ template: 'bug_report.yml', version: await page.evaluate(() => document.getElementById('buildInfo').textContent.replace('Array Acres ', '')), farm: 'Middlebourne Farm' });
+  await page.selectOption('#farm', 'tutorial-farm');
+  await page.click('#tutNext');
+  expect((await report()).farm).toBe('Tutorial Farm, tutorial step 2');
+  await page.selectOption('#farm', 'practice');
+  expect((await report()).farm).toBe('Practice Farm');
 });
