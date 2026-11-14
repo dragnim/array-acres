@@ -584,7 +584,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
   </main>
 
   <!-- Which version this is, for bug reports, and where to send them. -->
-  <footer class="site-footer"><span id="buildInfo">Prototype</span> · <a href="https://github.com/dragnim/array-acres/issues" target="_blank" rel="noopener">Report a problem</a></footer>
+  <footer class="site-footer"><span id="buildInfo">Prototype</span> · <a href="https://github.com/dragnim/array-acres/issues/new?template=bug_report.yml" id="reportLink" target="_blank" rel="noopener">Report a problem</a></footer>
 
   <!-- How to play, the farming guide and the season report share one side panel. -->
   <aside class="panel" id="panel" hidden aria-labelledby="panelTitle">
@@ -1690,6 +1690,12 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   // The version players see in the footer, to quote in bug reports. Bump it with each release for testers.
   const VERSION = '0.2';
   $('buildInfo').textContent = `Array Acres prototype ${VERSION} · rules ${AcresCore.RULES.id}`;
+  // Report a problem opens the bug-report form with the version and the player's farm (and tutorial step) filled in.
+  function updateReportLink() {
+    const where = !farm ? 'Practice Farm' : farm.tutorial && lessonOn() ? `${farm.name}, tutorial step ${tut.step + 1}` : farm.name;
+    const q = new URLSearchParams({ template: 'bug_report.yml', version: `prototype ${VERSION} · rules ${AcresCore.RULES.id}`, farm: where });
+    $('reportLink').href = `https://github.com/dragnim/array-acres/issues/new?${q}`;
+  }
 
   // Practice Farm can borrow Crowhurst's crows and Blightwick's blight, each once Gold has unlocked that
   // farm, so players can try their ideas on fresh fields. weather() is what the current farm plays with.
@@ -1809,6 +1815,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   const locked = what => lessonOn() && !(TUTORIAL[tut.step].allow || []).includes(what);
   function renderTutorial() {
     const on = !!(farm && farm.tutorial), mode = !on ? 'off' : tutFree ? 'free' : 'lesson';
+    updateReportLink();
     $('noteSlot').dataset.mode = on ? 'tutorial' : 'note';
     msgToTutorial = mode === 'lesson';
     if (mode !== tutMode) {
@@ -1885,6 +1892,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   ];
   function applyStepState(i, announce = false) {
     const [days, rule] = STEP_STATES[i];
+    if (lessonOn()) try { localStorage.setItem(TUT_STEP_KEY, String(i)); } catch (e) {}
     const ruleChanged = announce && hBody.value.replace(/\s+/g, '') !== rule.replace(/\s+/g, '');
     stop(); reset();
     let before = null, mask = null;
@@ -1906,7 +1914,16 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
       : days ? narrate(before, mask) : '';
     setMsg(ruleChanged ? `${said} Your rule was reset to match this step.`.trim() : said);
   }
-  function finishTutorial() { tutFree = true; try { localStorage.setItem(TUT_DONE_KEY, '1'); } catch (e) {} }
+  function finishTutorial() { tutFree = true; try { localStorage.setItem(TUT_DONE_KEY, '1'); localStorage.removeItem(TUT_STEP_KEY); } catch (e) {} }
+  // The step a player is on is saved, so closing the page part-way through resumes there. Every step has a fixed
+  // starting point (STEP_STATES), so resuming is just a matter of putting the field there again.
+  const TUT_STEP_KEY = 'acres:tutorial-step';
+  function resumeTutorial() {
+    startTutorial();
+    let saved = 0;
+    try { saved = Number(localStorage.getItem(TUT_STEP_KEY)) || 0; } catch (e) {}
+    if (Number.isInteger(saved) && saved >= 0 && saved < TUTORIAL.length) tut.step = saved;
+  }
   // A day in plain words: what was harvested and scored, what was wasted or rotted, and what grew.
   function narrate(before, mask) {
     const d = state.history[state.history.length - 1], after = state.field, N = before.length;
@@ -2239,8 +2256,8 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
 
   farmEl.addEventListener('change', () => {
     stop();
-    // Choosing Tutorial Farm: the lessons from the start, or free play once they've been finished.
-    if (farmEl.value === 'tutorial-farm') { try { tutFree = localStorage.getItem(TUT_DONE_KEY) === '1'; } catch (e) {} startTutorial(); }
+    // Choosing Tutorial Farm: the lessons where the player left off, or free play once they've been finished.
+    if (farmEl.value === 'tutorial-farm') { try { tutFree = localStorage.getItem(TUT_DONE_KEY) === '1'; } catch (e) {} resumeTutorial(); }
     chooseFarm(farmEl.value);
     if (lessonOn()) applyStepState(tut.step); else { reset(); setMsg(''); }
     renderTutorial();
@@ -3620,7 +3637,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     if (isNew) localStorage.setItem('acres:help-seen', '1');
     if (isNew || !sessionStorage.getItem('acres:welcomed')) openWelcome(isNew);
   } catch (e) {}
-  if (lessonOn()) applyStepState(tut.step); else reset();
+  if (lessonOn()) { resumeTutorial(); applyStepState(tut.step); } else reset();
   sizeCanvas();
   // On touch screens, with no G key: opening the game with ?god turns god mode on, and ?god=off turns it off.
   { const g = new URLSearchParams(location.search).get('god'); if (g !== null && (g !== 'off') !== godMode) setGodMode(g !== 'off'); }
