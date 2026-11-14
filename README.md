@@ -7,6 +7,8 @@
 
 **Farm the whole field. All at once.**
 
+![Array Acres in play: a season on Middlebourne Farm, day 13, with the rule ⍵=Ripe outlining the ripe plants it will harvest today](assets/screenshot.webp)
+
 A programming puzzle game where your field is an array and APL is your toolkit. Each day, your `Harvest` function receives the whole field as a matrix and returns a boolean matrix of plots to harvest. Simple code works; cleverer array reasoning scores more.
 
 This is an early prototype. The APL runs on a small interpreter written in JavaScript, covering a subset of Dyalog APL, so the game can be tried in any browser. If it proves fun and valuable as a teaching tool, the plan is to move it to proper Dyalog APL.
@@ -70,7 +72,7 @@ Every farm follows the rules above. Each has its own weather, its own fixed star
 - **Twelve short steps**, in place of the note above the code: your field, the stages, `⍵`, asking `⍵=Ripe`, the grid of 1s and 0s it gives back, picking with Next day, the same rule answering a changed field, picking too early with `⍵≥Growing`, seeing the waste, undoing it with Previous day, and playing the season.
 - **Locked to the lesson:** only the controls the current step asks for work; everything else is faded, and Next waits until the step's task is done (reading steps aside). The field always matches the step: each step starts from a fixed point (the days played so far and the rule in the box), and Back, Next and Restart put the field exactly there, so going back a step also undoes its days; if that changes the rule in the box, the tutorial says so. **Skip tutorial** goes straight to Middlebourne Farm.
 - **A simpler interface:** only the names the steps use (`⍵ = ≥` and the stages). The symbol bar, code view, Reset code, Show numbers, Show answers and speed are hidden during the lessons, and come back in free play and on the other farms.
-- **Its own code:** Tutorial Farm keeps its code separately, so the lessons never touch the player's own program, and the player's choice of the simple or code view is kept too. A new player starts on the tutorial, so How to play only opens by itself on a first visit that starts elsewhere.
+- **Its own code, and its place:** Tutorial Farm keeps its code separately, so the lessons never touch the player's own program, and the player's choice of the simple or code view is kept too. The step the player is on is saved, so closing the page part-way through, or going to another farm and back, resumes at that step; **Play the tutorial** starts it over. A new player starts on the tutorial, so How to play only opens by itself on a first visit that starts elsewhere.
 - **The glow points at whatever the step talks about**, plots on the field included: the ripe and rotten plants, the 1s, the plants about to be picked too early, and the ones that were wasted. Each plot shows `Harvest`'s answer, 1 or 0, from the step where the player writes their first rule.
 - **A real ending:** finishing needs a season that picked exactly the ripe plants every day, as `⍵=Ripe` does. The season ends in the tutorial, not the report.
 - **Free play afterwards:** finishing unlocks Tutorial Farm to play freely, with the full interface, Previous day and the 1s and 0s still on. It's remembered between visits, with **Replay the tutorial** to go through it again.
@@ -135,7 +137,7 @@ The game is in `index.html`, in three scripts:
 - `acres-core`: the rules and simulation, with no access to the page, so the browser and the tests share one implementation.
 - The page script: drawing and effects, the editor (simple and code views, with buttons for tapping code in), the live preview and diagnostics, progression, and the side panel for What is APL?, How to play, the farming guide, the leaderboard and the season report.
 
-The logo is in `assets/logo.svg`, with a dark-ink copy, `assets/logo-ink.svg`, that this README shows on light backgrounds. The page draws it from a copy inside `index.html` (a `<symbol>` near the top of the page), in the text colour, so it suits both themes; to change the logo, replace the paths in all three. The art is separate, in `assets/plants`: the plants, blight, crow and scarecrow, and the image shown when a link to the game is shared, with notes on how they were made in [its own README](assets/plants/README.md). If an image can't load, the page draws it in code instead, so the game never depends on them. The leaderboard's server code is in `leaderboard/`.
+The screenshot above is `assets/screenshot.webp`. The logo is in `assets/logo.svg`, with a dark-ink copy, `assets/logo-ink.svg`, that this README shows on light backgrounds. The page draws it from a copy inside `index.html` (a `<symbol>` near the top of the page), in the text colour, so it suits both themes; to change the logo, replace the paths in all three. The art is separate, in `assets/plants`: the plants, blight, crow and scarecrow, and the image shown when a link to the game is shared, with notes on how they were made in [its own README](assets/plants/README.md). If an image can't load, the page draws it in code instead, so the game never depends on them. The leaderboard's server code is in `leaderboard/`.
 
 A season is 100 days on an 8×8 field, except on Tutorial Farm, which is 4×4 and 20 days. There are six farms under ruleset `v2`. Middlebourne, Sunnyhill and Marshgate each have their own weather: sunshine sets how likely an unripe plant is to grow overnight, and rainfall how likely a ripe plant left in the ground is to rot. Crowhurst has Middlebourne's weather plus crows, which eat ripe plants at night unless a second function, `Scare`, stands scarecrows nearby. Blightwick has Middlebourne's weather plus blight, which spreads from plant to plant overnight. Each farm also has its own starting field and fixed luck, so the same farm and the same code always give the same score, and its own Bronze, Silver and Gold targets. Personal bests are kept in the browser, and Practice Farm plays random fields with Middlebourne Farm's weather. At the end of a season, a report shows what happened day by day, without suggesting what to change.
 
@@ -165,15 +167,17 @@ npm test
 
 They check the interpreter against Dyalog, including 71 edge cases an expert would try first (comparison tolerance, number display, empty arrays and more), and its limits; exact season totals for two reference strategies over 200 seeded fields; each farm's pinned scores and targets; that every rule stated on the page matches what the simulation actually does; that previewing never changes the game; the unlock journey from first harvest to Gold; Crowhurst's crows and scarecrows and Blightwick's blight, including their edge cases and which strategies earn which medals; the season report's figures; and fixed-field masks for edge cases.
 
-`npm test` also runs the leaderboard tests, against a real SQLite database standing in for D1: replaying entries (including Crowhurst's `Scare` and Blightwick's blight), rejecting faked scores and old experiment versions, simultaneous submissions and checks, expiry, rate limits and the keyed sender hash, the token, and the arcade rules for initials and places.
+`npm test` also runs the leaderboard tests, against a real SQLite database standing in for D1. They check that the Worker's own copy of the ruleset, farms and board versions matches the game's exactly, then replaying entries (including Crowhurst's `Scare` and Blightwick's blight), rejecting faked scores and old experiment versions, simultaneous submissions and checks, expiry, rate limits and the keyed sender hash, the token, and the arcade rules for initials and places.
 
 Browser tests use Playwright and are kept separate. They play the game as players do: first visit, typing and tapping code, the simple and code views, locked tools, the farming guide's examples, each farm's own features, mixed seasons, layouts on desktop, tablet and phone (including that no button ever moves), touch and keyboard use, and an accessibility scan with axe in both themes. They use a stand-in leaderboard, so they never touch the real one:
 
 ```
 npm install
-npx playwright install chromium
+npx playwright install chromium firefox webkit
 npm run test:browser
 ```
+
+The full browser suite runs in Chromium. A short smoke suite, `tests/smoke.spec.js`, also runs in Firefox and WebKit (Safari's engine): a first visit into the tutorial, saving and resuming a tutorial step, typing code and playing a whole season, the side panels, and code and theme surviving a reload. It loads the game over http from a tiny local server, `tests/serve.js`, which Playwright starts by itself. To run only Chromium, use `npx playwright test --project=chromium`.
 
 `npm run test:all` runs both. GitHub Actions runs them all on every push to `main` and on every pull request.
 
@@ -196,7 +200,8 @@ Ideas, bug reports and pull requests are welcome. The [open issues](https://gith
 - **Before a pull request,** run `npm run test:all`. Changes to the game's behaviour should come with tests.
 - **New mechanics and farms** must pass the design test above: an obvious approach that works but falls short, and an APL idea that does meaningfully better.
 - **Keep the strategies for players to discover.** Documentation and in-game text explain the tools and the rules, not how to win.
-- **For a new round of testers,** bump `VERSION` near the top of the page script, so bug reports say which version they're about.
+- **For a new round of testers,** bump `VERSION` near the top of the page script, so bug reports say which version they're about, and `version` in `package.json` to match (a test checks they agree).
+- **Bug reports** use a form (`.github/ISSUE_TEMPLATE/bug_report.yml`). The game's "Report a problem" link opens it with the version and the player's farm, and tutorial step, already filled in.
 
 ## Next
 
