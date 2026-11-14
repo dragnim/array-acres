@@ -1280,3 +1280,32 @@ test('Report a problem opens the bug-report form with the version and where the 
   await page.selectOption('#farm', 'practice');
   expect((await report()).farm).toBe('Practice Farm');
 });
+
+test('Crowhurst explains Scare: the box says what it is for, and guide examples stand scarecrows and go into Scare', async ({ page }) => {
+  await page.goto(`${PAGE}?god`); // ?god opens Crowhurst Farm
+  await page.selectOption('#farm', 'crowhurst-farm');
+  await expect(page.locator('#sBody')).toHaveAttribute('placeholder', 'Optional: 1s where up to 2\nscarecrows stand tonight.\nThe farming guide shows how.');
+  await page.click('#openGuide');
+  const entry = page.locator('.guide-item', { has: page.locator('h3', { hasText: 'Scare' }) });
+  await expect(entry.locator('.snippet')).toHaveCount(2);
+  await entry.getByRole('button', { name: 'Show me where ((⍳8)=3)∘.∧(⍳8)=3 would stand scarecrows today' }).click();
+  await expect(page.locator('#exampleNote')).toContainText('would stand scarecrows today: 1 scarecrow.');
+  await expect(page.locator('#field')).toHaveAttribute('data-scarecrows', '1');
+  await entry.getByRole('button', { name: 'Show me where ((⍳8)∊2 6)∘.∧(⍳8)=4 would stand scarecrows today' }).click();
+  await expect(page.locator('#exampleNote')).toContainText('2 scarecrows.');
+  await expect(page.locator('#field')).toHaveAttribute('data-scarecrows', '2');
+  // Use puts it in Scare: in the code view, inside Scare←{ }, added after Harvest when there's no Scare yet...
+  const use = () => entry.getByRole('button', { name: 'Use ((⍳8)=3)∘.∧(⍳8)=3 in Scare' }).click();
+  const view = await page.evaluate(() => localStorage.getItem('acres:editor'));
+  if (view !== 'full') await page.click('#viewToggle');
+  await page.locator('#code').fill('Harvest←{0}\n');
+  await use();
+  await expect(page.locator('#code')).toHaveValue('Harvest←{0}\nScare←{((⍳8)=3)∘.∧(⍳8)=3}');
+  await expect(page.locator('#field')).toHaveAttribute('data-scarecrows', '1'); // the preview of the player's own Scare
+  // ...and in the simple view, in the Scare box, leaving Harvest alone.
+  await page.click('#viewToggle');
+  await page.locator('#sBody').fill('');
+  await use();
+  await expect(page.locator('#sBody')).toHaveValue('((⍳8)=3)∘.∧(⍳8)=3');
+  await expect(page.locator('#hBody')).toHaveValue('0');
+});

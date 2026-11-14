@@ -515,7 +515,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
         <button type="button" class="small-button" id="showNumbers" aria-pressed="false">Show numbers</button>
         <button type="button" class="small-button" id="showAnswers" aria-pressed="false" title="Show Harvest’s answer for each plot, 1 or 0">Show answers</button>
       </div>
-      <p class="example-note" id="exampleNote" hidden>Showing what <code id="exampleCode"></code> would harvest today: <span id="exampleCount"></span>. <button type="button" class="link" id="exampleBack">Back to your code</button></p>
+      <p class="example-note" id="exampleNote" hidden>Showing <span id="exampleLead">what</span> <code id="exampleCode"></code> <span id="exampleWhat">would harvest today</span>: <span id="exampleCount"></span>. <button type="button" class="link" id="exampleBack">Back to your code</button></p>
       <div class="field-stage">
         <canvas id="field" role="img" aria-label="The field" aria-describedby="fieldText"></canvas>
         <canvas id="fx" aria-hidden="true"></canvas>
@@ -556,7 +556,7 @@ textarea.frame-body:focus { outline: none; box-shadow: inset 2px 0 0 var(--muted
         <!-- On farms with crows the box splits: Harvest above, Scare below, in the same overall height, so nothing moves. -->
         <div class="frame-fn" id="scareFrame" hidden>
           <code class="frame-edge">Scare←{</code>
-          <textarea id="sBody" class="frame-body frame-scare" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="The inside of Scare, optional" placeholder="Optional: where to stand scarecrows"></textarea>
+          <textarea id="sBody" class="frame-body frame-scare" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="The inside of Scare, optional" placeholder="Optional: 1s where up to 2&#10;scarecrows stand tonight.&#10;The farming guide shows how."></textarea>
           <code class="frame-edge">}</code>
         </div>
       </div>
@@ -2014,18 +2014,28 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
 
   // A farming guide snippet shown on the field instead of the preview, until the code or field changes.
   let example = null;
-  function showExample(code) {
+  function showExample(code, kind = 'harvest') {
     if (example && example.code === code) { clearExample(); return; }
-    const r = AcresCore.evaluate(`Harvest←{${code}}`, state.field, access());
+    const scare = kind === 'scare';
+    const r = AcresCore.evaluate(scare ? `Harvest←{0}\nScare←{${code}}` : `Harvest←{${code}}`, state.field, access(), scare);
     if (!r.ok) { setMsg(errorText(r.kind, r.message), true); return; }
-    example = { code, mask: r.mask };
+    example = scare ? { code, mask: r.mask, scare: r.scare } : { code, mask: r.mask };
     render();
   }
   function clearExample() { if (example) { example = null; render(); } }
   $('exampleBack').addEventListener('click', clearExample);
-  function useSnippet(code) {
+  function useSnippet(code, kind = 'harvest') {
     // Where the panel covers the editor, close it so the code is in view.
     if (!matchMedia('(min-width: 1100px)').matches) closePanel(false);
+    // A Scare example goes into Scare: its own box in the simple view, or inside Scare←{ } in the code view
+    // (added at the end if the program has no Scare yet).
+    if (kind === 'scare' && view !== 'full') sBody.focus();
+    else if (kind === 'scare') {
+      const at = codeEl.value.indexOf('Scare←{');
+      codeEl.focus();
+      if (at >= 0) codeEl.selectionStart = codeEl.selectionEnd = at + 'Scare←{'.length;
+      else { codeEl.selectionStart = codeEl.selectionEnd = codeEl.value.length; insertText(`${codeEl.value.endsWith('\n') ? '' : '\n'}Scare←{}`); codeEl.selectionStart = codeEl.selectionEnd = codeEl.value.length - 1; }
+    }
     const el = editorEl();
     el.focus();
     insertText(code);
@@ -2311,7 +2321,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     { title: 'BumperCrops ⍵', helper: 'BumperCrops', text: 'A ready-made helper. It gives 1 on every ripe plant that’s part of a bumper crop today (four ripe plants in a 2×2 square), and 0 everywhere else. Its answer combines with others like any other: with ∧ and ~, `(⍵=Ripe)∧~BumperCrops ⍵` is the ripe plants that aren’t part of one.', snippets: [['BumperCrops ⍵', 'today’s bumper crops'], ['(⍵=Ripe)∧~BumperCrops ⍵', 'ripe plants not in a bumper crop']] },
     { title: 'Promising ⍵', helper: 'Promising', text: 'A ready-made helper. It gives 1 on every plant that’s part of a 2×2 square of growing or ripe plants: places where a bumper crop could form if you wait.', snippets: [['Promising ⍵', 'where a bumper crop could form']] },
     { title: 'Blight', farm: 'blightwick-farm', text: 'On Blightwick Farm, `Blighted` plants never ripen, and each night they spread blight to the plants directly beside them, even if you cleared them that day. Seeds and rotten plants can’t catch it. To ask a question about a plot’s neighbour, shift a whole map one step: `1↓b⍪0` joins a row of 0s to the bottom and drops the top row, so every plot sees the one below it.', snippets: [['⍵=Blighted', 'blighted plants'], ['b←⍵=Blighted ⋄ 1↓b⍪0', 'plots with blight just below them']] },
-    { title: 'Scare ⍵', farm: 'crowhurst-farm', text: 'A second function you can write for Crowhurst Farm, beside `Harvest`. It’s given today’s field as ⍵ and gives back 1s where up to two scarecrows should stand tonight. Crows eat nothing within one plot of a scarecrow, but the scarecrow tramples the plant on its own plot back to a seed. So stand them beside the plants you’re waiting for, on plots worth little.' },
+    { title: 'Scare ⍵', farm: 'crowhurst-farm', text: 'A second function you can write for Crowhurst Farm, in the second box beside `Harvest`. It works like `Harvest`: it’s given today’s field as ⍵ and gives back 1s and 0s, but its 1s are where scarecrows stand tonight, two at most. Leave it empty for none. Crows eat nothing within one plot of a scarecrow, but the scarecrow tramples the plant on its own plot back to a seed, so stand them beside the plants you’re waiting for, on plots worth little. To choose a plot, build the answer from a row and a column: `(⍳8)=3` is 1 only in third place, and `∘.∧` makes a grid with a 1 only where both the row and the column have one.', snippets: [['((⍳8)=3)∘.∧(⍳8)=3', 'one scarecrow, at row 3, column 3', 'scare'], ['((⍳8)∊2 6)∘.∧(⍳8)=4', 'two scarecrows, in column 4: rows 2 and 6', 'scare']] },
     { title: 'Every symbol, and how the helpers work', source: true, text: 'You can now use every symbol. `BumperCrops` and `Promising` are ordinary APL functions, both built on a third helper, `Squares`, which finds 2×2 squares of 1s, and the stage names are ordinary variables: underneath, each stage is a number. Here’s their code, and you can now use `Squares` yourself. Can you write better helpers? Show numbers, above the field, now shows each plot’s stage as the number your code really sees.', snippets: [['Squares ⍵=Growing', '2×2 squares of growing plants']], code: AcresCore.HELPER_SOURCE },
   ];
   function renderGuide() {
@@ -2324,7 +2334,7 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
       const h = document.createElement('h3'); h.textContent = g.title; if (g.source) h.className = 'prose';
       const p = document.createElement('p'); p.append(rich(open ? g.text : `Unlocks with ${AcresCore.needText(u)}.`));
       item.append(h, p);
-      if (open && g.snippets) item.append(...g.snippets.map(([code, note]) => snippetRow(code, note)));
+      if (open && g.snippets) item.append(...g.snippets.map(([code, note, kind]) => snippetRow(code, note, kind)));
       // The code can scroll sideways, so it can be focused and scrolled with the keyboard too.
       if (open && g.code) { const pre = document.createElement('pre'); pre.textContent = g.code; pre.tabIndex = 0; pre.setAttribute('aria-label', 'The helpers’ APL code'); item.append(pre); }
       return item;
@@ -2332,16 +2342,17 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
   }
 
   // One example: its code, what it picks, and buttons to show it on the field or add it to your code.
-  function snippetRow(code, note) {
+  // A Scare example ('scare') shows scarecrows rather than plots to harvest, and goes into Scare.
+  function snippetRow(code, note, kind = 'harvest') {
     const row = document.createElement('div'); row.className = 'snippet';
     const c = document.createElement('code'); c.textContent = code;
     const n = document.createElement('span'); n.className = 'snippet-note'; n.textContent = note;
     const show = document.createElement('button'); show.type = 'button'; show.className = 'small-button'; show.textContent = 'Show me';
-    show.setAttribute('aria-label', `Show me what ${code} would harvest today`);
-    show.addEventListener('click', () => showExample(code));
+    show.setAttribute('aria-label', kind === 'scare' ? `Show me where ${code} would stand scarecrows today` : `Show me what ${code} would harvest today`);
+    show.addEventListener('click', () => showExample(code, kind));
     const use = document.createElement('button'); use.type = 'button'; use.className = 'small-button'; use.textContent = 'Use';
-    use.setAttribute('aria-label', `Use ${code} in your code`);
-    use.addEventListener('click', () => useSnippet(code));
+    use.setAttribute('aria-label', kind === 'scare' ? `Use ${code} in Scare` : `Use ${code} in your code`);
+    use.addEventListener('click', () => useSnippet(code, kind));
     row.append(c, n, show, use);
     return row;
   }
@@ -2481,9 +2492,11 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     cv.dataset.picked = shown ? shown.flat().filter(Boolean).length : 0;
     $('exampleNote').hidden = !example;
     if (example) {
-      const n = example.mask.flat().filter(Boolean).length;
+      const n = (example.scare || example.mask).flat().filter(Boolean).length;
       $('exampleCode').textContent = example.code;
-      $('exampleCount').textContent = `${n} plot${n === 1 ? '' : 's'}`;
+      $('exampleLead').textContent = example.scare ? 'where' : 'what';
+      $('exampleWhat').textContent = example.scare ? 'would stand scarecrows today' : 'would harvest today';
+      $('exampleCount').textContent = example.scare ? `${n} scarecrow${n === 1 ? '' : 's'}` : `${n} plot${n === 1 ? '' : 's'}`;
     }
     if (!state || !COL) return;
     // data-bumpers counts every ripe 2×2 square, overlapping ones included, as scoring does.
@@ -2491,7 +2504,9 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
     cv.dataset.bumpers = squares.length;
     cv.dataset.art = artReady ? 'images' : 'drawn';
     cv.setAttribute('aria-label', tiling.length ? `The field, with ${tiling.length} bumper crop${tiling.length === 1 ? '' : 's'}` : 'The field');
-    describeField(example ? example.mask : !preview.stale && preview.mask, hasCrows() && !preview.stale ? preview.scare : null);
+    // The scarecrows on the field: a Scare example's while it's shown, otherwise the preview's.
+    const scareShown = example?.scare || preview.scare;
+    describeField(example ? example.mask : !preview.stale && preview.mask, hasCrows() ? (example?.scare || (!preview.stale ? preview.scare : null)) : null);
     const w = cv.clientWidth;
     if (!w) return;
     fctx.clearRect(0, 0, w, w);
@@ -2520,9 +2535,9 @@ Promising←{Squares (⍵=Growing)∨⍵=Ripe}
         fctx.restore();
       }
       if (hasCrows() && eatenNow.has(r * SIZE + c)) drawEaten(fctx, at(c), at(r), s);
-      if (hasCrows() && preview.scare && preview.scare[r][c]) drawScarecrow(fctx, at(c), at(r), s, preview.stale);
+      if (hasCrows() && scareShown && scareShown[r][c]) drawScarecrow(fctx, at(c), at(r), s, !example?.scare && preview.stale);
     }
-    cv.dataset.scarecrows = hasCrows() && preview.scare ? preview.scare.flat().filter(Boolean).length : 0;
+    cv.dataset.scarecrows = hasCrows() && scareShown ? scareShown.flat().filter(Boolean).length : 0;
     cv.dataset.numbers = showNumbers && numbersUnlocked ? 'on' : 'off';
     tutorialCheck();
     present();
