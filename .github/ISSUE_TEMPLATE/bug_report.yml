@@ -1,0 +1,44 @@
+name: Report a problem
+description: Something in Array Acres didn't work, looked wrong, or was confusing.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for playing, and for taking the time to tell us. The more you can say, the easier it is to put right. If you came from the game's "Report a problem" link, the farm and version are already filled in.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What went wrong, looked wrong, or was confusing. A screenshot helps, and you can drop one in here.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: What were you doing just before?
+      description: The steps that led to it, as far as you remember them.
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+  - type: textarea
+    id: code
+    attributes:
+      label: Your code
+      description: If it's about your code or a score, paste your code here.
+      render: apl
+  - type: input
+    id: farm
+    attributes:
+      label: Farm
+      description: Which farm you were on, and the step, if you were in the tutorial.
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and device
+      description: For example, Safari on an iPad, or Chrome on Windows.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Shown at the bottom of the game's page, for example "prototype 0.2 · rules v2".
