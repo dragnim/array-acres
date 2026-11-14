@@ -105,7 +105,7 @@ Every farm follows the rules above. Each has its own weather, its own fixed star
 - **Medals:** Bronze 1050, Silver 1150, Gold 1250.
 - **Unlocks:** Gold on any farm.
 - **Crows:** after the field grows each night, a flock lands on a 3×3 patch and eats every ripe plant there, leaving seeds. A flock at the edge of the field only reaches the plots inside it.
-- **Scarecrows:** a second function, `Scare`, is given the same field and gives back 1s where scarecrows should stand tonight, two at most. Crows eat nothing within one plot of a scarecrow. A scarecrow tramples the plant on its own plot back to a seed, though that seed can still grow that night.
+- **Scarecrows:** a second function, `Scare`, is given the same field and gives back 1s where scarecrows should stand tonight, two at most. Crows eat nothing within one plot of a scarecrow. A scarecrow tramples the plant on its own plot back to a seed, though that seed can still grow that night. While it's empty, the `Scare` box itself says what it's for, and the farming guide's `Scare` entry shows how to stand a scarecrow on a chosen plot, with examples whose **Show me** stands the scarecrows on today's field and whose **Use** puts the code in `Scare`. The preview shows where the player's own `Scare` will stand them before each day is played.
 - **Character:** the first farm where something works against you overnight.
 
 ### Blightwick Farm (experimental)
