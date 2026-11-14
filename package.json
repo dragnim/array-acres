@@ -1,9 +1,9 @@
 {
   "name": "array-acres",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "license": "MIT",
-  "description": "A programming puzzle game where your farm is an array and APL is your toolkit.",
+  "description": "A programming puzzle game where your field is an array and APL is your toolkit.",
   "scripts": {
     "test": "node tests/core.test.js && node tests/leaderboard.test.js",
     "test:browser": "playwright test",
